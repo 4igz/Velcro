@@ -1,0 +1,19 @@
+[package]
+name = "jorde/tgc2-rewrite"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[server-dependencies]
+ProfileService = "brittonfischer/profileservice@2.1.5"
+cmdr = "evaera/cmdr@1.11.0"
+
+[dependencies]
+debugLoggerUtil = "bubshayz/debugloggerutil@1.1.2"
+Component = "bubshayz/component@1.4.1"
+Signal = "stravant/goodsignal@0.2.1"
+network = "bubshayz/network@7.5.1"
+loader = "sleitnick/loader@2.0.0"
+Promise = "evaera/promise@4.0.0"
+Trove = "sleitnick/trove@0.5.0"
+Sift = "csqrl/sift@0.0.6"
