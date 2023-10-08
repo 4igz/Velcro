@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local ProfileService = require(ServerStorage.serverPackages.ProfileService)
+local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local Signal = require(ReplicatedStorage.sharedPackages.Signal)
 
 local Profiles = {} -- [player] = profile
@@ -60,14 +61,26 @@ function playerDataService.start()
 	end)
 end
 
--- Gives a copy of the profile rather than the actual profile for immutability purposes
-function playerDataService.getProfile(player: Player): any?
-	return table.clone(Profiles[player])
+function playerDataService.updateProfile(player: Player, newData: { [any]: any })
+	local playerProfile = playerDataService.getProfile(player)
+	local mergedData = Sift.Dictionary.merge(playerProfile.Data, newData)
+	playerProfile.Data = mergedData
+	playerDataService.setProfile(player, mergedData)
+end
+
+function playerDataService.getProfile(player: Player): PlayerProfile?
+	if player:IsDescendantOf(Players) and not Profiles[player] then
+		return playerDataService.waitForProfile(player)
+	end
+	return Profiles[player]
 end
 
 function playerDataService.setProfile(player: Player, newProfile)
-	Profiles[player] = newProfile
-	playerDataService.playerDataChanged:Fire(player, newProfile)
+	if not (player:IsDescendantOf(Players) and Profiles[player]) then
+		return
+	end
+	playerDataService.profileChanged:Fire(player, newProfile)
+	playerDataService.client.profileChanged:fireClient(player, newProfile.Data)
 end
 
 return playerDataService
