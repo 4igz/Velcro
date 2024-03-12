@@ -1,11 +1,11 @@
 -- Example service, possibly applicable
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local sharedPackages = ReplicatedStorage.sharedPackages
 
-local Signal = require(sharedPackages.Signal)
 local Promise = require(sharedPackages.Promise)
+local Signal = require(sharedPackages.Signal)
 
 local DEFAULT_STATE = {
 	Life = { -- Resets on Respawn
@@ -16,9 +16,7 @@ local DEFAULT_STATE = {
 local RETRY_GET_STATE_TIMES = 10
 local RETRY_DELAY = 0.1
 
-local playerStateService = {
-	client = {}
-}
+local playerStateService = {}
 
 -- :connect(function(player: Player, newState))
 playerStateService.stateChange = Signal.new()
@@ -74,10 +72,6 @@ end
 
 function playerStateService.getPlayerState(player: Player)
 	return table.clone(playerStates[player])
-end
-
-function playerStateService.client.getPlayerStates()
-	return playerStates
 end
 
 return playerStateService

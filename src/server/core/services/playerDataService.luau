@@ -13,13 +13,27 @@ local playerDataService = {}
 
 -- ProfileTemplate table is what empty profiles will default to.
 playerDataService.ProfileTemplate = {
-	Credits = 500,
-	Level = 1,
+	inventory = {
+		Rock = 0,
+		Stick = 0,
+
+		-- Craftables
+		["Stone Axe"] = 0,
+	},
+	levels = {
+		Gathering = {
+			level = 1,
+			experience = 0,
+		},
+	},
+	currentIsland = "StoneAge",
 }
 
 local ProfileStore = ProfileService.GetProfileStore("PlayerData", playerDataService.ProfileTemplate)
 playerDataService.playerDataLoaded = Signal.new()
 playerDataService.playerDataChanged = Signal.new()
+
+local getDataRF: RemoteFunction = ReplicatedStorage.GetData
 
 local function playerAdded(player: Player)
 	local profile = ProfileStore:LoadProfileAsync(`Player_{player.UserId}`)
@@ -46,6 +60,10 @@ local function playerAdded(player: Player)
 end
 
 function playerDataService.start()
+	getDataRF.OnServerInvoke = function(player)
+		return playerDataService.getProfile(player).Data
+	end
+
 	-- Create profile for players who could have joined before this script started.
 	for _, player in Players:GetPlayers() do
 		task.spawn(playerAdded, player)
@@ -79,8 +97,7 @@ function playerDataService.setProfile(player: Player, newProfile)
 	if not (player:IsDescendantOf(Players) and Profiles[player]) then
 		return
 	end
-	playerDataService.profileChanged:Fire(player, newProfile)
-	playerDataService.client.profileChanged:fireClient(player, newProfile.Data)
+	playerDataService.playerDataChanged:Fire(player, newProfile)
 end
 
 return playerDataService

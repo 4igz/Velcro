@@ -20,6 +20,9 @@
             "sharedPackages": {
                 "$path": "Packages"
             },
+            "zap": {
+                "$path": "path/to/client"
+            },
             "$ignoreUnknownInstances": true
         },
         "ServerScriptService": {
@@ -33,6 +36,9 @@
             },
             "serverPackages": {
                 "$path": "ServerPackages"
+            },
+            "zap": {
+                "$path": "path/to/server"
             },
             "$ignoreUnknownInstances": true
         },

@@ -5,12 +5,16 @@ local services = ServerStorage.server.services
 local playerDataService = require(services.playerDataService)
 
 type LevelData = {
-    level: number,
-    experience: number,
+	level: number,
+	experience: number,
 }
 local BASE_EXPERIENCE = 25
+local DEF = {
+	level = 1,
+	experience = 0,
+}
 
-local levelService = { client = {} }
+local levelService = {}
 
 function levelService.levelFromExperience(experience: number): number
 	return math.floor(
@@ -37,48 +41,42 @@ function levelService.costLeftToNextLevel(experience: number): number
 end
 
 function levelService.getLevelType(player: Player, levelType: string?): LevelData
-    local playerProfile = playerDataService.getProfile(player)
-    if not levelType then
-        levelType = "Overall"
-    end
-    local level = playerProfile.Data.Levels[levelType]
-    if not level then
-        playerProfile.Data.Levels[levelType] = {
-            level = 1,
-            experience = 0,
-        }
-        playerDataService.setProfile(player, playerProfile)
-    end
-    return playerProfile.Data.Levels[levelType]
+	local playerProfile = playerDataService.getProfile(player)
+	if not levelType then
+		levelType = "overall"
+	end
+	local level = playerProfile.Data.levels[levelType]
+	if not level then
+		playerProfile.Data.levels[levelType] = DEF
+		playerDataService.setProfile(player, playerProfile)
+	end
+	return playerProfile.Data.levels[levelType]
 end
 
 function levelService.addExperience(player: Player, levelType: string, additive: number)
-    if levelType == "Overall" then
-        warn("Overall level experience is handled automatically.")
-        return
-    end
-    local playerProfile = playerDataService.getProfile(player)
-    local overallLevel = playerProfile.Data.Levels.Overall
-    local level = playerProfile.Data.Levels[levelType]
+	if levelType == "overall" then
+		warn("Overall level experience is handled automatically.")
+		return
+	end
+	local playerProfile = playerDataService.getProfile(player)
+	local overallLevel = playerProfile.Data.levels.overall or DEF
+	local level = playerProfile.Data.levels[levelType]
 
-    if not level then -- New level types are created dynamically
-        level = {
-            level = 1,
-            experience = 0,
-        }
-    end
+	if not level then -- New level types are created dynamically
+		level = DEF
+	end
 
-    playerProfile.Data.Levels.Overall = {
-        level = levelService.levelFromExperience(overallLevel.experience + additive),
-        experience = overallLevel.experience + additive
-    }
+	playerProfile.Data.levels.overall = {
+		level = levelService.levelFromExperience(overallLevel.experience + additive),
+		experience = overallLevel.experience + additive,
+	}
 
-    playerProfile.Data.Levels[levelType] = {
-        level = levelService.levelFromExperience(level.experience + additive),
-        experience = level.experience + additive
-    }
+	playerProfile.Data.levels[levelType] = {
+		level = levelService.levelFromExperience(level.experience + additive),
+		experience = level.experience + additive,
+	}
 
-    playerDataService.setProfile(player, playerProfile)
+	playerDataService.setProfile(player, playerProfile)
 end
 
 return levelService
