@@ -6,8 +6,6 @@ local ServerStorage = game:GetService("ServerStorage")
 local ProfileService = require(ServerStorage.serverPackages.ProfileService)
 local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local Signal = require(ReplicatedStorage.sharedPackages.Signal)
-local numberUtil = require(ReplicatedStorage.shared.utilities.numberUtil)
-local zap = require(ServerStorage.zap)
 
 local Profiles = {} -- [player] = profile
 
@@ -15,30 +13,27 @@ local playerDataService = {}
 
 -- ProfileTemplate table is what empty profiles will default to.
 playerDataService.ProfileTemplate = {
-	energy = 0,
-	petRollLuck = 1,
+	inventory = {
+		Rock = 0,
+		Stick = 0,
 
-	-- placeholder stuff
-	generators = {
-		dirt = 0,
-		water = 0,
-		trees = 0,
-		egg = 0,
-		chicken = 0,
-		humans = 0,
-		hut = 0,
+		-- Craftables
+		["Stone Axe"] = 0,
 	},
-
-	upgrades = {
-		energyPerClick = 500,
+	levels = {
+		Gathering = {
+			level = 1,
+			experience = 0,
+		},
 	},
-
-	pets = {},
+	currentIsland = "StoneAge",
 }
 
 local ProfileStore = ProfileService.GetProfileStore("PlayerData", playerDataService.ProfileTemplate)
 playerDataService.playerDataLoaded = Signal.new()
 playerDataService.playerDataChanged = Signal.new()
+
+local getDataRF: RemoteFunction = ReplicatedStorage.GetData
 
 local function playerAdded(player: Player)
 	local profile = ProfileStore:LoadProfileAsync(`Player_{player.UserId}`)
@@ -65,6 +60,10 @@ local function playerAdded(player: Player)
 end
 
 function playerDataService.start()
+	getDataRF.OnServerInvoke = function(player)
+		return playerDataService.getProfile(player).Data
+	end
+
 	-- Create profile for players who could have joined before this script started.
 	for _, player in Players:GetPlayers() do
 		task.spawn(playerAdded, player)
@@ -78,17 +77,6 @@ function playerDataService.start()
 			profile:Release()
 		end
 	end)
-end
-
--- Preferably used inside of PlayerAdded events
-function playerDataService.waitForProfile(player: Player): PlayerProfile?
-	while player:IsDescendantOf(Players) do
-		local profile = Profiles[player]
-		if profile then
-			return profile
-		end
-		task.wait(RETRY_DELAY)
-	end
 end
 
 function playerDataService.updateProfile(player: Player, newData: { [any]: any })
@@ -110,7 +98,6 @@ function playerDataService.setProfile(player: Player, newProfile)
 		return
 	end
 	playerDataService.playerDataChanged:Fire(player, newProfile)
-	zap.UpdateEnergy.Fire(player, { energy = numberUtil.simplifyNumber(newProfile.Data.energy) })
 end
 
 return playerDataService

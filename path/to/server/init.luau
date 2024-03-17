@@ -153,149 +153,254 @@ RunService.Heartbeat:Connect(function()
 end)
 
 local events = table.create(4)
-reliable.OnServerEvent:Connect(function(player, buff, inst)
-	incoming_buff = buff
-	incoming_inst = inst
-	incoming_read = 0
-	incoming_ipos = 0
-	local len = buffer.len(buff)
-	while incoming_read < len do
-		local id = buffer.readu8(buff, read(1))
-		if id == 4 then
-			local value
-			value = {}
-			local len = buffer.readu16(incoming_buff, read(2))
-			value.eggName = buffer.readstring(incoming_buff, read(len), len)
-			value.amt = buffer.readu16(incoming_buff, read(2))
-			if events[4] then
-				task.spawn(events[4], player, value)
-			end
-		else
-			error("Unknown event id")
-		end
-	end
-end)
 unreliable.OnServerEvent:Connect(function(player, buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
 	incoming_read = 0
 	incoming_ipos = 0
 	local id = buffer.readu8(buff, read(1))
-	if id == 1 then
+	if id == 3 then
+		local value
+		value = {}
+		local len = buffer.readu16(incoming_buff, read(2))
+		assert(len <= 8)
+		value.itemId = buffer.readstring(incoming_buff, read(len), len)
+		if events[3] then
+			task.spawn(events[3], player, value)
+		end
+	elseif id == 4 then
 		local value
 		value = {}
 		local len = buffer.readu16(incoming_buff, read(2))
 		assert(len <= 32)
-		value.generatorName = buffer.readstring(incoming_buff, read(len), len)
-		value.amt = buffer.readu32(incoming_buff, read(4))
-		if events[1] then
-			task.spawn(events[1], player, value)
-		end
-	elseif id == 2 then
-		local value
-		if events[2] then
-			task.spawn(events[2], player, value)
+		value.itemName = buffer.readstring(incoming_buff, read(len), len)
+		if events[4] then
+			task.spawn(events[4], player, value)
 		end
 	else
 		error("Unknown event id")
 	end
 end)
 return {
-	UpdateEnergy = {
+	RevealPickup = {
 		Fire = function(Player: Player, Value: ({
-			energy: (string),
+			pickupType: (string),
+			position: (Vector3),
+			itemId: (string),
 		}))
-			load_empty()
+			load_player(Player)
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local len = #Value.energy
-			assert(len <= 32)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+			local len = #Value.pickupType
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
 			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.energy, len)
-			local buff = buffer.create(outgoing_used)
-			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
-			unreliable:FireClient(Player, buff, outgoing_inst)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.pickupType, len)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.position.Z)
+			local len = #Value.itemId
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.itemId, len)
+			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
-			energy: (string),
+			pickupType: (string),
+			position: (Vector3),
+			itemId: (string),
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local len = #Value.energy
-			assert(len <= 32)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+			local len = #Value.pickupType
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
 			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.energy, len)
-			local buff = buffer.create(outgoing_used)
-			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
-			unreliable:FireAllClients(buff, outgoing_inst)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.pickupType, len)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.position.Z)
+			local len = #Value.itemId
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.itemId, len)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
 		end,
 		FireExcept = function(Except: Player, Value: ({
-			energy: (string),
+			pickupType: (string),
+			position: (Vector3),
+			itemId: (string),
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local len = #Value.energy
-			assert(len <= 32)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+			local len = #Value.pickupType
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
 			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.energy, len)
-			local buff = buffer.create(outgoing_used)
-			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.pickupType, len)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.position.Z)
+			local len = #Value.itemId
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.itemId, len)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
-					unreliable:FireClient(player, buff, outgoing_inst)
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
 				end
 			end
 		end,
 		FireList = function(List: { Player }, Value: ({
-			energy: (string),
+			pickupType: (string),
+			position: (Vector3),
+			itemId: (string),
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local len = #Value.energy
-			assert(len <= 32)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+			local len = #Value.pickupType
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
 			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.energy, len)
-			local buff = buffer.create(outgoing_used)
-			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.pickupType, len)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.position.Z)
+			local len = #Value.itemId
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.itemId, len)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
-				unreliable:FireClient(player, buff, outgoing_inst)
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
 			end
 		end,
 	},
-	BuyGenerator = {
+	DestroyPickup = {
+		Fire = function(Player: Player, Value: ({
+			itemId: (string),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
+			local len = #Value.itemId
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.itemId, len)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			itemId: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
+			local len = #Value.itemId
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.itemId, len)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			itemId: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
+			local len = #Value.itemId
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.itemId, len)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { Player }, Value: ({
+			itemId: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
+			local len = #Value.itemId
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.itemId, len)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	Pickup = {
 		SetCallback = function(Callback: (Player, ({
-			generatorName: (string),
-			amt: (number),
+			itemId: (string),
 		})) -> ()): () -> ()
-			events[1] = Callback
+			events[3] = Callback
 			return function()
-				events[1] = nil
+				events[3] = nil
 			end
 		end,
 	},
-	GetEnergy = {
-		SetCallback = function(Callback: (Player) -> ()): () -> ()
-			events[2] = Callback
-			return function()
-				events[2] = nil
-			end
-		end,
-	},
-	RollEgg = {
+	Craft = {
 		SetCallback = function(Callback: (Player, ({
-			eggName: (string),
-			amt: (number),
+			itemName: (string),
 		})) -> ()): () -> ()
 			events[4] = Callback
 			return function()

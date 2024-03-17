@@ -136,94 +136,118 @@ end)
 
 local events = table.create(4)
 local event_queue: { [number]: { any } } = table.create(4)
-event_queue[3] = {}
-unreliable.OnClientEvent:Connect(function(buff, inst)
+event_queue[1] = {}
+event_queue[2] = {}
+reliable.OnClientEvent:Connect(function(buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
 	incoming_read = 0
 	incoming_ipos = 0
-	local id = buffer.readu8(buff, read(1))
-	if id == 3 then
-		local value
-		value = {}
-		local len = buffer.readu16(incoming_buff, read(2))
-		assert(len <= 32)
-		value.energy = buffer.readstring(incoming_buff, read(len), len)
-		if events[3] then
-			task.spawn(events[3], value)
-		else
-			table.insert(event_queue[3], value)
-			if #event_queue[3] > 64 then
-				warn(`[ZAP] {#event_queue[3]} events in queue for UpdateEnergy. Did you forget to attach a listener?`)
+	local len = buffer.len(buff)
+	while incoming_read < len do
+		local id = buffer.readu8(buff, read(1))
+		if id == 1 then
+			local value
+			value = {}
+			local len = buffer.readu16(incoming_buff, read(2))
+			value.pickupType = buffer.readstring(incoming_buff, read(len), len)
+			value.position = Vector3.new(buffer.readf32(incoming_buff, read(4)), buffer.readf32(incoming_buff, read(4)), buffer.readf32(incoming_buff, read(4)))
+			local len = buffer.readu16(incoming_buff, read(2))
+			value.itemId = buffer.readstring(incoming_buff, read(len), len)
+			if events[1] then
+				task.spawn(events[1], value)
+			else
+				table.insert(event_queue[1], value)
+				if #event_queue[1] > 64 then
+					warn(`[ZAP] {#event_queue[1]} events in queue for RevealPickup. Did you forget to attach a listener?`)
+				end
 			end
+		elseif id == 2 then
+			local value
+			value = {}
+			local len = buffer.readu16(incoming_buff, read(2))
+			value.itemId = buffer.readstring(incoming_buff, read(len), len)
+			if events[2] then
+				task.spawn(events[2], value)
+			else
+				table.insert(event_queue[2], value)
+				if #event_queue[2] > 64 then
+					warn(`[ZAP] {#event_queue[2]} events in queue for DestroyPickup. Did you forget to attach a listener?`)
+				end
+			end
+		else
+			error("Unknown event id")
 		end
-	else
-		error("Unknown event id")
 	end
 end)
 return {
-	BuyGenerator = {
+	Pickup = {
 		Fire = function(Value: ({
-			generatorName: (string),
-			amt: (number),
+			itemId: (string),
 		}))
 			local saved = save()
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local len = #Value.generatorName
+			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
+			local len = #Value.itemId
+			assert(len <= 8)
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.itemId, len)
+			local buff = buffer.create(outgoing_used)
+			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
+			unreliable:FireServer(buff, outgoing_inst)
+			load(saved)
+		end,
+	},
+	Craft = {
+		Fire = function(Value: ({
+			itemName: (string),
+		}))
+			local saved = save()
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
+			local len = #Value.itemName
 			assert(len <= 32)
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
 			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.generatorName, len)
-			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value.amt)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.itemName, len)
 			local buff = buffer.create(outgoing_used)
 			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
 			unreliable:FireServer(buff, outgoing_inst)
 			load(saved)
 		end,
 	},
-	GetEnergy = {
-		Fire = function()
-			local saved = save()
-			load_empty()
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
-			local buff = buffer.create(outgoing_used)
-			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
-			unreliable:FireServer(buff, outgoing_inst)
-			load(saved)
-		end,
-	},
-	RollEgg = {
-		Fire = function(Value: ({
-			eggName: (string),
-			amt: (number),
-		}))
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
-			local len = #Value.eggName
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len)
-			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.eggName, len)
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, Value.amt)
-		end,
-	},
-	UpdateEnergy = {
+	RevealPickup = {
 		SetCallback = function(Callback: (({
-			energy: (string),
+			pickupType: (string),
+			position: (Vector3),
+			itemId: (string),
 		})) -> ()): () -> ()
-			events[3] = Callback
-			for _, value in event_queue[3] do
+			events[1] = Callback
+			for _, value in event_queue[1] do
 				task.spawn(Callback, value)
 			end
-			event_queue[3] = {}
+			event_queue[1] = {}
 			return function()
-				events[3] = nil
+				events[1] = nil
+			end
+		end,
+	},
+	DestroyPickup = {
+		SetCallback = function(Callback: (({
+			itemId: (string),
+		})) -> ()): () -> ()
+			events[2] = Callback
+			for _, value in event_queue[2] do
+				task.spawn(Callback, value)
+			end
+			event_queue[2] = {}
+			return function()
+				events[2] = nil
 			end
 		end,
 	},
