@@ -1,4 +1,3 @@
--- Example service, possibly applicable
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -18,7 +17,6 @@ local RETRY_DELAY = 0.1
 
 local playerStateService = {}
 
--- :connect(function(player: Player, newState))
 playerStateService.stateChange = Signal.new()
 
 local playerStates = {}
