@@ -29,10 +29,20 @@ event UpdateEnergy = {
 
 event RollEgg = {
 	from: Client,
-	type: Reliable,
+	type: Unreliable,
 	call: SingleAsync,
 	data: struct {
-		eggName: string,
+		eggName: string(..32),
 		amt: u16
+	}
+}
+
+event FusePets = {
+	from: Client,
+	type: Unreliable,
+	call: SingleAsync,
+	data: struct {
+		petName: string(..32),
+		level: u32
 	}
 }

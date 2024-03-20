@@ -16,7 +16,7 @@ local energyController = {}
 function energyController.start()
 	zap.UpdateEnergy.SetCallback(function(data)
 		root:render(React.createElement(energyDisplay, {
-			energy = data.energy,
+			text = data.energy,
 		}))
 	end)
 

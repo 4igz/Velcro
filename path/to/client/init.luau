@@ -134,8 +134,8 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 end)
 
-local events = table.create(4)
-local event_queue: { [number]: { any } } = table.create(4)
+local events = table.create(5)
+local event_queue: { [number]: { any } } = table.create(5)
 event_queue[3] = {}
 unreliable.OnClientEvent:Connect(function(buff, inst)
 	incoming_buff = buff
@@ -202,15 +202,45 @@ return {
 			eggName: (string),
 			amt: (number),
 		}))
+			local saved = save()
+			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
 			local len = #Value.eggName
+			assert(len <= 32)
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
 			alloc(len)
 			buffer.writestring(outgoing_buff, outgoing_apos, Value.eggName, len)
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, Value.amt)
+			local buff = buffer.create(outgoing_used)
+			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
+			unreliable:FireServer(buff, outgoing_inst)
+			load(saved)
+		end,
+	},
+	FusePets = {
+		Fire = function(Value: ({
+			petName: (string),
+			level: (number),
+		}))
+			local saved = save()
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
+			local len = #Value.petName
+			assert(len <= 32)
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.petName, len)
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value.level)
+			local buff = buffer.create(outgoing_used)
+			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
+			unreliable:FireServer(buff, outgoing_inst)
+			load(saved)
 		end,
 	},
 	UpdateEnergy = {

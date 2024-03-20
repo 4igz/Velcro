@@ -152,29 +152,7 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-local events = table.create(4)
-reliable.OnServerEvent:Connect(function(player, buff, inst)
-	incoming_buff = buff
-	incoming_inst = inst
-	incoming_read = 0
-	incoming_ipos = 0
-	local len = buffer.len(buff)
-	while incoming_read < len do
-		local id = buffer.readu8(buff, read(1))
-		if id == 4 then
-			local value
-			value = {}
-			local len = buffer.readu16(incoming_buff, read(2))
-			value.eggName = buffer.readstring(incoming_buff, read(len), len)
-			value.amt = buffer.readu16(incoming_buff, read(2))
-			if events[4] then
-				task.spawn(events[4], player, value)
-			end
-		else
-			error("Unknown event id")
-		end
-	end
-end)
+local events = table.create(5)
 unreliable.OnServerEvent:Connect(function(player, buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
@@ -195,6 +173,26 @@ unreliable.OnServerEvent:Connect(function(player, buff, inst)
 		local value
 		if events[2] then
 			task.spawn(events[2], player, value)
+		end
+	elseif id == 4 then
+		local value
+		value = {}
+		local len = buffer.readu16(incoming_buff, read(2))
+		assert(len <= 32)
+		value.eggName = buffer.readstring(incoming_buff, read(len), len)
+		value.amt = buffer.readu16(incoming_buff, read(2))
+		if events[4] then
+			task.spawn(events[4], player, value)
+		end
+	elseif id == 5 then
+		local value
+		value = {}
+		local len = buffer.readu16(incoming_buff, read(2))
+		assert(len <= 32)
+		value.petName = buffer.readstring(incoming_buff, read(len), len)
+		value.level = buffer.readu32(incoming_buff, read(4))
+		if events[5] then
+			task.spawn(events[5], player, value)
 		end
 	else
 		error("Unknown event id")
@@ -300,6 +298,17 @@ return {
 			events[4] = Callback
 			return function()
 				events[4] = nil
+			end
+		end,
+	},
+	FusePets = {
+		SetCallback = function(Callback: (Player, ({
+			petName: (string),
+			level: (number),
+		})) -> ()): () -> ()
+			events[5] = Callback
+			return function()
+				events[5] = nil
 			end
 		end,
 	},

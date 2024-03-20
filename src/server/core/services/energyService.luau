@@ -4,8 +4,10 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local generatorConfig = require(ReplicatedStorage.shared.configurations.generatorConfig)
+local monetizationUtil = require(ReplicatedStorage.shared.utilities.monetizationUtil)
 local numberUtil = require(ReplicatedStorage.shared.utilities.numberUtil)
 local playerDataService = require(script.Parent.playerDataService)
+local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
 local zap = require(ServerStorage.zap)
 
 local GENERATOR_COOLDOWN = 1
@@ -24,8 +26,18 @@ function energyService.start()
 		end
 		clickCooldowns[player] = now
 
+		local _, has2xClickGamepass = monetizationUtil
+			.userOwnsGamepass(player.UserId, sharedInfo.Gamepasses["2x Click"])
+			:await()
+
 		local playerProfile = playerDataService.getProfile(player)
-		playerProfile.Data.energy += playerProfile.Data.upgrades.energyPerClick
+		local clickEnergy = playerProfile.Data.upgrades.energyPerClick
+
+		if has2xClickGamepass then
+			clickEnergy *= 2
+		end
+
+		playerProfile.Data.energy += clickEnergy
 		playerDataService.setProfile(player, playerProfile)
 	end)
 
@@ -38,7 +50,7 @@ function energyService.start()
 		local playerProfile = playerDataService.getProfile(player)
 
 		local scaledEnergy = genInfo.cost
-			* ((1 + GENERATOR_COST_INCREASE) ^ playerProfile.Data.generators[name] + data.amt)
+			* ((1 + GENERATOR_COST_INCREASE) ^ playerProfile.Data.generators[name] + amt)
 
 		if playerProfile.Data.energy >= scaledEnergy then
 			playerProfile.Data.generators[name] += amt

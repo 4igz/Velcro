@@ -1,28 +1,28 @@
 local numberUtil = {}
 
 local suffixes = {
-	{ 10 ^ 69, "Uvg" }, -- Unvigintillion
-	{ 10 ^ 66, "Utg" }, -- Unsexdecillion
-	{ 10 ^ 63, "Vg" }, -- Vigintillion
-	{ 10 ^ 60, "Nvg" }, -- Novemdecillion
-	{ 10 ^ 57, "Ovg" }, -- Octodecillion
-	{ 10 ^ 54, "Spg" }, -- Septendecillion
-	{ 10 ^ 51, "Sdg" }, -- Sedecillion
-	{ 10 ^ 48, "Qdg" }, -- Quindecillion
-	{ 10 ^ 42, "Tdc" }, -- Tredecillion
-	{ 10 ^ 39, "Ddc" }, -- Duodecillion
-	{ 10 ^ 36, "Ud" }, -- Undecillion
-	{ 10 ^ 33, "Dc" }, -- Decillion
-	{ 10 ^ 30, "No" }, -- Nonillion
-	{ 10 ^ 27, "Oc" }, -- Octillion
-	{ 10 ^ 24, "Sp" }, -- Septillion
-	{ 10 ^ 21, "Sx" }, -- Sextillion
-	{ 10 ^ 18, "Qn" }, -- Quintillion
-	{ 10 ^ 15, "Qd" }, -- Quadrillion
-	{ 10 ^ 12, "T" }, -- Trillion
-	{ 10 ^ 9, "B" }, -- Billion
-	{ 10 ^ 6, "M" }, -- Million
-	{ 10 ^ 3, "K" }, -- Thousand
+	{ 10 ^ 69, "uvg" }, -- Unvigintillion
+	{ 10 ^ 66, "utg" }, -- Unsexdecillion
+	{ 10 ^ 63, "vg" }, -- Vigintillion
+	{ 10 ^ 60, "nvg" }, -- Novemdecillion
+	{ 10 ^ 57, "ovg" }, -- Octodecillion
+	{ 10 ^ 54, "spg" }, -- Septendecillion
+	{ 10 ^ 51, "sdg" }, -- Sedecillion
+	{ 10 ^ 48, "qdg" }, -- Quindecillion
+	{ 10 ^ 42, "tdc" }, -- Tredecillion
+	{ 10 ^ 39, "ddc" }, -- Duodecillion
+	{ 10 ^ 36, "ud" }, -- Undecillion
+	{ 10 ^ 33, "dc" }, -- Decillion
+	{ 10 ^ 30, "no" }, -- Nonillion
+	{ 10 ^ 27, "oc" }, -- Octillion
+	{ 10 ^ 24, "sp" }, -- Septillion
+	{ 10 ^ 21, "sx" }, -- Sextillion
+	{ 10 ^ 18, "qn" }, -- Quintillion
+	{ 10 ^ 15, "qd" }, -- Quadrillion
+	{ 10 ^ 12, "t" }, -- Trillion
+	{ 10 ^ 9, "b" }, -- Billion
+	{ 10 ^ 6, "m" }, -- Million
+	{ 10 ^ 3, "k" }, -- Thousand
 }
 
 function numberUtil.simplifyNumber(n)
