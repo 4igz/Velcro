@@ -18,6 +18,11 @@ version = "1.1.2"
 dependencies = []
 
 [[package]]
+name = "chriscerie/react-spring"
+version = "2.0.0"
+dependencies = [["Promise", "evaera/promise@4.0.0"], ["React", "jsdotlua/react@17.1.0"], ["ReactRoblox", "jsdotlua/react-roblox@17.1.0"], ["TestEZ", "roblox/testez@0.4.1"]]
+
+[[package]]
 name = "csqrl/sift"
 version = "0.0.8"
 dependencies = []
@@ -35,7 +40,7 @@ dependencies = []
 [[package]]
 name = "jorde/tgc2-rewrite"
 version = "0.1.0"
-dependencies = [["Component", "bubshayz/component@1.6.0"], ["Promise", "evaera/promise@4.0.0"], ["React", "jsdotlua/react@17.1.0"], ["ReactRoblox", "jsdotlua/react-roblox@17.1.0"], ["Sift", "csqrl/sift@0.0.8"], ["Signal", "stravant/goodsignal@0.2.1"], ["Trove", "sleitnick/trove@1.1.0"], ["debugLoggerUtil", "bubshayz/debugloggerutil@1.1.2"], ["loader", "sleitnick/loader@2.0.0"], ["ProfileService", "brittonfischer/profileservice@2.1.5"], ["cmdr", "evaera/cmdr@1.12.0"]]
+dependencies = [["Component", "bubshayz/component@1.6.0"], ["Promise", "evaera/promise@4.0.0"], ["React", "jsdotlua/react@17.1.0"], ["ReactRoblox", "jsdotlua/react-roblox@17.1.0"], ["ReactSpring", "chriscerie/react-spring@2.0.0"], ["Sift", "csqrl/sift@0.0.8"], ["Signal", "stravant/goodsignal@0.2.1"], ["Trove", "sleitnick/trove@1.1.0"], ["debugLoggerUtil", "bubshayz/debugloggerutil@1.1.2"], ["loader", "sleitnick/loader@2.0.0"], ["ProfileService", "brittonfischer/profileservice@2.1.5"], ["cmdr", "evaera/cmdr@1.12.0"]]
 
 [[package]]
 name = "jsdotlua/boolean"
@@ -121,6 +126,11 @@ dependencies = []
 name = "jsdotlua/timers"
 version = "1.2.6"
 dependencies = [["collections", "jsdotlua/collections@1.2.6"]]
+
+[[package]]
+name = "roblox/testez"
+version = "0.4.1"
+dependencies = []
 
 [[package]]
 name = "sleitnick/loader"
