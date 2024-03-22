@@ -17,16 +17,16 @@ local playerDataService = {}
 playerDataService.ProfileTemplate = {
 	energy = 0,
 	petRollLuck = 1,
+	rebirthPoints = 0,
+	rebirth = 0,
 
 	-- placeholder stuff
 	generators = {
-		dirt = 0,
-		water = 0,
+		earth = 0,
 		trees = 0,
-		egg = 0,
-		chicken = 0,
 		humans = 0,
-		hut = 0,
+		huts = 0,
+		ships = 0,
 	},
 
 	upgrades = {

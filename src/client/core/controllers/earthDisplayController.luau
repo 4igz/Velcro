@@ -12,7 +12,6 @@ local bobHeight = 1 -- The height range for the bobbing effect
 local angle = 0 -- Initial angle for spinning
 
 function earthDisplayController.start()
-	--
 	local earths = CollectionService:GetTagged(EARTH_TAG)
 	for _, earth in earths do
 		earth.PrimaryPart = earth:FindFirstChild("Earth")

@@ -4,8 +4,8 @@ local Signal = require(ReplicatedStorage.sharedPackages.Signal)
 -- For shared information / enums
 return {
 	Gamepasses = {
-		["2x Click"] = 4057761,
-		["2x Pet Storage"] = 4057761,
+		["2x Click"] = 4057761_1,
+		["2x Pet Storage"] = 4057761_1,
 	},
 
 	GamepassBypass = {

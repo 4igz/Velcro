@@ -27,6 +27,15 @@ event UpdateEnergy = {
 	}
 }
 
+event UpdateGenerators = {
+	from: Server,
+	type: Unreliable,
+	call: SingleAsync,
+	data: struct {
+		generators: map {[string]: u32}
+	}
+}
+
 event RollEgg = {
 	from: Client,
 	type: Unreliable,
