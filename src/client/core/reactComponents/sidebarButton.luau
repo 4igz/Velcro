@@ -56,7 +56,10 @@ local function createButton(props, refs, target)
 			btn.current.Parent = btn.current.Parent.Parent
 			api.start({ alpha2 = 1 }):andThen(function()
 				api.start({ alpha = 0, alpha3 = 1 })
-				local root, closed = openingUi(target, { bgColor = props.uiColor or Color3.new(1, 1, 1) })
+				local root, closed = openingUi(
+					target,
+					{ bgColor = props.uiColor or Color3.new(1, 1, 1), menuName = props.text }
+				)
 
 				task.delay(1, function()
 					btn.current.Visible = false

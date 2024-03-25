@@ -5,6 +5,10 @@ local ReactSpring = require(ReplicatedStorage.sharedPackages.ReactSpring)
 local Signal = require(ReplicatedStorage.sharedPackages.Signal)
 local e = React.createElement
 
+local menus = {
+	Gamepass = require(script.Parent.gamepassMenu),
+}
+
 local closed = Signal.new()
 
 local function app(props)
@@ -14,8 +18,12 @@ local function app(props)
 		}
 	end)
 
+	local menuRef = React.createRef()
+
 	React.useEffect(function()
-		api.start({ alpha = 1 })
+		api.start({ alpha = 1 }):andThen(function()
+			menuRef.current.Visible = true
+		end)
 	end)
 
 	return e("Frame", {
@@ -32,8 +40,8 @@ local function app(props)
 		closeButton = e("ImageButton", {
 			BackgroundColor3 = Color3.new(0.7, 0.25, 0.25),
 			Image = "rbxassetid://5198838744",
-			AnchorPoint = Vector2.new(.6,.4),
-			Position = UDim2.fromScale(1,0),
+			AnchorPoint = Vector2.new(0.6, 0.4),
+			Position = UDim2.fromScale(1, 0),
 			Size = UDim2.fromScale(0.15, 0.15),
 			[React.Event.MouseButton1Click] = function()
 				closed:Fire()
@@ -44,7 +52,8 @@ local function app(props)
 				CornerRadius = UDim.new(0.25, 0),
 			}),
 			ratio = e("UIAspectRatioConstraint", {}),
-		})
+		}),
+		menu = menus[props.menuName](menuRef),
 	})
 end
 
