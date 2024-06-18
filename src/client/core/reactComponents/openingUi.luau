@@ -7,6 +7,7 @@ local e = React.createElement
 
 local menus = {
 	Gamepass = require(script.Parent.gamepassMenu),
+	Shop = require(script.Parent.weaponShop),
 }
 
 local closed = Signal.new()
@@ -43,6 +44,7 @@ local function app(props)
 			AnchorPoint = Vector2.new(0.6, 0.4),
 			Position = UDim2.fromScale(1, 0),
 			Size = UDim2.fromScale(0.15, 0.15),
+			ZIndex = 200,
 			[React.Event.MouseButton1Click] = function()
 				closed:Fire()
 				closed:DisconnectAll()

@@ -11,6 +11,11 @@ local DEFAULT_STATE = {
 		isZombie = false,
 	},
 	exampleState = false,
+	Leaderboard = {
+		Kills = 0,
+		Damage = 0,
+		Money = 0,
+	},
 }
 local RETRY_GET_STATE_TIMES = 10
 local RETRY_DELAY = 0.1
@@ -36,9 +41,7 @@ function playerStateService.start()
 		end
 	end)
 
-	playerStateService.stateChange:Connect(function(player, newState)
-		-- print(newState.Life)
-	end)
+	playerStateService.stateChange:Connect(function(player, newState) end)
 end
 
 -- Preferably used inside of PlayerAdded events

@@ -136,25 +136,33 @@ end)
 
 local events = table.create(5)
 local event_queue: { [number]: { any } } = table.create(5)
-event_queue[3] = {}
+event_queue[5] = {}
 unreliable.OnClientEvent:Connect(function(buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
 	incoming_read = 0
 	incoming_ipos = 0
 	local id = buffer.readu8(buff, read(1))
-	if id == 3 then
+	if id == 5 then
 		local value
 		value = {}
 		local len = buffer.readu16(incoming_buff, read(2))
-		assert(len <= 32)
-		value.energy = buffer.readstring(incoming_buff, read(len), len)
-		if events[3] then
-			task.spawn(events[3], value)
+		assert(len <= 25)
+		value.weaponName = buffer.readstring(incoming_buff, read(len), len)
+		if buffer.readu8(incoming_buff, read(1)) == 1 then
+			local len = buffer.readu16(incoming_buff, read(2))
+			assert(len <= 20)
+			value.victim = buffer.readstring(incoming_buff, read(len), len)
 		else
-			table.insert(event_queue[3], value)
-			if #event_queue[3] > 64 then
-				warn(`[ZAP] {#event_queue[3]} events in queue for UpdateEnergy. Did you forget to attach a listener?`)
+			value.victim = nil
+		end
+		value.targetHit = buffer.readu8(incoming_buff, read(1)) == 1
+		if events[5] then
+			task.spawn(events[5], value)
+		else
+			table.insert(event_queue[5], value)
+			if #event_queue[5] > 64 then
+				warn(`[ZAP] {#event_queue[5]} events in queue for replicateHit. Did you forget to attach a listener?`)
 			end
 		end
 	else
@@ -162,98 +170,80 @@ unreliable.OnClientEvent:Connect(function(buff, inst)
 	end
 end)
 return {
-	BuyGenerator = {
+	buyWeapon = {
 		Fire = function(Value: ({
-			generatorName: (string),
-			amt: (number),
+			weaponName: (string),
 		}))
-			local saved = save()
-			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local len = #Value.generatorName
-			assert(len <= 32)
+			local len = #Value.weaponName
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
 			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.generatorName, len)
-			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value.amt)
-			local buff = buffer.create(outgoing_used)
-			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
-			unreliable:FireServer(buff, outgoing_inst)
-			load(saved)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.weaponName, len)
 		end,
 	},
-	GetEnergy = {
+	equipWeapon = {
+		Fire = function(Value: ({
+			weaponName: (string),
+		}))
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
+			local len = #Value.weaponName
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.weaponName, len)
+		end,
+	},
+	fireGun = {
+		Fire = function(Value: ({
+			hitPos: (Vector3),
+			rayHit: ((Instance)?),
+		}))
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.hitPos.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.hitPos.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value.hitPos.Z)
+			if Value.rayHit == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				table.insert(outgoing_inst, Value.rayHit)
+			end
+		end,
+	},
+	melee = {
 		Fire = function()
 			local saved = save()
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
-			local buff = buffer.create(outgoing_used)
-			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
-			unreliable:FireServer(buff, outgoing_inst)
-			load(saved)
-		end,
-	},
-	RollEgg = {
-		Fire = function(Value: ({
-			eggName: (string),
-			amt: (number),
-		}))
-			local saved = save()
-			load_empty()
-			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
-			local len = #Value.eggName
-			assert(len <= 32)
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len)
-			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.eggName, len)
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, Value.amt)
 			local buff = buffer.create(outgoing_used)
 			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
 			unreliable:FireServer(buff, outgoing_inst)
 			load(saved)
 		end,
 	},
-	FusePets = {
-		Fire = function(Value: ({
-			petName: (string),
-			level: (number),
-		}))
-			local saved = save()
-			load_empty()
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
-			local len = #Value.petName
-			assert(len <= 32)
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len)
-			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.petName, len)
-			alloc(4)
-			buffer.writeu32(outgoing_buff, outgoing_apos, Value.level)
-			local buff = buffer.create(outgoing_used)
-			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
-			unreliable:FireServer(buff, outgoing_inst)
-			load(saved)
-		end,
-	},
-	UpdateEnergy = {
+	replicateHit = {
 		SetCallback = function(Callback: (({
-			energy: (string),
+			weaponName: (string),
+			victim: ((string)?),
+			targetHit: (boolean),
 		})) -> ()): () -> ()
-			events[3] = Callback
-			for _, value in event_queue[3] do
+			events[5] = Callback
+			for _, value in event_queue[5] do
 				task.spawn(Callback, value)
 			end
-			event_queue[3] = {}
+			event_queue[5] = {}
 			return function()
-				events[3] = nil
+				events[5] = nil
 			end
 		end,
 	},

@@ -153,97 +153,160 @@ RunService.Heartbeat:Connect(function()
 end)
 
 local events = table.create(5)
+reliable.OnServerEvent:Connect(function(player, buff, inst)
+	incoming_buff = buff
+	incoming_inst = inst
+	incoming_read = 0
+	incoming_ipos = 0
+	local len = buffer.len(buff)
+	while incoming_read < len do
+		local id = buffer.readu8(buff, read(1))
+		if id == 1 then
+			local value
+			value = {}
+			local len = buffer.readu16(incoming_buff, read(2))
+			value.weaponName = buffer.readstring(incoming_buff, read(len), len)
+			if events[1] then
+				task.spawn(events[1], player, value)
+			end
+		elseif id == 2 then
+			local value
+			value = {}
+			local len = buffer.readu16(incoming_buff, read(2))
+			value.weaponName = buffer.readstring(incoming_buff, read(len), len)
+			if events[2] then
+				task.spawn(events[2], player, value)
+			end
+		elseif id == 3 then
+			local value
+			value = {}
+			value.hitPos = Vector3.new(buffer.readf32(incoming_buff, read(4)), buffer.readf32(incoming_buff, read(4)), buffer.readf32(incoming_buff, read(4)))
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				incoming_ipos = incoming_ipos + 1
+				value.rayHit = incoming_inst[incoming_ipos]
+			else
+				value.rayHit = nil
+			end
+			if events[3] then
+				task.spawn(events[3], player, value)
+			end
+		else
+			error("Unknown event id")
+		end
+	end
+end)
 unreliable.OnServerEvent:Connect(function(player, buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
 	incoming_read = 0
 	incoming_ipos = 0
 	local id = buffer.readu8(buff, read(1))
-	if id == 1 then
+	if id == 4 then
 		local value
-		value = {}
-		local len = buffer.readu16(incoming_buff, read(2))
-		assert(len <= 32)
-		value.generatorName = buffer.readstring(incoming_buff, read(len), len)
-		value.amt = buffer.readu32(incoming_buff, read(4))
-		if events[1] then
-			task.spawn(events[1], player, value)
-		end
-	elseif id == 2 then
-		local value
-		if events[2] then
-			task.spawn(events[2], player, value)
-		end
-	elseif id == 4 then
-		local value
-		value = {}
-		local len = buffer.readu16(incoming_buff, read(2))
-		assert(len <= 32)
-		value.eggName = buffer.readstring(incoming_buff, read(len), len)
-		value.amt = buffer.readu16(incoming_buff, read(2))
 		if events[4] then
 			task.spawn(events[4], player, value)
-		end
-	elseif id == 5 then
-		local value
-		value = {}
-		local len = buffer.readu16(incoming_buff, read(2))
-		assert(len <= 32)
-		value.petName = buffer.readstring(incoming_buff, read(len), len)
-		value.level = buffer.readu32(incoming_buff, read(4))
-		if events[5] then
-			task.spawn(events[5], player, value)
 		end
 	else
 		error("Unknown event id")
 	end
 end)
 return {
-	UpdateEnergy = {
+	replicateHit = {
 		Fire = function(Player: Player, Value: ({
-			energy: (string),
+			weaponName: (string),
+			victim: ((string)?),
+			targetHit: (boolean),
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local len = #Value.energy
-			assert(len <= 32)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
+			local len = #Value.weaponName
+			assert(len <= 25)
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
 			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.energy, len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.weaponName, len)
+			if Value.victim == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				local len = #Value.victim
+				assert(len <= 20)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len)
+				alloc(len)
+				buffer.writestring(outgoing_buff, outgoing_apos, Value.victim, len)
+			end
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, Value.targetHit and 1 or 0)
 			local buff = buffer.create(outgoing_used)
 			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
 			unreliable:FireClient(Player, buff, outgoing_inst)
 		end,
 		FireAll = function(Value: ({
-			energy: (string),
+			weaponName: (string),
+			victim: ((string)?),
+			targetHit: (boolean),
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local len = #Value.energy
-			assert(len <= 32)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
+			local len = #Value.weaponName
+			assert(len <= 25)
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
 			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.energy, len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.weaponName, len)
+			if Value.victim == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				local len = #Value.victim
+				assert(len <= 20)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len)
+				alloc(len)
+				buffer.writestring(outgoing_buff, outgoing_apos, Value.victim, len)
+			end
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, Value.targetHit and 1 or 0)
 			local buff = buffer.create(outgoing_used)
 			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
 			unreliable:FireAllClients(buff, outgoing_inst)
 		end,
 		FireExcept = function(Except: Player, Value: ({
-			energy: (string),
+			weaponName: (string),
+			victim: ((string)?),
+			targetHit: (boolean),
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local len = #Value.energy
-			assert(len <= 32)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
+			local len = #Value.weaponName
+			assert(len <= 25)
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
 			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.energy, len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.weaponName, len)
+			if Value.victim == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				local len = #Value.victim
+				assert(len <= 20)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len)
+				alloc(len)
+				buffer.writestring(outgoing_buff, outgoing_apos, Value.victim, len)
+			end
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, Value.targetHit and 1 or 0)
 			local buff = buffer.create(outgoing_used)
 			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
 			for _, player in Players:GetPlayers() do
@@ -253,17 +316,34 @@ return {
 			end
 		end,
 		FireList = function(List: { Player }, Value: ({
-			energy: (string),
+			weaponName: (string),
+			victim: ((string)?),
+			targetHit: (boolean),
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local len = #Value.energy
-			assert(len <= 32)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
+			local len = #Value.weaponName
+			assert(len <= 25)
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
 			alloc(len)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value.energy, len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.weaponName, len)
+			if Value.victim == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				local len = #Value.victim
+				assert(len <= 20)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len)
+				alloc(len)
+				buffer.writestring(outgoing_buff, outgoing_apos, Value.victim, len)
+			end
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, Value.targetHit and 1 or 0)
 			local buff = buffer.create(outgoing_used)
 			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
 			for _, player in List do
@@ -271,10 +351,9 @@ return {
 			end
 		end,
 	},
-	BuyGenerator = {
+	buyWeapon = {
 		SetCallback = function(Callback: (Player, ({
-			generatorName: (string),
-			amt: (number),
+			weaponName: (string),
 		})) -> ()): () -> ()
 			events[1] = Callback
 			return function()
@@ -282,33 +361,32 @@ return {
 			end
 		end,
 	},
-	GetEnergy = {
-		SetCallback = function(Callback: (Player) -> ()): () -> ()
+	equipWeapon = {
+		SetCallback = function(Callback: (Player, ({
+			weaponName: (string),
+		})) -> ()): () -> ()
 			events[2] = Callback
 			return function()
 				events[2] = nil
 			end
 		end,
 	},
-	RollEgg = {
+	fireGun = {
 		SetCallback = function(Callback: (Player, ({
-			eggName: (string),
-			amt: (number),
+			hitPos: (Vector3),
+			rayHit: ((Instance)?),
 		})) -> ()): () -> ()
-			events[4] = Callback
+			events[3] = Callback
 			return function()
-				events[4] = nil
+				events[3] = nil
 			end
 		end,
 	},
-	FusePets = {
-		SetCallback = function(Callback: (Player, ({
-			petName: (string),
-			level: (number),
-		})) -> ()): () -> ()
-			events[5] = Callback
+	melee = {
+		SetCallback = function(Callback: (Player) -> ()): () -> ()
+			events[4] = Callback
 			return function()
-				events[5] = nil
+				events[4] = nil
 			end
 		end,
 	},

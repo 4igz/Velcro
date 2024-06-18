@@ -15,25 +15,19 @@ local playerDataService = {}
 
 -- ProfileTemplate table is what empty profiles will default to.
 playerDataService.ProfileTemplate = {
-	energy = 0,
-	petRollLuck = 1,
-	rebirthPoints = 0,
-	rebirth = 0,
+	-- Leaderstats
+	Money = 1000,
+	Experience = 0,
+	Level = 1,
 
-	-- placeholder stuff
-	generators = {
-		earth = 0,
-		trees = 0,
-		humans = 0,
-		huts = 0,
-		ships = 0,
+	-- State
+	gun = "Starter Pistol",
+	melee = "",
+	equipment = "",
+
+	ownedWeapons = {
+		"Starter Pistol",
 	},
-
-	upgrades = {
-		energyPerClick = 500,
-	},
-
-	pets = {},
 }
 
 local ProfileStore = ProfileService.GetProfileStore("PlayerData", playerDataService.ProfileTemplate)
@@ -110,7 +104,6 @@ function playerDataService.setProfile(player: Player, newProfile)
 		return
 	end
 	playerDataService.playerDataChanged:Fire(player, newProfile)
-	zap.UpdateEnergy.Fire(player, { energy = numberUtil.simplifyNumber(newProfile.Data.energy) })
 end
 
 return playerDataService

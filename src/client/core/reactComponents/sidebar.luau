@@ -34,7 +34,7 @@ local function app(props)
 				ref = refs.list,
 			}),
 
-			pets = sidebarButton({ text = "Pets", image = "" }, refs, props.target),
+			-- pets = sidebarButton({ text = "Pets", image = "" }, refs, props.target),
 
 			gamepass = sidebarButton({
 				text = "Gamepass",
@@ -43,7 +43,7 @@ local function app(props)
 				startingSize = UDim2.fromScale(0.657, 0.19),
 			}, refs, props.target),
 
-			setting = sidebarButton({
+			settings = sidebarButton({
 				text = "Settings",
 				image = "rbxassetid://16809921789",
 				iconSize = UDim2.fromScale(1.266, 1.266),

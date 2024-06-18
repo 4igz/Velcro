@@ -1,0 +1,57 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Signal = require(ReplicatedStorage.sharedPackages.Signal)
+local gameStateService = {}
+
+local START_ROUND_TIME = 120 -- Total time for each round (e.g., 120 seconds)
+
+local currentRound = 1
+local roundActive = true
+local roundTime = 0 -- Time left in the current round
+
+gameStateService.startingRound = Signal.new()
+
+-- Initialize or reset the round time
+function gameStateService.resetRoundTime()
+	roundTime = START_ROUND_TIME
+end
+
+-- Reduce the round time and check for timeout
+function gameStateService.reduceRoundTime(deltaTime)
+	if roundActive then
+		roundTime -= deltaTime
+		if roundTime <= 0 then
+			gameStateService.endRound()
+			print("Round ended due to timeout. Game Over!")
+			return true -- Indicate that the round has ended due to time running out
+		end
+	end
+	return false
+end
+
+function gameStateService.getCurrentRound()
+	return currentRound
+end
+
+function gameStateService.advanceRound()
+	currentRound += 1
+end
+
+function gameStateService.isRoundActive()
+	return roundActive
+end
+
+function gameStateService.endRound()
+	roundActive = false
+end
+
+function gameStateService.startNewRound()
+	roundActive = true
+	gameStateService.resetRoundTime()
+	gameStateService.startingRound:Fire()
+end
+
+function gameStateService.start()
+	gameStateService.startNewRound()
+end
+
+return gameStateService
