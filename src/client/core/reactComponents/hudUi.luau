@@ -36,6 +36,10 @@ local function app(props)
 
 			-- pets = sidebarButton({ text = "Pets", image = "" }, refs, props.target),
 
+			-- HUD:
+			
+
+			-- Sidebar buttons:
 			gamepass = sidebarButton({
 				text = "Gamepass",
 				image = "rbxassetid://16809903957",
