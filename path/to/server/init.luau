@@ -152,7 +152,7 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-local events = table.create(5)
+local events = table.create(6)
 reliable.OnServerEvent:Connect(function(player, buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
@@ -344,6 +344,250 @@ return {
 			end
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, Value.targetHit and 1 or 0)
+			local buff = buffer.create(outgoing_used)
+			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
+			for _, player in List do
+				unreliable:FireClient(player, buff, outgoing_inst)
+			end
+		end,
+	},
+	updateUI = {
+		Fire = function(Player: Player, Value: ({
+			zombies: ((number)?),
+			wave: ((number)?),
+			wavesTillBoss: ((number)?),
+			timeLeft: ((number)?),
+			gameActive: ((boolean)?),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
+			if Value.zombies == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, Value.zombies)
+			end
+			if Value.wave == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, Value.wave)
+			end
+			if Value.wavesTillBoss == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, Value.wavesTillBoss)
+			end
+			if Value.timeLeft == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, Value.timeLeft)
+			end
+			if Value.gameActive == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value.gameActive and 1 or 0)
+			end
+			local buff = buffer.create(outgoing_used)
+			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
+			unreliable:FireClient(Player, buff, outgoing_inst)
+		end,
+		FireAll = function(Value: ({
+			zombies: ((number)?),
+			wave: ((number)?),
+			wavesTillBoss: ((number)?),
+			timeLeft: ((number)?),
+			gameActive: ((boolean)?),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
+			if Value.zombies == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, Value.zombies)
+			end
+			if Value.wave == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, Value.wave)
+			end
+			if Value.wavesTillBoss == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, Value.wavesTillBoss)
+			end
+			if Value.timeLeft == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, Value.timeLeft)
+			end
+			if Value.gameActive == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value.gameActive and 1 or 0)
+			end
+			local buff = buffer.create(outgoing_used)
+			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
+			unreliable:FireAllClients(buff, outgoing_inst)
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			zombies: ((number)?),
+			wave: ((number)?),
+			wavesTillBoss: ((number)?),
+			timeLeft: ((number)?),
+			gameActive: ((boolean)?),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
+			if Value.zombies == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, Value.zombies)
+			end
+			if Value.wave == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, Value.wave)
+			end
+			if Value.wavesTillBoss == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, Value.wavesTillBoss)
+			end
+			if Value.timeLeft == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, Value.timeLeft)
+			end
+			if Value.gameActive == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value.gameActive and 1 or 0)
+			end
+			local buff = buffer.create(outgoing_used)
+			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					unreliable:FireClient(player, buff, outgoing_inst)
+				end
+			end
+		end,
+		FireList = function(List: { Player }, Value: ({
+			zombies: ((number)?),
+			wave: ((number)?),
+			wavesTillBoss: ((number)?),
+			timeLeft: ((number)?),
+			gameActive: ((boolean)?),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
+			if Value.zombies == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, Value.zombies)
+			end
+			if Value.wave == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, Value.wave)
+			end
+			if Value.wavesTillBoss == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, Value.wavesTillBoss)
+			end
+			if Value.timeLeft == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, Value.timeLeft)
+			end
+			if Value.gameActive == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value.gameActive and 1 or 0)
+			end
 			local buff = buffer.create(outgoing_used)
 			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
 			for _, player in List do

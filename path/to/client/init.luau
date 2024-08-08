@@ -134,9 +134,10 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 end)
 
-local events = table.create(5)
-local event_queue: { [number]: { any } } = table.create(5)
+local events = table.create(6)
+local event_queue: { [number]: { any } } = table.create(6)
 event_queue[5] = {}
+event_queue[6] = {}
 unreliable.OnClientEvent:Connect(function(buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
@@ -163,6 +164,42 @@ unreliable.OnClientEvent:Connect(function(buff, inst)
 			table.insert(event_queue[5], value)
 			if #event_queue[5] > 64 then
 				warn(`[ZAP] {#event_queue[5]} events in queue for replicateHit. Did you forget to attach a listener?`)
+			end
+		end
+	elseif id == 6 then
+		local value
+		value = {}
+		if buffer.readu8(incoming_buff, read(1)) == 1 then
+			value.zombies = buffer.readu16(incoming_buff, read(2))
+		else
+			value.zombies = nil
+		end
+		if buffer.readu8(incoming_buff, read(1)) == 1 then
+			value.wave = buffer.readu16(incoming_buff, read(2))
+		else
+			value.wave = nil
+		end
+		if buffer.readu8(incoming_buff, read(1)) == 1 then
+			value.wavesTillBoss = buffer.readu16(incoming_buff, read(2))
+		else
+			value.wavesTillBoss = nil
+		end
+		if buffer.readu8(incoming_buff, read(1)) == 1 then
+			value.timeLeft = buffer.readf64(incoming_buff, read(8))
+		else
+			value.timeLeft = nil
+		end
+		if buffer.readu8(incoming_buff, read(1)) == 1 then
+			value.gameActive = buffer.readu8(incoming_buff, read(1)) == 1
+		else
+			value.gameActive = nil
+		end
+		if events[6] then
+			task.spawn(events[6], value)
+		else
+			table.insert(event_queue[6], value)
+			if #event_queue[6] > 64 then
+				warn(`[ZAP] {#event_queue[6]} events in queue for updateUI. Did you forget to attach a listener?`)
 			end
 		end
 	else
@@ -244,6 +281,24 @@ return {
 			event_queue[5] = {}
 			return function()
 				events[5] = nil
+			end
+		end,
+	},
+	updateUI = {
+		SetCallback = function(Callback: (({
+			zombies: ((number)?),
+			wave: ((number)?),
+			wavesTillBoss: ((number)?),
+			timeLeft: ((number)?),
+			gameActive: ((boolean)?),
+		})) -> ()): () -> ()
+			events[6] = Callback
+			for _, value in event_queue[6] do
+				task.spawn(Callback, value)
+			end
+			event_queue[6] = {}
+			return function()
+				events[6] = nil
 			end
 		end,
 	},

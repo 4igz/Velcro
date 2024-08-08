@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local gameStateService = require(script.Parent.gameStateService)
+local zap = require(ServerStorage.zap)
 local zombieConfigModule = require(ReplicatedStorage.shared.configurations.zombieConfig)
 local zombieConfig, zombieAi = zombieConfigModule[1], zombieConfigModule[2]
 local zombieService = {}
@@ -51,8 +52,6 @@ function zombieService.updateZombies()
 	-- Iterate over all zombies in the components list
 	for i, zombie in zombieComponents do
 		local ai = zombie.aiType
-		-- If the AI type is defined and has an update method,
-		-- call it with the zombie data
 		if ai and ai.update then
 			ai.update(zombie, i)
 		end
@@ -74,7 +73,7 @@ function zombieService.spawnZombies(roundNum)
 
 	-- Collect eligible zombie types and their cumulative weights
 	for zombieType, config in zombieConfig do
-		if config.beginSpawningRound <= roundNum then
+		if roundNum >= config.beginSpawningRound then
 			table.insert(possibleTypes, {
 				type = zombieType,
 				cumulativeWeight = totalWeight + (roundNum - config.beginSpawningRound + 1),
@@ -135,11 +134,19 @@ function zombieService.start()
 	end)
 
 	gameStateService.startingRound:Connect(function(roundNum)
-		if gameStateService.getCurrentRound() % 10 == 0 then
+		local currentRound = gameStateService.getCurrentRound()
+		if currentRound % 10 == 0 then
 			-- zombieService.spawnBoss(gameStateService.getCurrentRound())
 		end
 
-		zombieService.spawnZombies(gameStateService.getCurrentRound())
+		zombieService.spawnZombies(currentRound)
+		zap.updateUI.FireAll({
+			timeLeft = gameStateService.getTimeLeft(),
+			wave = currentRound,
+			wavesTillBoss = currentRound % 10,
+			zombies = #zombieComponents,
+			gameActive = true,
+		})
 	end)
 end
 

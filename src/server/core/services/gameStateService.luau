@@ -1,5 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
+
 local Signal = require(ReplicatedStorage.sharedPackages.Signal)
+local zap = require(ServerStorage.zap)
 local gameStateService = {}
 
 local START_ROUND_TIME = 120 -- Total time for each round (e.g., 120 seconds)
@@ -42,12 +45,17 @@ end
 
 function gameStateService.endRound()
 	roundActive = false
+	zap.updateUI.FireAll({ gameActive = false })
 end
 
 function gameStateService.startNewRound()
 	roundActive = true
 	gameStateService.resetRoundTime()
 	gameStateService.startingRound:Fire()
+end
+
+function gameStateService.getTimeLeft()
+	return roundTime
 end
 
 function gameStateService.start()

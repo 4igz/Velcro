@@ -46,3 +46,26 @@ event replicateHit = {
 		targetHit: boolean
     }
 }
+
+event updateUI = {
+    from: Server,
+    type: Unreliable,
+    call: SingleAsync,
+    data: struct {
+        zombies: u16?,
+        wave: u16?,
+        wavesTillBoss: u16?,
+        timeLeft: f64?,
+        gameActive: boolean?
+    }
+}
+
+funct getTopbarUIInfo = {
+    rets: struct {
+        zombies: u16?,
+        wave: u16?,
+        wavesTillBoss: u16?,
+        timeLeft: f64?,
+        gameActive: boolean?
+    }
+}
