@@ -134,10 +134,56 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 end)
 
-local events = table.create(6)
-local event_queue: { [number]: { any } } = table.create(6)
+local events = table.create(7)
+local event_queue: { [number]: { any } } = table.create(7)
+local function_call_id = 0
 event_queue[5] = {}
 event_queue[6] = {}
+event_queue[7] = table.create(255)
+reliable.OnClientEvent:Connect(function(buff, inst)
+	incoming_buff = buff
+	incoming_inst = inst
+	incoming_read = 0
+	incoming_ipos = 0
+	local len = buffer.len(buff)
+	while incoming_read < len do
+		local id = buffer.readu8(buff, read(1))
+		if id == 7 then
+			local call_id = buffer.readu8(incoming_buff, read(1))
+			local value
+			value = {}
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				value.zombies = buffer.readu16(incoming_buff, read(2))
+			else
+				value.zombies = nil
+			end
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				value.wave = buffer.readu16(incoming_buff, read(2))
+			else
+				value.wave = nil
+			end
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				value.wavesTillBoss = buffer.readu16(incoming_buff, read(2))
+			else
+				value.wavesTillBoss = nil
+			end
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				value.timeLeft = buffer.readf64(incoming_buff, read(8))
+			else
+				value.timeLeft = nil
+			end
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				value.gameActive = buffer.readu8(incoming_buff, read(1)) == 1
+			else
+				value.gameActive = nil
+			end
+			task.spawn(event_queue[7][call_id], value)
+			event_queue[7][call_id] = nil
+		else
+			error("Unknown event id")
+		end
+	end
+end)
 unreliable.OnClientEvent:Connect(function(buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
@@ -300,6 +346,23 @@ return {
 			return function()
 				events[6] = nil
 			end
+		end,
+	},
+	getTopbarUIInfo = {
+		Call = function()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			function_call_id += 1
+			function_call_id %= 256
+			if event_queue[7][function_call_id] then
+				function_call_id -= 1
+				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
+			end
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
+			event_queue[7][function_call_id] = coroutine.running()
+			local value = coroutine.yield()
+			return value
 		end,
 	},
 }

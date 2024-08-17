@@ -20,6 +20,7 @@ return function(shooter: Player, ws: weaponSettings.Settings, raycastResult: Ray
 		end
 	end
 
+
 	if hitZombie then
 		local hitHumanoid: Humanoid = hitZombie:FindFirstChildOfClass("Humanoid")
 		if

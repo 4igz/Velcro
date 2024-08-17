@@ -38,22 +38,42 @@ function zombieService.newZombie(type, cframe)
 	end
 
 	-- Insert the new zombie into the zombieComponents table
-	table.insert(zombieComponents, zombie)
+	local i = table.insert(zombieComponents, zombie)
 
 	-- Implement the logic to spawn the actual zombie model in the game world
 	local zombieModel: Model = zombieFolder:FindFirstChild(type):Clone()
 	zombieModel:PivotTo(cframe)
 	zombieModel.Parent = CollectionService:GetTagged("MapContent")[1] or mapContainer
+	zombie.model = zombieModel
+	CollectionService:AddTag(zombieModel, "Zombie")
+
+	-- Handle zombie death
+	zombieModel:WaitForChild("Humanoid").Died:Connect(function()
+		table.remove(zombieComponents, i)
+		task.delay(2, function()
+			zombieModel:Destroy()
+		end)
+		zap.updateUI.FireAll({
+			zombies = #zombieComponents,
+			gameActive = gameStateService.isRoundActive(),
+		})
+	end)
 end
 
 -- Function to update all active zombies
 -- Applies each zombie's AI update method
-function zombieService.updateZombies()
+function zombieService.startZombieAIs()
 	-- Iterate over all zombies in the components list
 	for i, zombie in zombieComponents do
-		local ai = zombie.aiType
-		if ai and ai.update then
-			ai.update(zombie, i)
+		if zombie.aiRunning then
+			continue
+		end
+		local ai = zombieAi[zombie.aiType]
+		if ai and ai.chase then
+			task.spawn(function()
+				ai.chase(zombie, i)
+			end)
+			zombie.aiRunning = true
 		end
 	end
 end
@@ -129,7 +149,9 @@ function zombieService.start()
 		end
 
 		if #zombieComponents > 0 then
-			zombieService.updateZombies()
+			zombieService.startZombieAIs()
+		else
+			gameStateService.startNewRound()
 		end
 	end)
 

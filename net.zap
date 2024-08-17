@@ -61,6 +61,8 @@ event updateUI = {
 }
 
 funct getTopbarUIInfo = {
+    call: Async,
+    
     rets: struct {
         zombies: u16?,
         wave: u16?,

@@ -19,6 +19,7 @@ export type Settings = {
 	image: number, -- Image shown in inventory and toolbar
 	allowRandomKill: boolean,
 	allowTeamKill: boolean,
+	maxPierce: number,
 
 	itemType: "gun" | "melee" | "equipment",
 	bulletType: "melee" | "raycast" | "projectileBullet", -- The BulletType function to run on firing
@@ -43,6 +44,7 @@ local default: Settings = {
 	damageRate = 0.5,
 	showDamageText = true,
 	meleeAttackLength = 0.5,
+	maxPierce = 3,
 
 	itemType = "gun",
 	bulletName = "bullet",

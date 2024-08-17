@@ -9,6 +9,11 @@ local timeLeft = 0
 local gameActive = false
 
 return function(props)
+	wave = props.wave or wave
+	zombies = props.zombies or zombies
+	waveTillBoss = props.waveTillBoss or waveTillBoss
+	timeLeft = props.timeLeft or timeLeft
+	gameActive = props.gameActive or gameActive
 	return React.createElement("ScreenGui", {
 		IgnoreGuiInset = true,
 		ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets,

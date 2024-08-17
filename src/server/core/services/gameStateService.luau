@@ -7,8 +7,8 @@ local gameStateService = {}
 
 local START_ROUND_TIME = 120 -- Total time for each round (e.g., 120 seconds)
 
-local currentRound = 1
-local roundActive = true
+local currentRound = 0
+local roundActive = false
 local roundTime = 0 -- Time left in the current round
 
 gameStateService.startingRound = Signal.new()
@@ -22,6 +22,16 @@ end
 function gameStateService.reduceRoundTime(deltaTime)
 	if roundActive then
 		roundTime -= deltaTime
+
+		-- Check if a whole second has passed and print the message
+		if math.floor(roundTime + deltaTime) > math.floor(roundTime) then
+			zap.updateUI.FireAll({
+				wave = currentRound,
+				timeLeft = math.floor(roundTime),
+				gameActive = roundActive,
+			})
+		end
+
 		if roundTime <= 0 then
 			gameStateService.endRound()
 			print("Round ended due to timeout. Game Over!")
@@ -49,9 +59,10 @@ function gameStateService.endRound()
 end
 
 function gameStateService.startNewRound()
-	roundActive = true
 	gameStateService.resetRoundTime()
-	gameStateService.startingRound:Fire()
+	gameStateService.advanceRound()
+	roundActive = true
+	gameStateService.startingRound:Fire(currentRound)
 end
 
 function gameStateService.getTimeLeft()
@@ -59,7 +70,7 @@ function gameStateService.getTimeLeft()
 end
 
 function gameStateService.start()
-	gameStateService.startNewRound()
+	-- gameStateService.startNewRound()
 end
 
 return gameStateService

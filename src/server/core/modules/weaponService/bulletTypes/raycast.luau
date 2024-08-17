@@ -1,11 +1,8 @@
-local CollectionService = game:GetService("CollectionService")
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
 
+local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local instanceUtil = require(ReplicatedStorage.shared.utilities.instanceUtil)
 local weaponSettings = require(ReplicatedStorage.shared.configurations.weaponConfig)
-local zap = require(ServerStorage.zap)
 
 local TAU = math.pi * 2
 
@@ -51,29 +48,53 @@ return function(
 			)
 		).LookVector * ws.range
 
-		local ray = workspace:Raycast(head.Position, direction, params)
-		local hitCharacter
-		if ws.bullets == 1 then
-			hitCharacter = if hitPart then instanceUtil.ancestorWithTag(hitPart, "Zombie") else nil
-		else
-			hitCharacter = if ray then instanceUtil.ancestorWithTag(ray.Instance, "Zombie") else nil
-		end
+		local ray
+		local hits = 0
+		local damage = ws.damage
+		local currentPosition = head.Position
+		local remainingRange = ws.range
+		local hitTargets = {} -- Table to track hit targets
+		local iterationLimit = ws.maxPierce -- Limit to prevent infinite looping
 
-		if hitCharacter then
-			params.FilterDescendantsInstances = {
-				character,
-				workspace.Terrain,
-				workspace.RaycastIgnore,
-			}
-			ray = workspace:Raycast(head.Position, direction, params)
-		end
+		repeat
+			ray = workspace:Raycast(currentPosition, direction, params)
 
-		if ray then
-			bulletHitSignal:Fire(shooter, ws, ray, hitCharacter, weaponName)
+			if ray then
+				local hitInstance = ray.Instance
+				local hitCharacter = instanceUtil.ancestorWithTag(hitInstance, "Zombie")
 
-			if instanceUtil.ancestorWithTag(hitPart, TARGET_TAG) then
-				weaponSettings.signals.targetHit:Fire(shooter, weaponName)
+				if hitCharacter and not hitTargets[hitCharacter] then
+					-- Fire the signal for a valid hit
+					Sift.Dictionary.merge(ws, { damage = damage })
+					damage /= 2
+					bulletHitSignal:Fire(shooter, ws, ray, weaponName)
+
+					-- Exclude the hit part from further raycasts
+					table.insert(params.FilterDescendantsInstances, hitInstance)
+
+					hitTargets[hitCharacter] = true -- Mark this target as hit
+					hits = hits + 1
+				end
+
+				-- Update remaining range
+				local travelDistance = (ray.Position - currentPosition).Magnitude
+				remainingRange = remainingRange - travelDistance
+
+				if remainingRange <= 0 then
+					break -- Exit loop if remaining range is depleted
+				end
+
+				currentPosition = ray.Position
+				direction = direction.Unit * remainingRange
+			else
+				break -- Exit loop if no hit is detected
 			end
-		end
+
+			-- Decrement iteration limit and exit if it hits zero
+			iterationLimit = iterationLimit - 1
+			if iterationLimit <= 0 then
+				break
+			end
+		until not ray or hits >= ws.maxPierce or remainingRange <= 0
 	end
 end

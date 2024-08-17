@@ -1,8 +1,23 @@
 local PathfindingService = game:GetService("PathfindingService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Sift = require(ReplicatedStorage.sharedPackages.Sift)
+
+--[[ Example
+module.standardPathfindSettings 	= {			-- optimized for default dummies.
+	AgentRadius = 2.25, 	-- default 2
+	AgentHeight = 5.5, 		-- default 5
+	AgentCanJump = true,	-- default true
+	AgentCanClimb = false,	-- default false
+	Cost = {}				-- default {}
+}		-- should your AI get stuck on corners, tweak these as followed in https://create.roblox.com/docs/characters/pathfinding (Agent-Radius, etc..).
+
+]]
 
 -- Helper function to find the closest player to the given position
-local function findClosestPlayer(zombiePosition)
-	local Players = game:GetService("Players")
+local function findClosestTarget(zombiePosition)
 	local closestPlayer = nil
 	local minDistance = math.huge
 
@@ -11,7 +26,7 @@ local function findClosestPlayer(zombiePosition)
 		local playerCharacter = player.Character
 		if playerCharacter and playerCharacter:FindFirstChild("HumanoidRootPart") then
 			local playerPosition = playerCharacter.HumanoidRootPart.Position
-			local distance = (playerPosition - zombiePosition).magnitude
+			local distance = (playerPosition - zombiePosition).Magnitude
 			if distance < minDistance then
 				minDistance = distance
 				closestPlayer = player
@@ -22,60 +37,9 @@ local function findClosestPlayer(zombiePosition)
 	return closestPlayer
 end
 
--- Helper function to move the zombie directly towards a target position
-local function moveZombieDirectly(zombieModel, targetPosition, moveSpeed)
-	if not zombieModel or not zombieModel.PrimaryPart then
-		return
-	end
-	local zombiePosition = zombieModel.PrimaryPart.Position
-
-	-- Calculate the direction from the zombie to the target
-	local direction = (targetPosition - zombiePosition).unit
-
-	-- Set the zombie's CFrame to look at the target while moving towards them
-	zombieModel:PivotTo(CFrame.new(zombiePosition, targetPosition))
-
-	-- Move the zombie towards the target
-	zombieModel.PrimaryPart.CFrame = zombieModel.PrimaryPart.CFrame + direction * moveSpeed
-end
-
--- Helper function to move the zombie using pathfinding towards a target position
-local function moveZombieWithPathfinding(zombieModel, targetPosition, moveSpeed)
-	if not zombieModel or not zombieModel.PrimaryPart then
-		return
-	end
-	local zombiePosition = zombieModel.PrimaryPart.Position
-
-	-- Create a path from the zombie's position to the target position
-	local path = PathfindingService:CreatePath({
-		Start = zombiePosition,
-		Finish = targetPosition,
-		AgentRadius = 2,
-		AgentHeight = 5,
-		AgentCanJump = true,
-	})
-
-	path:ComputeAsync(zombiePosition, targetPosition)
-	local waypoints = path:GetWaypoints()
-
-	-- Move the zombie towards the next waypoint if available
-	if #waypoints > 1 then
-		local nextWaypoint = waypoints[2]
-		if nextWaypoint then
-			local direction = (nextWaypoint.Position - zombiePosition).unit
-
-			-- Set the zombie's CFrame to look at the next waypoint
-			zombieModel:SetPrimaryPartCFrame(CFrame.new(zombiePosition, nextWaypoint.Position))
-
-			-- Move the zombie towards the next waypoint
-			zombieModel.PrimaryPart.CFrame = zombieModel.PrimaryPart.CFrame + direction * moveSpeed
-		end
-	end
-end
-
 local M = {
+	-- Data structure to hold common properties
 	{
-		-- Data structure to hold common properties
 		Zombie = {
 			health = 100,
 			speed = 10,
@@ -93,28 +57,95 @@ local M = {
 		},
 	},
 	{
+		-- Pathfinding and AI logic
 		basic = {
-			update = function(zombieData, id)
-				local zombieModel = zombieData.model
-				local moveSpeed = zombieData.moveSpeed or 10
+			chase = function(zombieData, id)
+				local npc = zombieData.model -- NPC model
+				local path = PathfindingService:CreatePath({
+					AgentRadius = 2,
+					AgentHeight = 5,
+					AgentCanJump = true,
+					AgentJumpHeight = 7,
+					AgentMaxSlope = 45,
+					AgentCanClimb = false,
+				})
 
-				-- Use the helper function to find the closest player
-				local closestPlayer = findClosestPlayer(zombieModel.PrimaryPart.Position)
-				if closestPlayer then
-					local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+				local lastTargetPosition = nil
+				local currentWaypointIndex = 0
+				local waypoints = {}
 
-					-- Move the zombie directly towards the closest player
-					moveZombieDirectly(zombieModel, targetPosition, moveSpeed)
+				local function startChasing()
+					if not npc or not npc.Parent then
+						return
+					end
+					local target = findClosestTarget(npc.PrimaryPart.Position)
+					if target then
+						local targetChar = target.Character
+						local targetPosition = targetChar.PrimaryPart.Position
+
+						-- Recalculate path only if the target moved significantly
+						if
+							lastTargetPosition == nil
+							or (targetPosition - lastTargetPosition).Magnitude > 5
+						then
+							path:ComputeAsync(npc.PrimaryPart.Position, targetPosition)
+							lastTargetPosition = targetPosition
+							waypoints = path.Status == Enum.PathStatus.Success
+									and Sift.Array.slice(
+										path:GetWaypoints(),
+										3, -- Skip to the 3rd waypoint to avoid stutter steps
+										#path:GetWaypoints()
+									)
+								or {}
+							currentWaypointIndex = 1
+						end
+
+						local humanoid = npc:FindFirstChild("Humanoid")
+						if not humanoid then
+							return
+						end
+						-- Move towards the next waypoint or directly to the target if no path
+						if #waypoints > 0 then
+							npc.Humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
+						else
+							npc.Humanoid:MoveTo(targetPosition)
+						end
+					end
 				end
+
+				local function onMoveToFinished()
+					if currentWaypointIndex > 0 and currentWaypointIndex < #waypoints then
+						currentWaypointIndex += 1
+						npc.Humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
+					else
+						-- Recalculate path on the next frame
+						startChasing()
+					end
+				end
+
+				-- Set up the event listener to trigger on each step
+				local steppedConnection
+				steppedConnection = RunService.Stepped:Connect(function()
+					-- Stop tracking if NPC is destroyed
+					if not npc or not npc.Parent then
+						steppedConnection:Disconnect()
+						return
+					end
+					startChasing()
+				end)
+
+				-- Listen for when the NPC finishes moving
+				npc.Humanoid.MoveToFinished:Connect(onMoveToFinished)
 			end,
 		},
+		-- Special AI logic for special zombies
 		special = {
-			update = function(zombieData, id)
+			initialize = function(zombieData, id)
 				local zombieModel = zombieData.model
 				local moveSpeed = zombieData.moveSpeed or 10
 
 				-- Use the helper function to find the closest player
-				local closestPlayer = findClosestPlayer(zombieModel.PrimaryPart.Position)
+				local closestPlayer = findClosestTarget(zombieModel.PrimaryPart.Position)
 				if closestPlayer then
 					local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
 

@@ -152,7 +152,7 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-local events = table.create(6)
+local events = table.create(7)
 reliable.OnServerEvent:Connect(function(player, buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
@@ -189,6 +189,65 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 			end
 			if events[3] then
 				task.spawn(events[3], player, value)
+			end
+		elseif id == 7 then
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if events[7] then
+				task.spawn(function(player, call_id, value)
+					local rets = events[7](player, value)
+					load_player(player)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
+					if rets.zombies == nil then
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+					else
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, rets.zombies)
+					end
+					if rets.wave == nil then
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+					else
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, rets.wave)
+					end
+					if rets.wavesTillBoss == nil then
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+					else
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+						alloc(2)
+						buffer.writeu16(outgoing_buff, outgoing_apos, rets.wavesTillBoss)
+					end
+					if rets.timeLeft == nil then
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+					else
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+						alloc(8)
+						buffer.writef64(outgoing_buff, outgoing_apos, rets.timeLeft)
+					end
+					if rets.gameActive == nil then
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+					else
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, rets.gameActive and 1 or 0)
+					end
+					player_map[player] = save()
+				end, player, call_id, value)
 			end
 		else
 			error("Unknown event id")
@@ -631,6 +690,20 @@ return {
 			events[4] = Callback
 			return function()
 				events[4] = nil
+			end
+		end,
+	},
+	getTopbarUIInfo = {
+		SetCallback = function(Callback: (Player) -> (({
+			zombies: ((number)?),
+			wave: ((number)?),
+			wavesTillBoss: ((number)?),
+			timeLeft: ((number)?),
+			gameActive: ((boolean)?),
+		}))): () -> ()
+			events[7] = Callback
+			return function()
+				events[7] = nil
 			end
 		end,
 	},

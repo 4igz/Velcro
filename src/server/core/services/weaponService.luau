@@ -3,16 +3,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local SoundService = game:GetService("SoundService")
 
-local sharedPackages = ReplicatedStorage.sharedPackages
 local server = ServerStorage.server.modules
 local weaponServiceModules = server.weaponService
 
-local Sift = require(sharedPackages.Sift)
 local leaderboardService = require(ServerStorage.server.services.leaderboardService)
 local levelService = require(ServerStorage.server.services.levelService)
 local moneyService = require(ServerStorage.server.services.moneyService)
 local playerDataService = require(script.Parent.playerDataService)
-local playerStateService = require(script.Parent.playerStateService)
 local playerUtil = require(ReplicatedStorage.shared.utilities.playerUtil)
 local weaponConfig = require(ReplicatedStorage.shared.configurations.weaponConfig)
 local weaponUtil = require(ReplicatedStorage.shared.utilities.weaponUtil)
@@ -26,7 +23,7 @@ local bulletTypes = {}
 local hitTypes = {}
 local cooldowns = {}
 
-local COOLDOWN = 0.05
+local COOLDOWN = 0.01
 
 local weaponService = {}
 
@@ -168,7 +165,6 @@ local function registerHit(
 	shooter: Player,
 	ws: weaponConfig.Settings,
 	raycastResult: RaycastResult,
-	victim: Player?,
 	weaponName: string
 )
 	assert(
@@ -176,10 +172,15 @@ local function registerHit(
 		`No known hitType "{ws.hitType}" -- double-check weaponSettings.`
 	)
 	-- Perform bullet hits
-	hitTypes[ws.hitType](shooter, ws, raycastResult, victim)
+	hitTypes[ws.hitType](shooter, ws, raycastResult)
 
 	-- Replicate bullet hits
-	zap.replicateHit.Fire(shooter, { weaponName = weaponName, hitPart = raycastResult.Instance })
+	if raycastResult and raycastResult.Instance then
+		zap.replicateHit.Fire(
+			shooter,
+			{ weaponName = weaponName, hitPart = raycastResult.Instance }
+		)
+	end
 end
 
 function weaponService.buyWeapon(player: Player, data: { weaponName: string })
@@ -263,14 +264,8 @@ function weaponService.start()
 	end)
 
 	weaponConfig.signals.bulletHit:Connect(
-		function(
-			shooter: Player,
-			ws: string,
-			raycastResult: RaycastResult,
-			victim: Player?,
-			weaponName: string
-		)
-			registerHit(shooter, ws, raycastResult, victim, weaponName)
+		function(shooter: Player, ws: any, raycastResult: RaycastResult, weaponName: string)
+			registerHit(shooter, ws, raycastResult, weaponName)
 		end
 	)
 
