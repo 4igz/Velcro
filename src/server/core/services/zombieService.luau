@@ -111,11 +111,12 @@ function zombieService.spawnZombies(roundNum)
 	-- Collect eligible zombie types and their cumulative weights
 	for zombieType, config in zombieConfig do
 		if roundNum >= config.beginSpawningRound then
+			local wt = totalWeight + (roundNum - config.beginSpawningRound + 1)
 			table.insert(possibleTypes, {
 				type = zombieType,
-				cumulativeWeight = totalWeight + (roundNum - config.beginSpawningRound + 1),
+				cumulativeWeight = wt,
 			})
-			totalWeight = totalWeight + (roundNum - config.beginSpawningRound + 1)
+			totalWeight = wt
 		end
 	end
 

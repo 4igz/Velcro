@@ -1,11 +1,23 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local React = require(ReplicatedStorage.sharedPackages.React)
+local ReactRoblox = require(ReplicatedStorage.sharedPackages.ReactRoblox)
 local ReactSpring = require(ReplicatedStorage.sharedPackages.ReactSpring)
-local openingUi = require(script.Parent.openingUi)
 local e = React.createElement
 
-local function createButton(props, refs, target)
+local gui = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
+gui.ResetOnSpawn = false
+local root = ReactRoblox.createRoot(gui)
+
+local menus = {
+	Gamepass = require(script.Parent.gamepassMenu),
+	Shop = require(script.Parent.weaponShop),
+}
+
+local openMenus = {}
+
+local function createButton(props, _refs, _target)
 	local styles, api = ReactSpring.useSpring(function()
 		return {
 			alpha = 0,
@@ -44,43 +56,11 @@ local function createButton(props, refs, target)
 			api.start({ alpha = 0 })
 		end,
 		[React.Event.MouseButton1Click] = function()
-			if moving then
-				return
+			if openMenus[props.text] == nil then
+				openMenus[props.text] = false
 			end
-			SoundService:PlayLocalSound(SoundService:FindFirstChild("Click"))
-			moving = true
-			local oldParent = refs.list.current.Parent
-			refs.list.current.Parent = nil
-			refs.container.current.Visible = false
-			label.current.Visible = false
-			btn.current.Parent = btn.current.Parent.Parent
-			api.start({ alpha2 = 1 }):andThen(function()
-				api.start({ alpha = 0, alpha3 = 1 })
-				local root, closed = openingUi(
-					target,
-					{ bgColor = props.uiColor or Color3.new(1, 1, 1), menuName = props.text }
-				)
-
-				task.delay(1, function()
-					btn.current.Visible = false
-					-- Make the button text visible again
-					api.start({ alpha2 = 0, alpha3 = 0 }):andThen(function()
-						moving = false
-					end)
-
-					closed:Once(function()
-						-- Make sidebar visible again
-						refs.container.current.Visible = true
-						label.current.Visible = true
-						btn.current.Visible = true
-						refs.list.current.Parent = oldParent
-						btn.current.Parent = refs.list.current.Parent
-
-						-- Unmount the opened ui
-						root:unmount()
-					end)
-				end)
-			end)
+			openMenus[props.text] = not openMenus[props.text]
+			root:render(menus[props.text](openMenus[props.text]))
 		end,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
