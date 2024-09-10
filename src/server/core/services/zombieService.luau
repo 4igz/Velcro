@@ -1,4 +1,5 @@
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
@@ -8,6 +9,8 @@ local zap = require(ServerStorage.zap)
 local zombieConfigModule = require(ReplicatedStorage.shared.configurations.zombieConfig)
 local zombieConfig, zombieAi = zombieConfigModule[1], zombieConfigModule[2]
 local zombieService = {}
+
+local MAX_ZOMBIES_SPAWNED_AT_ONCE = 30
 
 local zombieFolder = ServerStorage.ZombieTypes
 local mapContainer = workspace.MapContainer
@@ -37,18 +40,27 @@ function zombieService.newZombie(type, cframe)
 		end
 	end
 
-	-- Insert the new zombie into the zombieComponents table
-	local i = table.insert(zombieComponents, zombie)
-
 	-- Implement the logic to spawn the actual zombie model in the game world
-	local zombieModel: Model = zombieFolder:FindFirstChild(type):Clone()
+	local zombieModel = zombieFolder:FindFirstChild(type)
+	if not zombieModel then
+		warn(`No zombieType {type} found in zombie folder`)
+		return
+	end
+	zombieModel = zombieModel:Clone()
 	zombieModel:PivotTo(cframe)
 	zombieModel.Parent = CollectionService:GetTagged("MapContent")[1] or mapContainer
 	zombie.model = zombieModel
 	CollectionService:AddTag(zombieModel, "Zombie")
+	-- Insert the new zombie into the zombieComponents table
+	local i = table.insert(zombieComponents, zombie)
+
+	local humanoid: Humanoid = zombieModel.Humanoid
+	humanoid.MaxHealth = cfg.health
+	humanoid.Health = cfg.health
+	humanoid.WalkSpeed = cfg.speed
 
 	-- Handle zombie death
-	zombieModel:WaitForChild("Humanoid").Died:Connect(function()
+	humanoid.Died:Connect(function()
 		table.remove(zombieComponents, i)
 		task.delay(2, function()
 			zombieModel:Destroy()
@@ -60,6 +72,10 @@ function zombieService.newZombie(type, cframe)
 	end)
 end
 
+function zombieService.getNumZombies()
+	return #zombieComponents
+end
+
 -- Function to update all active zombies
 -- Applies each zombie's AI update method
 function zombieService.startZombieAIs()
@@ -68,7 +84,7 @@ function zombieService.startZombieAIs()
 		if zombie.aiRunning then
 			continue
 		end
-		local ai = zombieAi[zombie.aiType]
+		local ai = zombieAi[zombie.aiType or "basic"]
 		if ai and ai.chase then
 			task.spawn(function()
 				ai.chase(zombie, i)
@@ -86,8 +102,9 @@ end
     higher rounds as the game progresses).
 --]]
 function zombieService.spawnZombies(roundNum)
+	local numPlayers = #Players:GetPlayers()
 	-- Calculate the number of zombies to spawn for this round
-	local numZombiesToSpawn = 5 + roundNum * 2
+	local numZombiesToSpawn = (24 + 6 * (roundNum - 1)) * (1 + math.log(numPlayers))
 	local possibleTypes = {}
 	local totalWeight = 0
 
@@ -115,6 +132,8 @@ function zombieService.spawnZombies(roundNum)
 		return
 	end
 
+	local queuedZombies = {}
+
 	-- Spawn the calculated number of zombies based on the weighted zombie types
 	for _ = 1, numZombiesToSpawn do
 		local randomWeight = math.random() * totalWeight
@@ -130,7 +149,42 @@ function zombieService.spawnZombies(roundNum)
 
 		-- Choose a random spawn point
 		local spawnPoint = spawnPoints[math.random(1, #spawnPoints)].CFrame
-		zombieService.newZombie(zombieType, spawnPoint)
+		if zombieService.getNumZombies() >= MAX_ZOMBIES_SPAWNED_AT_ONCE then
+			-- Add zombies to queue if max limit is reached
+			table.insert(queuedZombies, { type = zombieType, spawnPoint = spawnPoint })
+		else
+			zombieService.newZombie(zombieType, spawnPoint)
+		end
+	end
+
+	zap.updateUI.FireAll({
+		timeLeft = gameStateService.getTimeLeft(),
+		wave = gameStateService.getCurrentRound(),
+		wavesTillBoss = gameStateService.getCurrentRound() % 10,
+		zombies = #zombieComponents + #queuedZombies,
+		gameActive = true,
+	})
+
+	-- Handle queued zombies if the limit was reached during spawning
+	if #queuedZombies > 0 then
+		task.spawn(function()
+			while #queuedZombies > 0 and gameStateService.isRoundActive() do
+				if zombieService.getNumZombies() < MAX_ZOMBIES_SPAWNED_AT_ONCE then
+					local nextZombie = table.remove(queuedZombies, 1)
+					zombieService.newZombie(nextZombie.type, nextZombie.spawnPoint)
+
+					zap.updateUI.FireAll({
+						timeLeft = gameStateService.getTimeLeft(),
+						wave = gameStateService.getCurrentRound(),
+						wavesTillBoss = gameStateService.getCurrentRound() % 10,
+						zombies = #zombieComponents + #queuedZombies,
+						gameActive = true,
+					})
+				end
+				-- Introduce a slight delay between spawns to avoid overloading the system
+				task.wait()
+			end
+		end)
 	end
 end
 
@@ -145,13 +199,16 @@ function zombieService.start()
 	RunService.Heartbeat:Connect(function(deltaTime)
 		if gameStateService.reduceRoundTime(deltaTime) then
 			-- If the time runs out, game over logic can be handled here
+			gameStateService.endGame()
 			return
 		end
 
 		if #zombieComponents > 0 then
 			zombieService.startZombieAIs()
 		else
-			gameStateService.startNewRound()
+			if #Players:GetPlayers() > 0 then
+				gameStateService.startNewRound("Spaceship")
+			end
 		end
 	end)
 
@@ -162,11 +219,12 @@ function zombieService.start()
 		end
 
 		zombieService.spawnZombies(currentRound)
+
 		zap.updateUI.FireAll({
 			timeLeft = gameStateService.getTimeLeft(),
-			wave = currentRound,
-			wavesTillBoss = currentRound % 10,
-			zombies = #zombieComponents,
+			wave = gameStateService.getCurrentRound(),
+			wavesTillBoss = gameStateService.getCurrentRound() % 10,
+			zombies = 5 + roundNum * 2,
 			gameActive = true,
 		})
 	end)

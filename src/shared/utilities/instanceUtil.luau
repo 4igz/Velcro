@@ -7,6 +7,7 @@ function instanceUtil.ancestorWithTag(inst: Instance, tagName: string)
 			return inst
 		end
 		inst = inst.Parent
+		task.wait()
 	end
 end
 

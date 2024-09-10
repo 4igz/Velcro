@@ -1,15 +1,21 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Signal = require(ReplicatedStorage.sharedPackages.Signal)
+local playerStateService = require(script.Parent.playerStateService)
 local zap = require(ServerStorage.zap)
 local gameStateService = {}
 
 local START_ROUND_TIME = 120 -- Total time for each round (e.g., 120 seconds)
 
-local currentRound = 0
+local currentRound = 11
 local roundActive = false
 local roundTime = 0 -- Time left in the current round
+local loadedMap = nil
+
+local mapFolder = ServerStorage.Maps
+local workspaceMapContent = workspace.MapContainer.MapContent
 
 gameStateService.startingRound = Signal.new()
 
@@ -23,17 +29,8 @@ function gameStateService.reduceRoundTime(deltaTime)
 	if roundActive then
 		roundTime -= deltaTime
 
-		-- Check if a whole second has passed and print the message
-		if math.floor(roundTime + deltaTime) > math.floor(roundTime) then
-			zap.updateUI.FireAll({
-				wave = currentRound,
-				timeLeft = math.floor(roundTime),
-				gameActive = roundActive,
-			})
-		end
-
 		if roundTime <= 0 then
-			gameStateService.endRound()
+			gameStateService.endGame()
 			print("Round ended due to timeout. Game Over!")
 			return true -- Indicate that the round has ended due to time running out
 		end
@@ -45,6 +42,22 @@ function gameStateService.getCurrentRound()
 	return currentRound
 end
 
+function gameStateService.loadMap(mapName: string)
+	local map = mapFolder:FindFirstChild(mapName)
+	if not map then
+		error(`No map named {mapName} could be found.`, 2)
+	end
+
+	-- Set old map back to the mapFolder if it still exists
+	if loadedMap then
+		loadedMap.Parent = mapFolder
+	end
+
+	-- Set new map to the workspace
+	loadedMap = map
+	map.Parent = workspaceMapContent
+end
+
 function gameStateService.advanceRound()
 	currentRound += 1
 end
@@ -53,16 +66,39 @@ function gameStateService.isRoundActive()
 	return roundActive
 end
 
-function gameStateService.endRound()
+function gameStateService.endGame()
 	roundActive = false
+	loadedMap.Parent = mapFolder
+	loadedMap = nil
+
+	-- Respawn all players
+	for _, player in Players:GetPlayers() do
+		player:LoadCharacter()
+	end
+
 	zap.updateUI.FireAll({ gameActive = false })
 end
 
-function gameStateService.startNewRound()
+function gameStateService.startNewRound(mapName: string)
 	gameStateService.resetRoundTime()
 	gameStateService.advanceRound()
 	roundActive = true
 	gameStateService.startingRound:Fire(currentRound)
+	if not loadedMap then
+		gameStateService.loadMap(mapName)
+
+		task.wait(1) -- wait for some time for map to load
+
+		for _, player in Players:GetPlayers() do
+			if playerStateService.getPlayerState(player).playing then
+				task.spawn(function()
+					local character = player.Character or player.CharacterAdded:Wait()
+					character:PivotTo(loadedMap.SpawnLocation.CFrame)
+					playerStateService.updatePlayerState(player, { inMap = true })
+				end)
+			end
+		end
+	end
 end
 
 function gameStateService.getTimeLeft()

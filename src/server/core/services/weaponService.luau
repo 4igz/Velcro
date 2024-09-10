@@ -6,7 +6,6 @@ local SoundService = game:GetService("SoundService")
 local server = ServerStorage.server.modules
 local weaponServiceModules = server.weaponService
 
-local leaderboardService = require(ServerStorage.server.services.leaderboardService)
 local levelService = require(ServerStorage.server.services.levelService)
 local moneyService = require(ServerStorage.server.services.moneyService)
 local playerDataService = require(script.Parent.playerDataService)
@@ -259,7 +258,6 @@ function weaponService.start()
 		-- TODO: Add money and xp to player for killing certain zombies
 		levelService.addExperience(shooter, 10)
 		moneyService.addMoney(shooter, 50)
-		leaderboardService.increment(shooter, "Kills", 1)
 		-- amounts are temporary
 	end)
 

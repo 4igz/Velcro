@@ -8,6 +8,7 @@ local zap = require(ReplicatedStorage.zap)
 local topBarController = {}
 
 local gui = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
+gui.ResetOnSpawn = false
 gui.Name = "TopBar"
 
 local function app(props)

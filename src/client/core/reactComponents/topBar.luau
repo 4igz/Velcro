@@ -1,24 +1,56 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local React = require(ReplicatedStorage.sharedPackages.React)
 
 local wave = 1
 local zombies = 0
 local waveTillBoss = 10
-local timeLeft = 0
 local gameActive = false
 
 return function(props)
+	-- Initialize state
+	local timeLeft, setTimeLeft = React.useState(0)
+
+	-- Set timeLeft from props after component mounts
+	React.useEffect(function()
+		if props.timeLeft then
+			setTimeLeft(props.timeLeft)
+		end
+	end, { props.timeLeft })
+
+	-- Update other variables from props
 	wave = props.wave or wave
 	zombies = props.zombies or zombies
 	waveTillBoss = props.waveTillBoss or waveTillBoss
-	timeLeft = props.timeLeft or timeLeft
 	gameActive = props.gameActive or gameActive
+
+	-- Effect to handle the timer
+	React.useEffect(function()
+		if gameActive and timeLeft > 0 then
+			local lastUpdateTime = tick() -- Get the current time
+
+			local interval = RunService.Stepped:Connect(function()
+				local currentTime = tick()
+				if currentTime - lastUpdateTime >= 1 then -- Check if 1 second has passed
+					lastUpdateTime = currentTime
+					setTimeLeft(function(prevTime)
+						return math.max(prevTime - 1, 0)
+					end)
+				end
+			end)
+
+			return function()
+				interval:Disconnect()
+			end
+		end
+	end, { gameActive, timeLeft })
+
 	return React.createElement("ScreenGui", {
 		IgnoreGuiInset = true,
 		ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-		Enabled = props.gameActive or gameActive,
+		Enabled = gameActive,
 	}, {
 		waveCount = React.createElement("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0),
@@ -55,7 +87,7 @@ return function(props)
 				),
 				Position = UDim2.fromScale(0.487, 0.5),
 				Size = UDim2.fromScale(0.911, 0.746),
-				Text = `WAVE: {props.wave or wave}`,
+				Text = `WAVE: {wave}`,
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextScaled = true,
 				TextSize = 14,
@@ -97,7 +129,7 @@ return function(props)
 				),
 				Position = UDim2.fromScale(0.5, 0.5),
 				Size = UDim2.fromScale(0.921, 0.746),
-				Text = `ZOMBIES REMAINING: {props.zombies or zombies}`,
+				Text = `ZOMBIES REMAINING: {zombies}`,
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextScaled = true,
 				TextSize = 14,
@@ -152,7 +184,7 @@ return function(props)
 				),
 				Position = UDim2.fromScale(0.5, 0.5),
 				Size = UDim2.fromScale(0.921, 0.746),
-				Text = `WAVES TILL BOSS: {props.waveTillBoss or waveTillBoss}`,
+				Text = `WAVES TILL BOSS: {waveTillBoss}`,
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextScaled = true,
 				TextSize = 14,
@@ -208,7 +240,7 @@ return function(props)
 				),
 				Position = UDim2.fromScale(0.5, 0.63),
 				Size = UDim2.fromScale(0.597, 0.586),
-				Text = `{props.timeLeft or timeLeft}`,
+				Text = `{timeLeft}`,
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextScaled = true,
 				TextSize = 14,

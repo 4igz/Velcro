@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local sharedPackages = ReplicatedStorage.sharedPackages
 
 local Promise = require(sharedPackages.Promise)
+local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local Signal = require(sharedPackages.Signal)
 
 local DEFAULT_STATE = {
@@ -16,6 +17,8 @@ local DEFAULT_STATE = {
 		Damage = 0,
 		Money = 0,
 	},
+	playing = true,
+	inMap = false,
 }
 local RETRY_GET_STATE_TIMES = 10
 local RETRY_DELAY = 0.1
@@ -69,6 +72,13 @@ end
 function playerStateService.setPlayerState(player: Player, newState)
 	playerStates[player] = newState
 	playerStateService.stateChange:Fire(player, newState)
+end
+
+function playerStateService.updatePlayerState(player: Player, updatedState)
+	playerStateService.setPlayerState(
+		player,
+		Sift.Dictionary.merge(updatedState, playerStateService.getPlayerState(player))
+	)
 end
 
 function playerStateService.getPlayerState(player: Player)

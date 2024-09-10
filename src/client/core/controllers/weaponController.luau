@@ -260,7 +260,7 @@ function weaponController.visualizeCast(data)
 	cachedBeam.Attachment0 = a0
 	cachedBeam.Attachment1 = a1
 
-	a0.WorldPosition = data.firepoint.WorldPosition
+	a0.WorldPosition = data.firepoint
 	a1.WorldPosition = data.hit
 
 	task.spawn(function()
@@ -305,7 +305,6 @@ end
 
 function weaponController.start()
 	local lastFire = 0
-	local swingAnim = 1
 
 	-- Set defaults for all weapon types
 	for _, settings in weaponSettings.settings do
@@ -358,7 +357,7 @@ function weaponController.start()
 				-- Multiple bullets are visualized by the server because each bullets direction is calculated by the server.
 				if currentWs.bullets == 1 then
 					weaponController.visualizeCast({
-						firepoint = currentWep.Handle.Firepoint,
+						firepoint = currentWep.Handle.Firepoint.WorldPosition,
 						hit = pos,
 						beamColor = currentWs.raycastBeamColor,
 					})
@@ -367,7 +366,6 @@ function weaponController.start()
 				-- TODO: UI
 
 				local rayHit = if hit then hit.Instance else nil
-				local victim
 				-- TODO: Hit visual modules
 				-- if rayHit then
 				-- 	victim = Players:GetPlayerFromCharacter(rayHit.Parent)

@@ -25,6 +25,7 @@ function playerUtil.playerFromInstance(descendant: Instance): Player?
 		end
 
 		descendant = descendant.Parent
+		task.wait()
 	end
 
 	return nil

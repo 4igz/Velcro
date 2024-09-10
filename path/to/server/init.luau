@@ -152,7 +152,7 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-local events = table.create(7)
+local events = table.create(10)
 reliable.OnServerEvent:Connect(function(player, buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
@@ -190,15 +190,38 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 			if events[3] then
 				task.spawn(events[3], player, value)
 			end
-		elseif id == 7 then
+		elseif id == 8 then
+			local value
+			value = {}
+			local len = buffer.readu16(incoming_buff, read(2))
+			value.name = buffer.readstring(incoming_buff, read(len), len)
+			value.value = {}
+			local enum_value = buffer.readu8(incoming_buff, read(1))
+			if enum_value == 0 then
+				value.value.type = "num"
+				value.value.value = buffer.readf64(incoming_buff, read(8))
+			elseif enum_value == 1 then
+				value.value.type = "str"
+				local len = buffer.readu16(incoming_buff, read(2))
+				value.value.value = buffer.readstring(incoming_buff, read(len), len)
+			elseif enum_value == 2 then
+				value.value.type = "boo"
+				value.value.value = buffer.readu8(incoming_buff, read(1)) == 1
+			else
+				error("Invalid variant")
+			end
+			if events[8] then
+				task.spawn(events[8], player, value)
+			end
+		elseif id == 9 then
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			if events[7] then
+			if events[9] then
 				task.spawn(function(player, call_id, value)
-					local rets = events[7](player, value)
+					local rets = events[9](player, value)
 					load_player(player)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 9)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
 					if rets.zombies == nil then
@@ -207,8 +230,8 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					else
 						alloc(1)
 						buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-						alloc(2)
-						buffer.writeu16(outgoing_buff, outgoing_apos, rets.zombies)
+						alloc(4)
+						buffer.writei32(outgoing_buff, outgoing_apos, rets.zombies)
 					end
 					if rets.wave == nil then
 						alloc(1)
@@ -246,6 +269,24 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 						alloc(1)
 						buffer.writeu8(outgoing_buff, outgoing_apos, rets.gameActive and 1 or 0)
 					end
+					player_map[player] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 10 then
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if events[10] then
+				task.spawn(function(player, call_id, value)
+					local rets = events[10](player, value)
+					load_player(player)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
+					alloc(4)
+					buffer.writeu32(outgoing_buff, outgoing_apos, rets.level)
+					alloc(4)
+					buffer.writeu32(outgoing_buff, outgoing_apos, rets.xp)
 					player_map[player] = save()
 				end, player, call_id, value)
 			end
@@ -418,7 +459,7 @@ return {
 			timeLeft: ((number)?),
 			gameActive: ((boolean)?),
 		}))
-			load_empty()
+			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
 			if Value.zombies == nil then
@@ -466,9 +507,7 @@ return {
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, Value.gameActive and 1 or 0)
 			end
-			local buff = buffer.create(outgoing_used)
-			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
-			unreliable:FireClient(Player, buff, outgoing_inst)
+			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
 			zombies: ((number)?),
@@ -525,9 +564,14 @@ return {
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, Value.gameActive and 1 or 0)
 			end
-			local buff = buffer.create(outgoing_used)
-			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
-			unreliable:FireAllClients(buff, outgoing_inst)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
 		end,
 		FireExcept = function(Except: Player, Value: ({
 			zombies: ((number)?),
@@ -584,11 +628,14 @@ return {
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, Value.gameActive and 1 or 0)
 			end
-			local buff = buffer.create(outgoing_used)
-			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
-					unreliable:FireClient(player, buff, outgoing_inst)
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
 				end
 			end
 		end,
@@ -647,10 +694,90 @@ return {
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, Value.gameActive and 1 or 0)
 			end
-			local buff = buffer.create(outgoing_used)
-			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
-				unreliable:FireClient(player, buff, outgoing_inst)
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	updateLevelUi = {
+		Fire = function(Player: Player, Value: ({
+			level: (number),
+			xp: (number),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value.level)
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value.xp)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			level: (number),
+			xp: (number),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value.level)
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value.xp)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			level: (number),
+			xp: (number),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value.level)
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value.xp)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { Player }, Value: ({
+			level: (number),
+			xp: (number),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value.level)
+			alloc(4)
+			buffer.writeu32(outgoing_buff, outgoing_apos, Value.xp)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
 			end
 		end,
 	},
@@ -693,6 +820,26 @@ return {
 			end
 		end,
 	},
+	attributeChangedEvent = {
+		SetCallback = function(Callback: (Player, ({
+			name: (string),
+			value: ({
+				type: "num",
+				value: (number),
+			} | {
+				type: "str",
+				value: (string),
+			} | {
+				type: "boo",
+				value: (boolean),
+			}),
+		})) -> ()): () -> ()
+			events[8] = Callback
+			return function()
+				events[8] = nil
+			end
+		end,
+	},
 	getTopbarUIInfo = {
 		SetCallback = function(Callback: (Player) -> (({
 			zombies: ((number)?),
@@ -701,9 +848,20 @@ return {
 			timeLeft: ((number)?),
 			gameActive: ((boolean)?),
 		}))): () -> ()
-			events[7] = Callback
+			events[9] = Callback
 			return function()
-				events[7] = nil
+				events[9] = nil
+			end
+		end,
+	},
+	getLevelData = {
+		SetCallback = function(Callback: (Player) -> (({
+			level: (number),
+			xp: (number),
+		}))): () -> ()
+			events[10] = Callback
+			return function()
+				events[10] = nil
 			end
 		end,
 	},

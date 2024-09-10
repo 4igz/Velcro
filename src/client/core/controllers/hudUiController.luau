@@ -6,6 +6,7 @@ local hudUi = require(ReplicatedStorage.client.reactComponents.hudUi)
 local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
 
 local gui = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
+gui.ResetOnSpawn = false
 gui.Name = "HUD"
 
 local hudUiController = {}

@@ -134,12 +134,14 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 end)
 
-local events = table.create(7)
-local event_queue: { [number]: { any } } = table.create(7)
+local events = table.create(10)
+local event_queue: { [number]: { any } } = table.create(10)
 local function_call_id = 0
 event_queue[5] = {}
 event_queue[6] = {}
-event_queue[7] = table.create(255)
+event_queue[7] = {}
+event_queue[9] = table.create(255)
+event_queue[10] = table.create(255)
 reliable.OnClientEvent:Connect(function(buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
@@ -148,8 +150,7 @@ reliable.OnClientEvent:Connect(function(buff, inst)
 	local len = buffer.len(buff)
 	while incoming_read < len do
 		local id = buffer.readu8(buff, read(1))
-		if id == 7 then
-			local call_id = buffer.readu8(incoming_buff, read(1))
+		if id == 6 then
 			local value
 			value = {}
 			if buffer.readu8(incoming_buff, read(1)) == 1 then
@@ -177,8 +178,66 @@ reliable.OnClientEvent:Connect(function(buff, inst)
 			else
 				value.gameActive = nil
 			end
-			task.spawn(event_queue[7][call_id], value)
-			event_queue[7][call_id] = nil
+			if events[6] then
+				task.spawn(events[6], value)
+			else
+				table.insert(event_queue[6], value)
+				if #event_queue[6] > 64 then
+					warn(`[ZAP] {#event_queue[6]} events in queue for updateUI. Did you forget to attach a listener?`)
+				end
+			end
+		elseif id == 7 then
+			local value
+			value = {}
+			value.level = buffer.readu32(incoming_buff, read(4))
+			value.xp = buffer.readu32(incoming_buff, read(4))
+			if events[7] then
+				task.spawn(events[7], value)
+			else
+				table.insert(event_queue[7], value)
+				if #event_queue[7] > 64 then
+					warn(`[ZAP] {#event_queue[7]} events in queue for updateLevelUi. Did you forget to attach a listener?`)
+				end
+			end
+		elseif id == 9 then
+			local call_id = buffer.readu8(incoming_buff, read(1))
+			local value
+			value = {}
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				value.zombies = buffer.readi32(incoming_buff, read(4))
+			else
+				value.zombies = nil
+			end
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				value.wave = buffer.readu16(incoming_buff, read(2))
+			else
+				value.wave = nil
+			end
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				value.wavesTillBoss = buffer.readu16(incoming_buff, read(2))
+			else
+				value.wavesTillBoss = nil
+			end
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				value.timeLeft = buffer.readf64(incoming_buff, read(8))
+			else
+				value.timeLeft = nil
+			end
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				value.gameActive = buffer.readu8(incoming_buff, read(1)) == 1
+			else
+				value.gameActive = nil
+			end
+			task.spawn(event_queue[9][call_id], value)
+			event_queue[9][call_id] = nil
+		elseif id == 10 then
+			local call_id = buffer.readu8(incoming_buff, read(1))
+			local value
+			value = {}
+			value.level = buffer.readu32(incoming_buff, read(4))
+			value.xp = buffer.readu32(incoming_buff, read(4))
+			task.spawn(event_queue[10][call_id], value)
+			event_queue[10][call_id] = nil
 		else
 			error("Unknown event id")
 		end
@@ -210,42 +269,6 @@ unreliable.OnClientEvent:Connect(function(buff, inst)
 			table.insert(event_queue[5], value)
 			if #event_queue[5] > 64 then
 				warn(`[ZAP] {#event_queue[5]} events in queue for replicateHit. Did you forget to attach a listener?`)
-			end
-		end
-	elseif id == 6 then
-		local value
-		value = {}
-		if buffer.readu8(incoming_buff, read(1)) == 1 then
-			value.zombies = buffer.readu16(incoming_buff, read(2))
-		else
-			value.zombies = nil
-		end
-		if buffer.readu8(incoming_buff, read(1)) == 1 then
-			value.wave = buffer.readu16(incoming_buff, read(2))
-		else
-			value.wave = nil
-		end
-		if buffer.readu8(incoming_buff, read(1)) == 1 then
-			value.wavesTillBoss = buffer.readu16(incoming_buff, read(2))
-		else
-			value.wavesTillBoss = nil
-		end
-		if buffer.readu8(incoming_buff, read(1)) == 1 then
-			value.timeLeft = buffer.readf64(incoming_buff, read(8))
-		else
-			value.timeLeft = nil
-		end
-		if buffer.readu8(incoming_buff, read(1)) == 1 then
-			value.gameActive = buffer.readu8(incoming_buff, read(1)) == 1
-		else
-			value.gameActive = nil
-		end
-		if events[6] then
-			task.spawn(events[6], value)
-		else
-			table.insert(event_queue[6], value)
-			if #event_queue[6] > 64 then
-				warn(`[ZAP] {#event_queue[6]} events in queue for updateUI. Did you forget to attach a listener?`)
 			end
 		end
 	else
@@ -314,6 +337,50 @@ return {
 			load(saved)
 		end,
 	},
+	attributeChangedEvent = {
+		Fire = function(Value: ({
+			name: (string),
+			value: ({
+				type: "num",
+				value: (number),
+			} | {
+				type: "str",
+				value: (string),
+			} | {
+				type: "boo",
+				value: (boolean),
+			}),
+		}))
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 8)
+			local len = #Value.name
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.name, len)
+			if Value.value.type == "num" then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, Value.value.value)
+			elseif Value.value.type == "str" then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				local len = #Value.value.value
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len)
+				alloc(len)
+				buffer.writestring(outgoing_buff, outgoing_apos, Value.value.value, len)
+			elseif Value.value.type == "boo" then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 2)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value.value.value and 1 or 0)
+			else
+				error("Invalid variant")
+			end
+		end,
+	},
 	replicateHit = {
 		SetCallback = function(Callback: (({
 			weaponName: (string),
@@ -348,19 +415,51 @@ return {
 			end
 		end,
 	},
+	updateLevelUi = {
+		SetCallback = function(Callback: (({
+			level: (number),
+			xp: (number),
+		})) -> ()): () -> ()
+			events[7] = Callback
+			for _, value in event_queue[7] do
+				task.spawn(Callback, value)
+			end
+			event_queue[7] = {}
+			return function()
+				events[7] = nil
+			end
+		end,
+	},
 	getTopbarUIInfo = {
 		Call = function()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
 			function_call_id += 1
 			function_call_id %= 256
-			if event_queue[7][function_call_id] then
+			if event_queue[9][function_call_id] then
 				function_call_id -= 1
 				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
 			end
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
-			event_queue[7][function_call_id] = coroutine.running()
+			event_queue[9][function_call_id] = coroutine.running()
+			local value = coroutine.yield()
+			return value
+		end,
+	},
+	getLevelData = {
+		Call = function()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+			function_call_id += 1
+			function_call_id %= 256
+			if event_queue[10][function_call_id] then
+				function_call_id -= 1
+				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
+			end
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
+			event_queue[10][function_call_id] = coroutine.running()
 			local value = coroutine.yield()
 			return value
 		end,

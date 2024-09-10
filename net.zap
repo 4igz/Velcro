@@ -49,7 +49,7 @@ event replicateHit = {
 
 event updateUI = {
     from: Server,
-    type: Unreliable,
+    type: Reliable,
     call: SingleAsync,
     data: struct {
         zombies: u16?,
@@ -62,12 +62,43 @@ event updateUI = {
 
 funct getTopbarUIInfo = {
     call: Async,
-    
     rets: struct {
-        zombies: u16?,
+        zombies: i32?,
         wave: u16?,
         wavesTillBoss: u16?,
         timeLeft: f64?,
         gameActive: boolean?
+    }
+}
+
+funct getLevelData = {
+    call: Async,
+    rets: struct {
+        level: u32,
+        xp: u32
+    }
+}
+
+event updateLevelUi = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+    data: struct {
+        level: u32,
+        xp: u32,
+    }
+}
+
+event attributeChangedEvent = {
+	from: Client,
+	type: Reliable,
+	call: SingleAsync,
+	data: struct {
+        name: string,
+        value: enum "type" {
+            num {value: f64},
+            str {value: string},
+            boo {value: boolean},
+        },
     }
 }
