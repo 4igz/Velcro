@@ -17,7 +17,7 @@ local menus = {
 
 local openMenus = {}
 
-local function createButton(props, _refs, _target)
+local function createButton(props)
 	local styles, api = ReactSpring.useSpring(function()
 		return {
 			alpha = 0,
@@ -29,8 +29,6 @@ local function createButton(props, _refs, _target)
 		}
 	end)
 
-	local btn = React.useRef()
-	local label = React.useRef()
 	local moving = false
 
 	return e("ImageButton", {
@@ -56,15 +54,26 @@ local function createButton(props, _refs, _target)
 			api.start({ alpha = 0 })
 		end,
 		[React.Event.MouseButton1Click] = function()
-			if openMenus[props.text] == nil then
-				openMenus[props.text] = false
+			local buttonName = props.text
+
+			if openMenus[buttonName] == nil then
+				openMenus[buttonName] = false
 			end
-			openMenus[props.text] = not openMenus[props.text]
-			root:render(menus[props.text](openMenus[props.text]))
+
+			local open = openMenus[buttonName]
+			openMenus[buttonName] = not open
+
+			root:render(React.createElement(menus[buttonName], {
+				open = open,
+				onClose = function()
+					openMenus[buttonName] = false
+
+					root:render(React.createElement(menus[buttonName], { open = false }))
+				end,
+			}))
 		end,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-		ref = btn,
 	}, {
 		UIAspectRatioConstraint = e("UIAspectRatioConstraint", {}),
 
@@ -84,7 +93,6 @@ local function createButton(props, _refs, _target)
 			TextScaled = true,
 			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 			TextTransparency = 0,
-			ref = label,
 		}, {
 			UIStroke = e("UIStroke", {
 				ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,

@@ -169,7 +169,7 @@ local function bgGp(props)
 	})
 end
 
-return function(open)
+return function(props)
 	local gps = {
 		uIListLayout = e("UIListLayout", {
 			Padding = UDim.new(0.03, 0),
@@ -195,7 +195,7 @@ return function(open)
 		BorderSizePixel = 0,
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromScale(0.515, 0.676),
-		Visible = open,
+		Visible = props.open,
 	}, {
 		uIStroke = e("UIStroke", {
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
@@ -305,7 +305,11 @@ return function(open)
 			BorderSizePixel = 0,
 			Position = UDim2.fromScale(0.995, -0.00657),
 			Size = UDim2.fromScale(0.0511, 0.0807),
-			Visible = false,
+			Visible = true,
+
+			[React.Event.MouseButton1Click] = function()
+				props.onClose()
+			end,
 		}, {
 			uICorner6 = e("UICorner", {
 				CornerRadius = UDim.new(0.1, 0),
