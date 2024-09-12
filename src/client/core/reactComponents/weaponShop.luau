@@ -8,6 +8,64 @@ local zap = require(ReplicatedStorage.zap)
 
 local e = React.createElement
 
+local function titleButton(props)
+	return e("TextButton", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = Color3.fromRGB(69, 185, 243),
+		BorderColor3 = Color3.fromRGB(0, 0, 0),
+		BorderSizePixel = 0,
+		FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
+		Position = UDim2.fromScale(0.5, 0.537),
+		Size = UDim2.fromScale(0.312, 0.732),
+		Text = "",
+		TextColor3 = Color3.fromRGB(0, 0, 0),
+		TextScaled = true,
+		TextSize = 14,
+		TextWrapped = true,
+		LayoutOrder = props.order,
+		[React.Event.MouseButton1Click] = function()
+			props.onClick(props.displayedWeaponsText)
+		end,
+	}, {
+		uICorner4 = e("UICorner", {
+			CornerRadius = UDim.new(0.05, 0),
+		}),
+
+		uIStroke6 = e("UIStroke", {
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			Color = Color3.fromRGB(46, 123, 162),
+			Thickness = 2,
+		}),
+
+		textLabel1 = e("TextLabel", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+			BackgroundTransparency = 1,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			FontFace = Font.new(
+				"rbxassetid://12187607287",
+				Enum.FontWeight.Bold,
+				Enum.FontStyle.Normal
+			),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.926, 0.758),
+			Text = props.text,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			TextScaled = true,
+			TextSize = 14,
+			TextWrapped = true,
+
+			LayoutOrder = 2,
+		}, {
+			uIStroke7 = e("UIStroke", {
+				Color = Color3.fromRGB(46, 123, 162),
+				Thickness = 2,
+			}),
+		}),
+	})
+end
+
 local function weaponFrame(props)
 	return e("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -280,61 +338,6 @@ return function(props)
 				CornerRadius = UDim.new(0.05, 0),
 			}),
 
-			button = e("TextButton", {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				BackgroundColor3 = Color3.fromRGB(69, 185, 243),
-				BorderColor3 = Color3.fromRGB(0, 0, 0),
-				BorderSizePixel = 0,
-				FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
-				Position = UDim2.fromScale(0.168, 0.537),
-				Size = UDim2.fromScale(0.312, 0.732),
-				Text = "",
-				TextColor3 = Color3.fromRGB(0, 0, 0),
-				TextScaled = true,
-				TextSize = 14,
-				TextWrapped = true,
-				LayoutOrder = 1,
-				[React.Event.MouseButton1Click] = function()
-					updateDisplayedWeapons("gun")
-				end,
-			}, {
-				uICorner3 = e("UICorner", {
-					CornerRadius = UDim.new(0.05, 0),
-				}),
-
-				uIStroke4 = e("UIStroke", {
-					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-					Color = Color3.fromRGB(46, 123, 162),
-					Thickness = 2,
-				}),
-
-				textLabel = e("TextLabel", {
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-					BackgroundTransparency = 1,
-					BorderColor3 = Color3.fromRGB(0, 0, 0),
-					BorderSizePixel = 0,
-					FontFace = Font.new(
-						"rbxassetid://12187607287",
-						Enum.FontWeight.Bold,
-						Enum.FontStyle.Normal
-					),
-					Position = UDim2.fromScale(0.5, 0.5),
-					Size = UDim2.fromScale(0.926, 0.758),
-					Text = "GUNS",
-					TextColor3 = Color3.fromRGB(255, 255, 255),
-					TextScaled = true,
-					TextSize = 14,
-					TextWrapped = true,
-					LayoutOrder = 1,
-				}, {
-					uIStroke5 = e("UIStroke", {
-						Color = Color3.fromRGB(46, 123, 162),
-						Thickness = 2,
-					}),
-				}),
-			}),
-
 			uIListLayout = e("UIListLayout", {
 				FillDirection = Enum.FillDirection.Horizontal,
 				HorizontalAlignment = Enum.HorizontalAlignment.Center,
@@ -343,115 +346,23 @@ return function(props)
 				VerticalAlignment = Enum.VerticalAlignment.Center,
 			}),
 
-			button1 = e("TextButton", {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				BackgroundColor3 = Color3.fromRGB(69, 185, 243),
-				BorderColor3 = Color3.fromRGB(0, 0, 0),
-				BorderSizePixel = 0,
-				FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
-				Position = UDim2.fromScale(0.5, 0.537),
-				Size = UDim2.fromScale(0.312, 0.732),
-				Text = "",
-				TextColor3 = Color3.fromRGB(0, 0, 0),
-				TextScaled = true,
-				TextSize = 14,
-				TextWrapped = true,
-				LayoutOrder = 2,
-				[React.Event.MouseButton1Click] = function()
-					updateDisplayedWeapons("melee")
-				end,
-			}, {
-				uICorner4 = e("UICorner", {
-					CornerRadius = UDim.new(0.05, 0),
-				}),
-
-				uIStroke6 = e("UIStroke", {
-					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-					Color = Color3.fromRGB(46, 123, 162),
-					Thickness = 2,
-				}),
-
-				textLabel1 = e("TextLabel", {
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-					BackgroundTransparency = 1,
-					BorderColor3 = Color3.fromRGB(0, 0, 0),
-					BorderSizePixel = 0,
-					FontFace = Font.new(
-						"rbxassetid://12187607287",
-						Enum.FontWeight.Bold,
-						Enum.FontStyle.Normal
-					),
-					Position = UDim2.fromScale(0.5, 0.5),
-					Size = UDim2.fromScale(0.926, 0.758),
-					Text = "MELEE",
-					TextColor3 = Color3.fromRGB(255, 255, 255),
-					TextScaled = true,
-					TextSize = 14,
-					TextWrapped = true,
-
-					LayoutOrder = 2,
-				}, {
-					uIStroke7 = e("UIStroke", {
-						Color = Color3.fromRGB(46, 123, 162),
-						Thickness = 2,
-					}),
-				}),
+			gunButton = titleButton({
+				displayedWeaponsText = "gun",
+				order = 1,
+				text = "GUNS",
+				onClick = updateDisplayedWeapons,
 			}),
-
-			button2 = e("TextButton", {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				BackgroundColor3 = Color3.fromRGB(69, 185, 243),
-				BorderColor3 = Color3.fromRGB(0, 0, 0),
-				BorderSizePixel = 0,
-				FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
-				Position = UDim2.fromScale(0.832, 0.537),
-				Size = UDim2.fromScale(0.312, 0.732),
-				Text = "",
-				TextColor3 = Color3.fromRGB(0, 0, 0),
-				TextScaled = true,
-				TextSize = 14,
-				TextWrapped = true,
-				LayoutOrder = 3,
-				[React.Event.MouseButton1Click] = function()
-					updateDisplayedWeapons("equipment")
-				end,
-			}, {
-				uICorner5 = e("UICorner", {
-					CornerRadius = UDim.new(0.05, 0),
-				}),
-
-				uIStroke8 = e("UIStroke", {
-					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-					Color = Color3.fromRGB(46, 123, 162),
-					Thickness = 2,
-				}),
-
-				textLabel2 = e("TextLabel", {
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-					BackgroundTransparency = 1,
-					BorderColor3 = Color3.fromRGB(0, 0, 0),
-					BorderSizePixel = 0,
-					FontFace = Font.new(
-						"rbxassetid://12187607287",
-						Enum.FontWeight.Bold,
-						Enum.FontStyle.Normal
-					),
-					Position = UDim2.fromScale(0.5, 0.5),
-					Size = UDim2.fromScale(0.926, 0.758),
-					Text = "EQUIPMENT",
-					TextColor3 = Color3.fromRGB(255, 255, 255),
-					TextScaled = true,
-					TextSize = 14,
-					TextWrapped = true,
-					LayoutOrder = 3,
-				}, {
-					uIStroke9 = e("UIStroke", {
-						Color = Color3.fromRGB(46, 123, 162),
-						Thickness = 2,
-					}),
-				}),
+			meleeButton = titleButton({
+				displayedWeaponsText = "melee",
+				order = 2,
+				text = "MELEE",
+				onClick = updateDisplayedWeapons,
+			}),
+			equipmentButton = titleButton({
+				displayedWeaponsText = "equipment",
+				order = 3,
+				text = "EQUIPMENT",
+				onClick = updateDisplayedWeapons,
 			}),
 		}),
 
