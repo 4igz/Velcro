@@ -18,6 +18,7 @@ local mapFolder = ServerStorage.Maps
 local workspaceMapContent = workspace.MapContainer.MapContent
 
 gameStateService.startingRound = Signal.new()
+gameStateService.endingGame = Signal.new()
 
 -- Initialize or reset the round time
 function gameStateService.resetRoundTime()
@@ -67,8 +68,10 @@ function gameStateService.isRoundActive()
 end
 
 function gameStateService.endGame()
+	gameStateService.endingGame:Fire(currentRound)
 	roundActive = false
 	loadedMap.Parent = mapFolder
+	currentRound = 0
 	loadedMap = nil
 
 	-- Respawn all players
@@ -84,6 +87,7 @@ function gameStateService.startNewRound(mapName: string)
 	gameStateService.advanceRound()
 	roundActive = true
 	gameStateService.startingRound:Fire(currentRound)
+
 	if not loadedMap then
 		gameStateService.loadMap(mapName)
 

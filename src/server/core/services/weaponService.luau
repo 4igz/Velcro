@@ -13,6 +13,7 @@ local playerUtil = require(ReplicatedStorage.shared.utilities.playerUtil)
 local weaponConfig = require(ReplicatedStorage.shared.configurations.weaponConfig)
 local weaponUtil = require(ReplicatedStorage.shared.utilities.weaponUtil)
 local zap = require(ServerStorage.zap)
+local zombieConfig = require(ReplicatedStorage.shared.configurations.zombieConfig)
 
 local meleeHitParams = OverlapParams.new()
 meleeHitParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -254,12 +255,17 @@ function weaponService.start()
 	end)
 
 	-- Fires when someone has been killed by a hitType
-	weaponConfig.signals.kill:Connect(function(shooter: Player, ws: weaponConfig.Settings)
-		-- TODO: Add money and xp to player for killing certain zombies
-		levelService.addExperience(shooter, 10)
-		moneyService.addMoney(shooter, 50)
-		-- amounts are temporary
-	end)
+	weaponConfig.signals.kill:Connect(
+		function(shooter: Player, zombie: Model, ws: weaponConfig.Settings)
+			-- TODO: Add money and xp to player for killing certain zombies
+			local cfg = zombieConfig[1][zombie.Name]
+
+			--TODO:  This will later change based on rebirth status and gamepasses and such
+			levelService.addExperience(shooter, cfg.xpDropped or 1)
+			moneyService.addMoney(shooter, cfg.moneyDropped or 10)
+			-- amounts are temporary
+		end
+	)
 
 	weaponConfig.signals.bulletHit:Connect(
 		function(shooter: Player, ws: any, raycastResult: RaycastResult, weaponName: string)

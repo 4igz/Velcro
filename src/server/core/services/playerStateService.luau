@@ -6,6 +6,7 @@ local sharedPackages = ReplicatedStorage.sharedPackages
 local Promise = require(sharedPackages.Promise)
 local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local Signal = require(sharedPackages.Signal)
+local playerDataService = require(script.Parent.playerDataService)
 
 local DEFAULT_STATE = {
 	Life = { -- Resets on Respawn
@@ -13,6 +14,7 @@ local DEFAULT_STATE = {
 	},
 	exampleState = false,
 	Leaderboard = {
+		Level = 0,
 		Kills = 0,
 		Damage = 0,
 		Money = 0,
@@ -32,6 +34,11 @@ local playerStates = {}
 function playerStateService.start()
 	Players.PlayerAdded:Connect(function(player)
 		playerStates[player] = table.clone(DEFAULT_STATE)
+		local profile = playerDataService.getProfile(player)
+
+		if profile then
+			playerStateService.updateLeaderstats(player, profile.Data)
+		end
 
 		player.CharacterAdded:Connect(function(_character)
 			playerStates[player].Life = table.clone(DEFAULT_STATE.Life)
@@ -44,7 +51,44 @@ function playerStateService.start()
 		end
 	end)
 
-	playerStateService.stateChange:Connect(function(player, newState) end)
+	playerDataService.playerDataChanged:Connect(function(player, newProfile)
+		if newProfile then
+			playerStateService.updateLeaderstats(player, newProfile.Data)
+		end
+	end)
+end
+
+function playerStateService.updateLeaderstats(player, profile)
+	-- Check if leaderstats folder already exists
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if not leaderstats then
+		-- Create the leaderstats folder if it doesn't exist
+		leaderstats = Instance.new("Folder")
+		leaderstats.Name = "leaderstats"
+		leaderstats.Parent = player
+	end
+
+	-- Define which stats should be shown on the leaderboard
+	local leaderboardFields = {}
+
+	local playerState = playerStateService.getPlayerState(player)
+
+	for fieldName, value in playerState.Leaderboard do
+		leaderboardFields[fieldName] = profile[fieldName]
+	end
+
+	-- Update each stat in the leaderboard data
+	for statName, value in leaderboardFields do
+		local stat = leaderstats:FindFirstChild(statName)
+		if not stat then
+			-- If the stat doesn't exist, create it
+			stat = Instance.new("IntValue")
+			stat.Name = statName
+			stat.Parent = leaderstats
+		end
+		-- Update the value of the stat
+		stat.Value = value
+	end
 end
 
 -- Preferably used inside of PlayerAdded events

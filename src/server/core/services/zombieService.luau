@@ -104,7 +104,7 @@ end
 function zombieService.spawnZombies(roundNum)
 	local numPlayers = #Players:GetPlayers()
 	-- Calculate the number of zombies to spawn for this round
-	local numZombiesToSpawn = (24 + 6 * (roundNum - 1)) * (1 + math.log(numPlayers))
+	local numZombiesToSpawn = (5 + 6 * (roundNum - 1)) * (1 + math.log(numPlayers))
 	local possibleTypes = {}
 	local totalWeight = 0
 

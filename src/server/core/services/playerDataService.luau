@@ -13,12 +13,26 @@ local Profiles = {} -- [player] = profile
 
 local playerDataService = {}
 
+type PlayerProfile = {
+	Money: number,
+	Experience: number,
+	Level: number,
+	Kills: number,
+
+	gun: string,
+	melee: string,
+	equipment: string,
+
+	ownedWeapons: { string },
+}
+
 -- ProfileTemplate table is what empty profiles will default to.
 playerDataService.ProfileTemplate = {
 	-- Leaderstats
 	Money = 1000,
 	Experience = 0,
 	Level = 1,
+	Kills = 0,
 
 	-- State
 	gun = "Starter Pistol",
@@ -75,14 +89,15 @@ function playerDataService.start()
 end
 
 -- Preferably used inside of PlayerAdded events
-function playerDataService.waitForProfile(player: Player): PlayerProfile?
+function playerDataService.waitForProfile(player: Player): { Data: PlayerProfile }?
 	while player:IsDescendantOf(Players) do
 		local profile = Profiles[player]
 		if profile then
 			return profile
 		end
-		task.wait(RETRY_DELAY)
+		task.wait(1)
 	end
+	return
 end
 
 function playerDataService.updateProfile(player: Player, newData: { [any]: any })
@@ -92,14 +107,14 @@ function playerDataService.updateProfile(player: Player, newData: { [any]: any }
 	playerDataService.setProfile(player, mergedData)
 end
 
-function playerDataService.getProfile(player: Player): PlayerProfile?
+function playerDataService.getProfile(player: Player): { Data: PlayerProfile }?
 	if player:IsDescendantOf(Players) and not Profiles[player] then
 		return playerDataService.waitForProfile(player)
 	end
 	return Profiles[player]
 end
 
-function playerDataService.setProfile(player: Player, newProfile)
+function playerDataService.setProfile(player: Player, newProfile: PlayerProfile)
 	if not (player:IsDescendantOf(Players) and Profiles[player]) then
 		return
 	end

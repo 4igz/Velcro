@@ -161,6 +161,7 @@ local M = {
 			attackPower = 15,
 			beginSpawningRound = 1,
 			xpDropped = 10,
+			moneyDropped = 10,
 		},
 
 		["Enchanted"] = {
@@ -169,6 +170,7 @@ local M = {
 			speed = 14,
 			beginSpawningRound = 3,
 			xpDropped = 12,
+			moneyDropped = 10,
 		},
 
 		["Fallen Angel"] = {
@@ -177,6 +179,7 @@ local M = {
 			attackPower = 25,
 			beginSpawningRound = 20,
 			xpDropped = 20,
+			moneyDropped = 10,
 		},
 
 		["Midnight"] = {
@@ -185,6 +188,7 @@ local M = {
 			attackPower = 45,
 			beginSpawningRound = 3,
 			xpDropped = 15,
+			moneyDropped = 10,
 		},
 
 		["Lightning Zombie"] = {
@@ -193,6 +197,7 @@ local M = {
 			attackPower = 20,
 			beginSpawningRound = 12,
 			xpDropped = 13,
+			moneyDropped = 10,
 		},
 
 		["Blue Lightning Zombie"] = {
@@ -201,6 +206,7 @@ local M = {
 			attackPower = 20,
 			beginSpawningRound = 12,
 			xpDropped = 20,
+			moneyDropped = 10,
 		},
 
 		["Spectre"] = {
@@ -209,6 +215,7 @@ local M = {
 			attackPower = 40,
 			beginSpawningRound = 15,
 			xpDropped = 15,
+			moneyDropped = 10,
 		},
 
 		["Mini"] = {
@@ -217,6 +224,7 @@ local M = {
 			attackPower = 15,
 			beginSpawningRound = 3,
 			xpDropped = 8,
+			moneyDropped = 10,
 		},
 
 		["Demon"] = {
@@ -225,6 +233,7 @@ local M = {
 			attackPower = 25, -- plus burn
 			beginSpawningRound = 20,
 			xpDropped = 18,
+			moneyDropped = 10,
 		},
 
 		["Flame Zombie"] = {
@@ -233,6 +242,7 @@ local M = {
 			attackPower = 20, -- plus burn
 			beginSpawningRound = 10,
 			xpDropped = 13,
+			moneyDropped = 10,
 		},
 
 		["Water Zombie"] = {
@@ -241,6 +251,7 @@ local M = {
 			attackPower = 20,
 			beginSpawningRound = 10,
 			xpDropped = 13,
+			moneyDropped = 10,
 		},
 
 		["Enraged"] = {
@@ -249,6 +260,7 @@ local M = {
 			attackPower = 20,
 			beginSpawningRound = 5,
 			xpDropped = 10,
+			moneyDropped = 10,
 		},
 	},
 	{
