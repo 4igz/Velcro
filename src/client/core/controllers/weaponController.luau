@@ -259,8 +259,8 @@ function weaponController.visualizeCast(data)
 	local a1: Attachment = attachmentCache:GetPart() --getUnusedCachePart(attachmentCache, "ParticleEmitter")
 	local cachedBeam = beamCache:GetPart()
 	cachedBeam.Color = ColorSequence.new(data.beamColor)
-	-- cachedBeam.Attachment0 = a0
-	-- cachedBeam.Attachment1 = a1
+	cachedBeam.Attachment0 = a0
+	cachedBeam.Attachment1 = a1
 
 	a0.WorldPosition = data.firepoint.WorldPosition
 	a1.WorldPosition = data.hit
