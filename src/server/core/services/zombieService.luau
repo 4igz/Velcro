@@ -68,6 +68,7 @@ function zombieService.newZombie(type, cframe)
 		zap.updateUI.FireAll({
 			zombies = #zombieComponents,
 			gameActive = gameStateService.isRoundActive(),
+			timeLeft = gameStateService.getTimeLeft(),
 		})
 	end)
 end
@@ -198,11 +199,7 @@ end
 -- Function to start the main game loop for zombie management
 function zombieService.start()
 	RunService.Heartbeat:Connect(function(deltaTime)
-		if gameStateService.reduceRoundTime(deltaTime) then
-			-- If the time runs out, game over logic can be handled here
-			gameStateService.endGame()
-			return
-		end
+		gameStateService.reduceRoundTime(deltaTime)
 
 		if #zombieComponents > 0 then
 			zombieService.startZombieAIs()

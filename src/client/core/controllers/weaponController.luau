@@ -169,6 +169,8 @@ local function setupCharacter(character: Model)
 				return
 			end
 
+			humanoid.WalkSpeed = ws.walkspeed or 16
+
 			-- Initialize weapon if not already
 			if not weapons[child] then
 				weapons[child] = ws
@@ -257,8 +259,8 @@ function weaponController.visualizeCast(data)
 	local a1: Attachment = attachmentCache:GetPart() --getUnusedCachePart(attachmentCache, "ParticleEmitter")
 	local cachedBeam = beamCache:GetPart()
 	cachedBeam.Color = ColorSequence.new(data.beamColor)
-	cachedBeam.Attachment0 = a0
-	cachedBeam.Attachment1 = a1
+	-- cachedBeam.Attachment0 = a0
+	-- cachedBeam.Attachment1 = a1
 
 	a0.WorldPosition = data.firepoint.WorldPosition
 	a1.WorldPosition = data.hit
@@ -337,7 +339,7 @@ function weaponController.start()
 			if (now - lastFire) > currentWs.fireCooldown then
 				lastFire = now
 				-- Player fired a shot, also make them idle again incase they were running.
-				hum.WalkSpeed = 16
+				hum.WalkSpeed = currentWs.walkspeed or 16
 				stopAllAndPlay("idle")
 
 				-- Cast a ray to the player's mouse from their head so they can't shoot

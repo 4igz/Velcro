@@ -1,34 +1,35 @@
 export type Settings = {
-	maxBulletSpreadAngle: number,
-	minBulletSpreadAngle: number,
-	fireCooldown: number,
-	bulletSpeed: number,
-	bulletDrop: number,
-	lifetime: number,
-	bullets: number, -- How many bullets fire per shot
-	damage: number,
-	magSize: number,
-	range: number,
-	reloadTime: number,
-	zoneSize: number, -- Only applies to gasExplosion hitType
-	damageRate: number, -- How long before you can hit the same person again with the weapon
-	bulletName: string, -- The name of the bullet in ServerStorage>BulletTemplates
-	raycastBeamColor: Color3,
-	showDamageText: boolean,
-	meleeAttackLength: number, -- How long to detect hits for with weapon while attacking
-	image: number, -- Image shown in inventory and toolbar
-	allowRandomKill: boolean,
-	allowTeamKill: boolean,
-	maxPierce: number,
+	maxBulletSpreadAngle: number?,
+	minBulletSpreadAngle: number?,
+	fireCooldown: number?,
+	bulletSpeed: number?,
+	bulletDrop: number?,
+	lifetime: number?,
+	bullets: number?, -- How many bullets fire per shot
+	damage: number?,
+	magSize: number?,
+	range: number?,
+	reloadTime: number?,
+	zoneSize: number?, -- Only applies to gasExplosion hitType
+	damageRate: number?, -- How long before you can hit the same person again with the weapon
+	bulletName: string?, -- The name of the bullet in ServerStorage>BulletTemplates
+	raycastBeamColor: Color3?,
+	showDamageText: boolean?,
+	meleeAttackLength: number?, -- How long to detect hits for with weapon while attacking
+	image: number?, -- Image shown in inventory and toolbar
+	allowRandomKill: boolean?,
+	allowTeamKill: boolean?,
+	maxPierce: number?,
+	walkspeed: number?,
 
-	itemType: "gun" | "melee" | "equipment",
-	bulletType: "melee" | "raycast" | "projectileBullet", -- The BulletType function to run on firing
-	hitType: "normal" | "taser" | "heal", -- The HitType function to run on hit
-	reloadType: "mag" | "charge",
-	hitVisual: "none" | "highlight",
-	visualReplicationType: "all" | "shooter" | "victim" | "both",
-	anims: {},
-	sounds: {},
+	itemType: ("gun" | "melee" | "equipment")?,
+	bulletType: ("melee" | "raycast" | "projectileBullet")?, -- The BulletType function to run on firing
+	hitType: ("normal" | "taser" | "heal")?, -- The HitType function to run on hit
+	reloadType: ("mag" | "charge")?,
+	hitVisual: ("none" | "highlight")?,
+	visualReplicationType: ("all" | "shooter" | "victim" | "both")?,
+	anims: {}?,
+	sounds: {}?,
 }
 
 local default: Settings = {
@@ -45,6 +46,7 @@ local default: Settings = {
 	showDamageText = true,
 	meleeAttackLength = 0.5,
 	maxPierce = 3,
+	walkspeed = 16,
 
 	itemType = "gun",
 	bulletName = "bullet",
@@ -82,12 +84,14 @@ local settings: { [string]: Settings } = {
 		hitVisual = "highlight",
 		itemType = "gun",
 		fireCooldown = 0.1,
+		walkspeed = 17,
 	},
 
 	["Katana"] = {
 		damage = 100,
 		bulletType = "melee",
 		itemType = "melee",
+		walkspeed = 18,
 	},
 
 	["Sawed-Off Shotgun"] = {

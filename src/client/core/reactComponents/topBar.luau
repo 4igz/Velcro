@@ -240,7 +240,7 @@ return function(props)
 				),
 				Position = UDim2.fromScale(0.5, 0.63),
 				Size = UDim2.fromScale(0.597, 0.586),
-				Text = `{timeLeft}`,
+				Text = `{math.round(timeLeft)}`,
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextScaled = true,
 				TextSize = 14,

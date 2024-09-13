@@ -104,6 +104,13 @@ event updateLevelUi = {
     }
 }
 
+event showVoteUi = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+    data: string[]
+}
+
 event attributeChangedEvent = {
 	from: Client,
 	type: Reliable,
