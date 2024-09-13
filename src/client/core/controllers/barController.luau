@@ -31,8 +31,6 @@ function barController.start()
 
 	local levelData = zap.getLevelData.Call()
 
-	print(levelData)
-
 	root:render(app({
 		health = humanoid.Health,
 		maxHealth = humanoid.MaxHealth,

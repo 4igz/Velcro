@@ -37,7 +37,6 @@ local function bgGp(props)
 			Position = UDim2.fromScale(0.898, 0.66),
 			Size = UDim2.fromScale(0.178, 0.46),
 			[React.Event.MouseButton1Click] = function()
-				print("Hello")
 				MarketplaceService:PromptGamePassPurchase(Players.LocalPlayer, props.gpId)
 			end,
 		}, {

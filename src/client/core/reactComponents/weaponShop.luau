@@ -97,6 +97,18 @@ local function weaponFrame(props)
 			Text = "",
 			TextColor3 = Color3.fromRGB(0, 0, 0),
 			TextSize = 14,
+			[React.Event.MouseButton1Click] = function()
+				local weaponData = { weaponName = props.name, weaponType = props.type }
+
+				if not props.owned then
+					zap.buyWeapon.Fire(weaponData)
+					props.updateUi(props.type) -- Trigger UI update after purchase
+					return
+				end
+
+				zap.equipWeapon.Fire(props.name)
+				props.updateUi(props.type) -- Trigger UI update after equipping
+			end,
 		}, {
 			uICorner7 = e("UICorner", {
 				CornerRadius = UDim.new(0.05, 0),
@@ -131,7 +143,9 @@ local function weaponFrame(props)
 				),
 				Position = UDim2.fromScale(0.5, 0.5),
 				Size = UDim2.fromScale(0.909, 0.786),
-				Text = `${props.price}`,
+				Text = if not props.owned
+					then `${props.price}`
+					else if props.equipped then "EQUIPPED" else "EQUIP",
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextScaled = true,
 				TextSize = 14,
@@ -216,6 +230,7 @@ return function(props)
 
 	local function updateDisplayedWeapons(type)
 		local weaponTypes = shopConfig[type]
+		local data = zap.getOwnedWeapons.Call()
 
 		local state = {}
 
@@ -226,6 +241,10 @@ return function(props)
 				name = name,
 				price = info.price,
 				order = info.order,
+				type = type,
+				owned = table.find(data.ownedWeapons, name),
+				equipped = data.equippedWeapons[type] == name,
+				updateUi = updateDisplayedWeapons,
 			})
 		end
 

@@ -91,12 +91,12 @@ local settings: { [string]: Settings } = {
 	},
 
 	["Sawed-Off Shotgun"] = {
-		damage = 30,
+		damage = 20,
 		bullets = 8,
-		fireCooldown = 0.5,
+		fireCooldown = 1,
 		minBulletSpreadAngle = 1,
 		maxBulletSpreadAngle = 5,
-		range = 30,
+		range = 50,
 		sounds = {
 			fire = "ShotgunFire",
 			reload = "ShotgunReload",

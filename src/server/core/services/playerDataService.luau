@@ -6,7 +6,6 @@ local ServerStorage = game:GetService("ServerStorage")
 local ProfileService = require(ServerStorage.serverPackages.ProfileService)
 local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local Signal = require(ReplicatedStorage.sharedPackages.Signal)
-local numberUtil = require(ReplicatedStorage.shared.utilities.numberUtil)
 local zap = require(ServerStorage.zap)
 
 local Profiles = {} -- [player] = profile
@@ -95,7 +94,7 @@ function playerDataService.waitForProfile(player: Player): { Data: PlayerProfile
 		if profile then
 			return profile
 		end
-		task.wait(1)
+		task.wait(0.1)
 	end
 	return
 end

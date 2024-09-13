@@ -7,17 +7,23 @@ export type ShopConfig = {
 
 return {
 	gun = {
+		["Starter Pistol"] = {
+			price = 0,
+			levelReq = 0,
+			description = "Old Reliable",
+			order = 1,
+		},
 		["Sawed-Off Shotgun"] = {
 			price = 1000,
 			levelReq = 5,
 			description = "The Swiss Army knife of the underworld",
-			order = 1,
+			order = 2,
 		},
 		["Double Barrel Shotgun"] = {
 			price = 2000,
 			levelReq = 10,
 			description = "Perfect for those indecisive moments when you can't choose between overkill and extreme overkill.",
-			order = 2,
+			order = 3,
 		},
 	},
 	melee = {

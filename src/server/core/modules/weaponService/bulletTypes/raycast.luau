@@ -1,8 +1,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local instanceUtil = require(ReplicatedStorage.shared.utilities.instanceUtil)
 local weaponSettings = require(ReplicatedStorage.shared.configurations.weaponConfig)
+local zap = require(ServerStorage.zap)
 
 local TAU = math.pi * 2
 
@@ -37,6 +39,9 @@ return function(
 	local params: RaycastParams = CastParams
 	params.FilterDescendantsInstances = { character, workspace.Terrain, workspace.RaycastIgnore }
 
+	-- Table to store ray information for visualization
+	local raysToVisualize = {}
+
 	for _ = 1, ws.bullets do
 		local direction = (
 			CFrame.new(Vector3.new(), (to - head.Position).Unit)
@@ -53,8 +58,8 @@ return function(
 		local damage = ws.damage
 		local currentPosition = head.Position
 		local remainingRange = ws.range
-		local hitTargets = {} -- Table to track hit targets
-		local iterationLimit = ws.maxPierce -- Limit to prevent infinite looping
+		local hitTargets = {}
+		local iterationLimit = ws.maxPierce
 
 		repeat
 			ray = workspace:Raycast(currentPosition, direction, params)
@@ -72,7 +77,7 @@ return function(
 					-- Exclude the hit part from further raycasts
 					table.insert(params.FilterDescendantsInstances, hitInstance)
 
-					hitTargets[hitCharacter] = true -- Mark this target as hit
+					hitTargets[hitCharacter] = true
 					hits = hits + 1
 				end
 
@@ -95,6 +100,19 @@ return function(
 			if iterationLimit <= 0 then
 				break
 			end
+
 		until not ray or hits >= ws.maxPierce or remainingRange <= 0
+
+		-- Add ray info to the list for visualization later
+		table.insert(raysToVisualize, {
+			firepoint = firepoint,
+			hit = if ray then ray.Position else head.Position + direction,
+			beamColor = ws.raycastBeamColor,
+		})
+	end
+
+	-- Visualize all rays at once after the loop
+	for _, rayData in ipairs(raysToVisualize) do
+		zap.replicateCast.Fire(shooter, rayData)
 	end
 end

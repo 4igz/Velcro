@@ -260,7 +260,7 @@ function weaponController.visualizeCast(data)
 	cachedBeam.Attachment0 = a0
 	cachedBeam.Attachment1 = a1
 
-	a0.WorldPosition = data.firepoint
+	a0.WorldPosition = data.firepoint.WorldPosition
 	a1.WorldPosition = data.hit
 
 	task.spawn(function()
@@ -357,7 +357,7 @@ function weaponController.start()
 				-- Multiple bullets are visualized by the server because each bullets direction is calculated by the server.
 				if currentWs.bullets == 1 then
 					weaponController.visualizeCast({
-						firepoint = currentWep.Handle.Firepoint.WorldPosition,
+						firepoint = currentWep.Handle.Firepoint,
 						hit = pos,
 						beamColor = currentWs.raycastBeamColor,
 					})
@@ -381,6 +381,7 @@ function weaponController.start()
 	end)
 
 	zap.replicateHit.SetCallback(weaponController.replicateBulletHit)
+	zap.replicateCast.SetCallback(weaponController.visualizeCast)
 	localPlayer.CharacterAdded:Connect(setupCharacter)
 end
 

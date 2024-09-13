@@ -10,6 +10,7 @@ local levelService = require(ServerStorage.server.services.levelService)
 local moneyService = require(ServerStorage.server.services.moneyService)
 local playerDataService = require(script.Parent.playerDataService)
 local playerUtil = require(ReplicatedStorage.shared.utilities.playerUtil)
+local shopConfig = require(ReplicatedStorage.shared.configurations.shopConfig)
 local weaponConfig = require(ReplicatedStorage.shared.configurations.weaponConfig)
 local weaponUtil = require(ReplicatedStorage.shared.utilities.weaponUtil)
 local zap = require(ServerStorage.zap)
@@ -183,17 +184,16 @@ local function registerHit(
 	end
 end
 
-function weaponService.buyWeapon(player: Player, data: { weaponName: string })
-	local shopConfig = weaponUtil.getShopConfig(data.weaponName)
+function weaponService.buyWeapon(player: Player, data: { weaponName: string, weaponType: string })
+	local cfg = shopConfig[data.weaponType][data.weaponName]
 	local profile = playerDataService.getProfile(player)
 	if
-		profile.Data.Money >= shopConfig.price
+		profile.Data.Money >= cfg.price
 		and not table.find(profile.Data.ownedWeapons, data.weaponName)
 	then
-		profile.Data.Money -= shopConfig.price
+		profile.Data.Money -= cfg.price
 		table.insert(profile.Data.ownedWeapons, data.weaponName)
 		playerDataService.setProfile(player, profile)
-		print(profile.Data)
 	end
 end
 
@@ -280,6 +280,22 @@ function weaponService.start()
 	end)
 
 	zap.buyWeapon.SetCallback(weaponService.buyWeapon)
+
+	zap.getOwnedWeapons.SetCallback(function(player)
+		local profile = playerDataService.getProfile(player)
+		if not profile then
+			return {}
+		end
+
+		return {
+			equippedWeapons = {
+				gun = profile.Data.gun,
+				melee = profile.Data.melee,
+				equipment = profile.Data.equipment,
+			},
+			ownedWeapons = profile.Data.ownedWeapons,
+		}
+	end)
 end
 
 return weaponService

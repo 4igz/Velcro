@@ -3,11 +3,11 @@ local zap = require(ReplicatedStorage.zap)
 local inventoryController = {}
 
 local function equipWeapon(weaponName: string)
-	zap.equipWeapon.Fire({ weaponName = weaponName })
+	zap.equipWeapon.Fire(weaponName)
 end
 
 function inventoryController.start()
-	equipWeapon("starter pistol")
+	-- equipWeapon("Starter Pistol")
 end
 
 return inventoryController
