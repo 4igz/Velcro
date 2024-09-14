@@ -8,9 +8,9 @@ local zap = require(ServerStorage.zap)
 local gameStateService = {}
 
 local START_ROUND_TIME = 120 -- Total time for each round (e.g., 120 seconds)
-local INTERMISSION_TIME = 30 -- Time for the intermission phase (e.g., 30 seconds)
+local INTERMISSION_TIME = 5 -- Time for the intermission phase (e.g., 30 seconds)
 
-local currentRound = 11
+local currentRound = 1
 local roundActive = false
 local intermissionActive = false
 local roundTime = 0 -- Time left in the current round
@@ -21,6 +21,8 @@ local mapFolder = ServerStorage.Maps
 local workspaceMapContent = workspace.MapContainer.MapContent
 
 local mapVotes = {} -- Table to track map votes
+
+local availableMaps = mapFolder:GetChildren()
 
 gameStateService.startingRound = Signal.new()
 gameStateService.endingGame = Signal.new()
@@ -36,21 +38,19 @@ end
 function gameStateService.resetIntermissionTime()
 	intermissionTime = INTERMISSION_TIME
 end
-
--- Reduce the round time and check for timeout
 function gameStateService.reduceRoundTime(deltaTime)
 	if roundActive then
 		roundTime -= deltaTime
 
 		if roundTime <= 0 and roundActive then
-			gameStateService.endGame()
+			-- End the game and transition into intermission
 			print("Round ended due to timeout. Game Over!")
+			gameStateService.endGame() -- This will end the game and automatically start the intermission
 			return true -- Indicate that the round has ended due to time running out
 		end
 	end
 	return false
 end
-
 -- Reduce the intermission time and check for timeout
 function gameStateService.reduceIntermissionTime(deltaTime)
 	if intermissionActive then
@@ -58,7 +58,6 @@ function gameStateService.reduceIntermissionTime(deltaTime)
 
 		if intermissionTime <= 0 and intermissionActive then
 			gameStateService.endIntermission()
-			print("Intermission ended. Starting new round!")
 			return true -- Indicate that the intermission has ended
 		end
 	end
@@ -70,6 +69,9 @@ function gameStateService.getCurrentRound()
 end
 
 function gameStateService.loadMap(mapName: string)
+	if type(mapName) ~= "string" then
+		mapName = mapName.Name
+	end
 	local map = mapFolder:FindFirstChild(mapName)
 	if not map then
 		error(`No map named {mapName} could be found.`, 2)
@@ -100,15 +102,16 @@ local function getRandomMaps(mapList, numberOfMaps): { string }
 		table.insert(maps, map)
 	end
 
-	-- Shuffle maps
-	table.sort(maps, function()
-		return math.random() < 0.5
-	end)
+	-- Fisher-Yates shuffle
+	for i = #maps, 2, -1 do
+		local j = math.random(1, i)
+		maps[i], maps[j] = maps[j], maps[i]
+	end
 
 	-- Only return the first `numberOfMaps` elements
 	local selectedMaps = {}
 	for i = 1, math.min(numberOfMaps, #maps) do
-		table.insert(selectedMaps, maps[i].Name)
+		table.insert(selectedMaps, maps[i].Name) -- Access the Instance's Name field
 	end
 
 	return selectedMaps
@@ -116,8 +119,8 @@ end
 
 -- Start the intermission phase
 function gameStateService.startIntermission()
-	intermissionActive = true
 	gameStateService.resetIntermissionTime()
+	intermissionActive = true
 	mapVotes = {} -- Reset map votes
 	gameStateService.startingIntermission:Fire()
 
@@ -125,7 +128,18 @@ function gameStateService.startIntermission()
 	availableMaps = getRandomMaps(mapFolder:GetChildren(), 5)
 
 	-- Notify all players about the available maps and allow them to vote
+	zap.updateUI.FireAll({
+		timeLeft = INTERMISSION_TIME,
+		wave = 0,
+		wavesTillBoss = 0,
+		zombies = 0,
+		gameActive = true,
+	})
 	zap.showVoteUi.FireAll(availableMaps)
+end
+
+function gameStateService.getIntermissionActive()
+	return intermissionActive
 end
 
 -- End the intermission and start a new round
@@ -173,41 +187,57 @@ function gameStateService.endGame()
 	end
 	gameStateService.endingGame:Fire(currentRound)
 	roundActive = false
+
 	if loadedMap then
-		loadedMap.Parent = mapFolder
+		loadedMap.Parent = mapFolder -- Unload the map
 	end
+
 	currentRound = 0
 	loadedMap = nil
 
 	-- Respawn all players
 	for _, player in Players:GetPlayers() do
-		player:LoadCharacter()
+		local playerState = playerStateService.getPlayerState(player)
+
+		if playerState.inMap then
+			playerStateService.updatePlayerState(player, { inMap = false })
+		end
+		player:LoadCharacter() -- Respawn the character
 	end
 
-	zap.updateUI.FireAll({ gameActive = false })
-
 	-- Start intermission after the round ends
-	gameStateService.startIntermission()
+	gameStateService.startIntermission() -- Ensure the intermission starts properly
 end
 
 function gameStateService.startNewRound(mapName: string)
 	gameStateService.resetRoundTime()
-	gameStateService.advanceRound()
 	roundActive = true
-	gameStateService.startingRound:Fire(currentRound)
 
 	if not loadedMap then
 		gameStateService.loadMap(mapName)
 
 		task.wait(1) -- wait for some time for map to load
+		gameStateService.startingRound:Fire(currentRound)
+
+		-- Define the area around the SpawnLocation where players can randomly spawn
+		local spawnLocation = loadedMap.SpawnLocation
+		local spawnRadius = 10 -- You can adjust this radius as needed to prevent overlap
 
 		for _, player in Players:GetPlayers() do
 			if playerStateService.getPlayerState(player).playing then
 				task.spawn(function()
 					local character = player.Character or player.CharacterAdded:Wait()
 
-					-- TODO: Give some randomness so players dont all spawn on top of each other
-					character:PivotTo(loadedMap.SpawnLocation.CFrame)
+					-- Generate random offset for the player spawn location
+					local randomOffsetX = math.random(-spawnRadius, spawnRadius)
+					local randomOffsetZ = math.random(-spawnRadius, spawnRadius)
+
+					-- Create a new CFrame for the spawn location with the random offset
+					local randomSpawnPosition = spawnLocation.CFrame
+						* CFrame.new(randomOffsetX, 0, randomOffsetZ)
+
+					-- Move the player to the new randomized spawn location
+					character:PivotTo(randomSpawnPosition)
 					playerStateService.updatePlayerState(player, { inMap = true })
 				end)
 			end
@@ -220,7 +250,35 @@ function gameStateService.getTimeLeft()
 end
 
 function gameStateService.start()
-	-- gameStateService.startNewRound()
+	gameStateService.startIntermission()
+
+	Players.PlayerAdded:Connect(function(player)
+		player.CharacterAdded:Connect(function(character)
+			local humanoid = character:WaitForChild("Humanoid")
+			humanoid.Died:Connect(function()
+				local playerState = playerStateService.getPlayerState(player)
+				if playerState.inMap then
+					playerStateService.updatePlayerState(player, { inMap = false })
+				end
+
+				-- Check if any players are still in the map
+				local anyPlayerInMap = false
+				for _, otherPlayer in Players:GetPlayers() do
+					local otherPlayerState = playerStateService.getPlayerState(otherPlayer)
+					if otherPlayerState.inMap then
+						anyPlayerInMap = true
+						break -- Exit early if we find at least one player in the map
+					end
+				end
+
+				-- If no players are in the map, end the game and start intermission
+				if not anyPlayerInMap then
+					print("All players are dead. Ending game and starting intermission.")
+					gameStateService.endGame()
+				end
+			end)
+		end)
+	end)
 end
 
 return gameStateService

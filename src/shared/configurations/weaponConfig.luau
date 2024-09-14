@@ -78,13 +78,13 @@ local Signal = require(sharedPackages.Signal)
 
 local settings: { [string]: Settings } = {
 	["Starter Pistol"] = {
-		damage = 15,
+		damage = 20,
 		bulletType = "raycast",
 		hitType = "normal",
 		hitVisual = "highlight",
 		itemType = "gun",
-		fireCooldown = 0.1,
-		walkspeed = 17,
+		fireCooldown = 0.2,
+		walkspeed = 18,
 	},
 
 	["Katana"] = {
@@ -95,12 +95,12 @@ local settings: { [string]: Settings } = {
 	},
 
 	["Sawed-Off Shotgun"] = {
-		damage = 20,
+		damage = 25,
 		bullets = 8,
 		fireCooldown = 1,
 		minBulletSpreadAngle = 1,
 		maxBulletSpreadAngle = 5,
-		range = 50,
+		range = 8,
 		sounds = {
 			fire = "ShotgunFire",
 			reload = "ShotgunReload",
@@ -108,19 +108,119 @@ local settings: { [string]: Settings } = {
 		itemType = "gun",
 	},
 
-	["Double Barrel Shotgun"] = {
+	["BNT-2"] = {
 		damage = 15,
-		hitType = "normal",
-		bulletType = "raycast",
 		bullets = 8,
-		fireCooldown = 0.5,
+		fireCooldown = 0.8,
 		minBulletSpreadAngle = 1,
 		maxBulletSpreadAngle = 5,
-		range = 100,
+		range = 12,
 		sounds = {
 			fire = "ShotgunFire",
 			reload = "ShotgunReload",
 		},
+		itemType = "gun",
+	},
+
+	["Super90"] = {
+		damage = 12,
+		bullets = 8,
+		fireCooldown = 0.6,
+		minBulletSpreadAngle = 1,
+		maxBulletSpreadAngle = 5,
+		range = 12,
+		sounds = {
+			fire = "ShotgunFire",
+			reload = "ShotgunReload",
+		},
+		itemType = "gun",
+	},
+	["Jacket 3"] = {
+		damage = 16,
+		bullets = 8,
+		fireCooldown = 1.2,
+		minBulletSpreadAngle = 1,
+		maxBulletSpreadAngle = 5,
+		range = 12,
+		sounds = {
+			fire = "ShotgunFire",
+			reload = "ShotgunReload",
+		},
+		itemType = "gun",
+	},
+
+	-- Pistols
+	["Deagle"] = {
+		damage = 80,
+		headshotDamage = 120,
+		walkspeed = 22,
+		fireCooldown = 0.5,
+		attackDodgeChance = 0.1,
+		itemType = "gun",
+	},
+
+	-- SMGs
+	["SMG-2"] = {
+		damage = 5,
+		walkspeed = 16.5,
+		fireCooldown = 0.1,
+		itemType = "gun",
+	},
+
+	["VC-5"] = {
+		damage = 6,
+		walkspeed = 16.5,
+		fireCooldown = 0.1,
+		itemType = "gun",
+	},
+
+	["PM12"] = {
+		damage = 6,
+		walkspeed = 16.5,
+		fireCooldown = 0.05,
+		itemType = "gun",
+	},
+
+	["VP70"] = {
+		damage = 7,
+		walkspeed = 17,
+		fireCooldown = 0.05,
+		itemType = "gun",
+	},
+
+	["AR57"] = {
+		damage = 9,
+		walkspeed = 17,
+		fireCooldown = 0.04,
+		itemType = "gun",
+	},
+
+	-- Snipers
+	["AWP"] = {
+		damage = 35,
+		maxPierce = 15,
+		fireCooldown = 2,
+		itemType = "gun",
+	},
+
+	["Moisin"] = {
+		damage = 20,
+		maxPierce = 12,
+		fireCooldown = 2.5,
+		itemType = "gun",
+	},
+
+	["LaserBadger"] = {
+		damage = 80,
+		maxPierce = 25,
+		fireCooldown = 1.2,
+		itemType = "gun",
+	},
+
+	["BFG-5000"] = {
+		damage = 50,
+		pierce = 20,
+		fireCooldown = 1.5,
 		itemType = "gun",
 	},
 }

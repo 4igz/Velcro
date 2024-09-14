@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
+local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local gameStateService = require(script.Parent.gameStateService)
 local zap = require(ServerStorage.zap)
 local zombieConfigModule = require(ReplicatedStorage.shared.configurations.zombieConfig)
@@ -47,6 +48,7 @@ function zombieService.newZombie(type, cframe)
 		return
 	end
 	zombieModel = zombieModel:Clone()
+	zombieModel.PrimaryPart = zombieModel:FindFirstChild("HumanoidRootPart")
 	zombieModel:PivotTo(cframe)
 	zombieModel.Parent = CollectionService:GetTagged("MapContent")[1] or mapContainer
 	zombie.model = zombieModel
@@ -61,6 +63,10 @@ function zombieService.newZombie(type, cframe)
 
 	-- Handle zombie death
 	humanoid.Died:Connect(function()
+		if not gameStateService.isRoundActive() then
+			print("Round wasn't active")
+			return -- Only remove zombies if the round is active
+		end
 		table.remove(zombieComponents, i)
 		task.delay(2, function()
 			zombieModel:Destroy()
@@ -129,6 +135,9 @@ function zombieService.spawnZombies(roundNum)
 
 	-- Find all spawn points from the "ZombieSpawns" collection
 	local spawnPoints = CollectionService:GetTagged("ZombieSpawns")
+	spawnPoints = Sift.Array.filter(spawnPoints, function(v)
+		return v:IsDescendantOf(workspace)
+	end)
 	if #spawnPoints == 0 then
 		warn("No spawn points found for zombies!")
 		return
@@ -151,6 +160,7 @@ function zombieService.spawnZombies(roundNum)
 
 		-- Choose a random spawn point
 		local spawnPoint = spawnPoints[math.random(1, #spawnPoints)].CFrame
+
 		if zombieService.getNumZombies() >= MAX_ZOMBIES_SPAWNED_AT_ONCE then
 			-- Add zombies to queue if max limit is reached
 			table.insert(queuedZombies, { type = zombieType, spawnPoint = spawnPoint })
@@ -190,33 +200,59 @@ function zombieService.spawnZombies(roundNum)
 	end
 end
 
+function zombieService.despawnAll()
+	for i, zombie in zombieComponents do
+		zombie.model:Destroy()
+	end
+	table.clear(zombieComponents)
+end
+
 function zombieService.spawnBoss()
 	local spawnPoints = CollectionService:GetTagged("ZombieSpawns")
 	local spawnPoint = spawnPoints[math.random(1, #spawnPoints)].Position
 	zombieService.newZombie("BossZombie", spawnPoint)
 end
 
--- Function to start the main game loop for zombie management
 function zombieService.start()
 	RunService.Heartbeat:Connect(function(deltaTime)
-		gameStateService.reduceRoundTime(deltaTime)
+		-- Reduce round time and check for timeout
+		local roundEndedDueToTimeout = gameStateService.reduceRoundTime(deltaTime)
 
+		-- If all zombies are eliminated, start the next round
+		if #zombieComponents == 0 and gameStateService.isRoundActive() then
+			print("All zombies eliminated. Starting next round...")
+			gameStateService.startingRound:Fire(gameStateService.getCurrentRound())
+			-- Increment the round and start a new wave of zombies
+			return
+		end
+
+		-- If there are zombies still alive, update their AI
 		if #zombieComponents > 0 then
 			zombieService.startZombieAIs()
 		else
-			if #Players:GetPlayers() > 0 then
-				gameStateService.startNewRound("Spaceship")
+			-- If there are no zombies and round ended due to timeout or all players are dead
+			if roundEndedDueToTimeout or not gameStateService.isRoundActive() then
+				-- Ensure the game is ended properly and intermission starts
+				if not gameStateService.getIntermissionActive() then
+					-- If the round ended, start the intermission
+					print("Round has ended, starting intermission...")
+					gameStateService.startIntermission()
+				else
+					-- Reduce the intermission timer
+					gameStateService.reduceIntermissionTime(deltaTime)
+				end
 			end
 		end
 	end)
 
 	gameStateService.startingRound:Connect(function(roundNum)
-		local currentRound = gameStateService.getCurrentRound()
-		if currentRound % 10 == 0 then
+		gameStateService.advanceRound()
+		gameStateService.resetRoundTime()
+		if roundNum % 10 == 0 then
 			-- zombieService.spawnBoss(gameStateService.getCurrentRound())
 		end
 
-		zombieService.spawnZombies(currentRound)
+		zombieService.spawnZombies(roundNum)
 
 		zap.updateUI.FireAll({
 			timeLeft = gameStateService.getTimeLeft(),
@@ -225,6 +261,10 @@ function zombieService.start()
 			zombies = 5 + roundNum * 2,
 			gameActive = true,
 		})
+	end)
+
+	gameStateService.endingGame:Connect(function()
+		zombieService.despawnAll()
 	end)
 end
 

@@ -66,81 +66,118 @@ local attackTypes = {
 
 local function pathfindChase(zombieData, id)
 	local npc = zombieData.model -- NPC model
+	local humanoid = npc:FindFirstChild("Humanoid")
+
+	-- Ensure the humanoid exists
+	if not humanoid then
+		warn("Zombie has no humanoid")
+		return
+	end
+
+	-- Ensure PrimaryPart is set, wait if necessary
+	if not npc.PrimaryPart then
+		local rootPart = npc:FindFirstChild("HumanoidRootPart")
+			or npc:FindFirstChildWhichIsA("BasePart")
+		if rootPart then
+			npc.PrimaryPart = rootPart -- Set PrimaryPart to the root part or any available base part
+		else
+			warn("Zombie has no valid PrimaryPart or HumanoidRootPart")
+			return
+		end
+	end
+
+	-- Create the pathfinding object
 	local path = PathfindingService:CreatePath({
 		AgentRadius = 2.25,
 		AgentHeight = 5.5,
 		AgentCanJump = true,
-		AgentJumpHeight = 7,
-		AgentCanClimb = false,
+		AgentJumpHeight = 30,
+		AgentCanClimb = true,
+		AgentMaxSlope = 50,
 	})
 
 	local lastTargetPosition = nil
 	local currentWaypointIndex = 0
 	local waypoints = {}
 
+	-- Function to start pathfinding chase
 	local function startChasing()
+		-- Ensure NPC and its PrimaryPart are valid
 		if not npc or not npc.Parent or not npc.PrimaryPart then
 			return
 		end
+
+		-- Find the closest target to the zombie
 		local target = findClosestTarget(npc.PrimaryPart.Position)
 		if target then
 			local targetChar = target.Character
-			local targetPosition = targetChar.PrimaryPart.Position
+			-- Ensure target character and PrimaryPart are valid
+			if targetChar and targetChar.PrimaryPart then
+				local targetPosition = targetChar.PrimaryPart.Position
 
-			-- Recalculate path only if the target moved significantly
-			if lastTargetPosition == nil or (targetPosition - lastTargetPosition).Magnitude > 5 then
-				path:ComputeAsync(npc.PrimaryPart.Position, targetPosition)
-				lastTargetPosition = targetPosition
-				waypoints = path.Status == Enum.PathStatus.Success
-						and Sift.Array.slice(
-							path:GetWaypoints(),
-							3, -- Skip to the 3rd waypoint to avoid stutter steps
-							#path:GetWaypoints()
-						)
-					or {}
-				currentWaypointIndex = 1
-			end
+				-- Recalculate path if target moved significantly
+				if
+					not lastTargetPosition
+					or (targetPosition - lastTargetPosition).Magnitude > 5
+				then
+					local success, errorMessage = pcall(function()
+						path:ComputeAsync(npc.PrimaryPart.Position, targetPosition)
+					end)
 
-			local humanoid = npc:FindFirstChild("Humanoid")
-			if not humanoid then
-				return
-			end
-
-			-- Move towards the next waypoint or directly to the target if no path
-			if #waypoints > 0 then
-				npc.Humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
-			else
-				npc.Humanoid:MoveTo(targetPosition)
-			end
-
-			-- Check if the zombie is within attack range and attack the player
-			local attackRange = 2
-			-- Ensure the zombie has a Humanoid and is not dead
-			if npc and npc.PrimaryPart then
-				if (npc.PrimaryPart.Position - targetPosition).Magnitude <= attackRange then
-					if not humanoid or humanoid.Health <= 0 then
-						return -- Zombie is dead or doesn't have a Humanoid component
+					if success and path.Status == Enum.PathStatus.Success then
+						waypoints = path:GetWaypoints()
+						lastTargetPosition = targetPosition
+						-- Start at the 3rd waypoint if there are enough waypoints
+						currentWaypointIndex = #waypoints >= 3 and 3 or 1
+					elseif not success then
+						warn("Pathfinding error: " .. errorMessage)
+						return
 					end
-					attackTypes[zombieData.attackType or "basic"](zombieData, id) -- Call the attack function when within range
+				end
+
+				-- Move to the next waypoint if it exists
+				if #waypoints > 0 and currentWaypointIndex <= #waypoints then
+					local waypoint = waypoints[currentWaypointIndex]
+					humanoid:MoveTo(waypoint.Position)
+
+					-- Handle jumping if the waypoint requires it
+					if waypoint.Action == Enum.PathWaypointAction.Jump then
+						humanoid.Jump = true -- Jump to higher ground
+					end
+				else
+					-- No waypoints, move directly to the target position
+					humanoid:MoveTo(targetPosition)
+				end
+
+				-- Check if the zombie is close enough to attack
+				local attackRange = 2
+				if not npc.PrimaryPart then
+					return
+				end
+				if (npc.PrimaryPart.Position - targetPosition).Magnitude <= attackRange then
+					if humanoid.Health > 0 then
+						attackTypes[zombieData.attackType or "basic"](zombieData, id)
+					end
 				end
 			end
 		end
 	end
 
-	local function onMoveToFinished()
-		if currentWaypointIndex > 0 and currentWaypointIndex < #waypoints then
+	-- Function to handle MoveToFinished
+	local function onMoveToFinished(reached)
+		-- If the zombie reached the waypoint, go to the next one
+		if reached and currentWaypointIndex > 0 and currentWaypointIndex < #waypoints then
 			currentWaypointIndex += 1
-			npc.Humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
+			humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
 		else
-			-- Recalculate path on the next frame
+			-- Recalculate the path if not reached or no waypoints
 			startChasing()
 		end
 	end
 
-	-- Set up the event listener to trigger on each step
+	-- Use Stepped for regular pathfinding checks
 	local steppedConnection
 	steppedConnection = RunService.Stepped:Connect(function()
-		-- Stop tracking if NPC is destroyed
 		if not npc or not npc.Parent then
 			steppedConnection:Disconnect()
 			return
@@ -148,8 +185,7 @@ local function pathfindChase(zombieData, id)
 		startChasing()
 	end)
 
-	-- Listen for when the NPC finishes moving
-	npc.Humanoid.MoveToFinished:Connect(onMoveToFinished)
+	humanoid.MoveToFinished:Connect(onMoveToFinished)
 end
 
 local M = {
@@ -161,7 +197,7 @@ local M = {
 			attackPower = 15,
 			beginSpawningRound = 1,
 			xpDropped = 10,
-			moneyDropped = 10,
+			moneyDropped = 4,
 		},
 
 		["Enchanted"] = {
@@ -179,17 +215,17 @@ local M = {
 			attackPower = 25,
 			beginSpawningRound = 20,
 			xpDropped = 20,
-			moneyDropped = 10,
+			moneyDropped = 15,
 		},
 
-		["Midnight"] = {
-			health = 50,
-			speed = 10,
-			attackPower = 45,
-			beginSpawningRound = 3,
-			xpDropped = 15,
-			moneyDropped = 10,
-		},
+		-- ["Midnight"] = {
+		-- 	health = 50,
+		-- 	speed = 10,
+		-- 	attackPower = 45,
+		-- 	beginSpawningRound = 3,
+		-- 	xpDropped = 15,
+		-- 	moneyDropped = 10,
+		-- },
 
 		["Lightning Zombie"] = {
 			health = 100,
@@ -197,16 +233,16 @@ local M = {
 			attackPower = 20,
 			beginSpawningRound = 12,
 			xpDropped = 13,
-			moneyDropped = 10,
+			moneyDropped = 9,
 		},
 
 		["Blue Lightning Zombie"] = {
 			health = 100,
 			speed = 22,
 			attackPower = 20,
-			beginSpawningRound = 12,
+			beginSpawningRound = 20,
 			xpDropped = 20,
-			moneyDropped = 10,
+			moneyDropped = 9,
 		},
 
 		["Spectre"] = {
@@ -215,7 +251,7 @@ local M = {
 			attackPower = 40,
 			beginSpawningRound = 15,
 			xpDropped = 15,
-			moneyDropped = 10,
+			moneyDropped = 9,
 		},
 
 		["Mini"] = {
@@ -224,7 +260,7 @@ local M = {
 			attackPower = 15,
 			beginSpawningRound = 3,
 			xpDropped = 8,
-			moneyDropped = 10,
+			moneyDropped = 2,
 		},
 
 		["Demon"] = {
@@ -233,7 +269,7 @@ local M = {
 			attackPower = 25, -- plus burn
 			beginSpawningRound = 20,
 			xpDropped = 18,
-			moneyDropped = 10,
+			moneyDropped = 12,
 		},
 
 		["Flame Zombie"] = {
@@ -242,7 +278,7 @@ local M = {
 			attackPower = 20, -- plus burn
 			beginSpawningRound = 10,
 			xpDropped = 13,
-			moneyDropped = 10,
+			moneyDropped = 7,
 		},
 
 		["Water Zombie"] = {
