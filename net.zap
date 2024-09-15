@@ -85,7 +85,8 @@ funct getLevelData = {
     call: Async,
     rets: struct {
         level: u32,
-        xp: u32
+        xp: u32,
+        xpMax: u32,
     }
 }
 
@@ -101,6 +102,18 @@ event updateLevelUi = {
     data: struct {
         level: u32,
         xp: u32,
+        xpMax: u32,
+    }
+}
+
+event updateFeeds = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+    data: struct {
+        type: string,
+        amtGain: i32,
+        reason: string,
     }
 }
 

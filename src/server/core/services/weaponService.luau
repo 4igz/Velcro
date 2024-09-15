@@ -23,6 +23,7 @@ local trackedWeapons = {}
 local bulletTypes = {}
 local hitTypes = {}
 local cooldowns = {}
+local zombieDeathLocks = {}
 
 local COOLDOWN = 0.01
 
@@ -172,7 +173,8 @@ local function registerHit(
 		hitTypes[ws.hitType] ~= nil,
 		`No known hitType "{ws.hitType}" -- double-check weaponSettings.`
 	)
-	-- Perform bullet hits
+
+	-- Perform bullet hits for non-zombies (standard hit processing)
 	hitTypes[ws.hitType](shooter, ws, raycastResult)
 
 	-- Replicate bullet hits
@@ -262,7 +264,15 @@ function weaponService.start()
 
 			--TODO:  This will later change based on rebirth status and gamepasses and such
 			levelService.addExperience(shooter, cfg.xpDropped or 1)
+			-- zap.updateFeeds.Fire(
+			-- 	shooter,
+			-- 	{ type = "xp", amtGain = cfg.xpDropped or 1, reason = "Killed Zombie" }
+			-- )
 			moneyService.addMoney(shooter, cfg.moneyDropped or 10)
+			zap.updateFeeds.Fire(
+				shooter,
+				{ type = "money", amtGain = cfg.moneyDropped or 10, reason = "Killed Zombie" }
+			)
 			-- amounts are temporary
 		end
 	)

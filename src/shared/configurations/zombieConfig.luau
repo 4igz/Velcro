@@ -29,44 +29,208 @@ local function findClosestTarget(zombiePosition)
 	return closestPlayer
 end
 
+-- Helper function to apply damage
+local function applyDamageToPlayer(player, damage)
+	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+	if humanoid then
+		humanoid:TakeDamage(damage)
+	end
+end
+
+-- Helper function for attack debouncing
+local function canAttack(zombieId)
+	local currentTime = tick()
+
+	-- Initialize debounce table if it doesn't exist
+	if not zombieDebounces[zombieId] then
+		zombieDebounces[zombieId] = { ["lastAttackTime"] = 0 }
+	end
+
+	-- Check cooldown
+	if currentTime - zombieDebounces[zombieId].lastAttackTime >= attackCooldown then
+		zombieDebounces[zombieId].lastAttackTime = currentTime
+		return true
+	end
+
+	return false
+end
+
+-- Helper function to heal a zombie
+local function healZombie(zombie, healAmount)
+	local humanoid = zombie:FindFirstChild("Humanoid")
+	if humanoid then
+		humanoid.Health = math.min(humanoid.Health + healAmount, humanoid.MaxHealth) -- Ensure health doesn't exceed max
+	end
+end
+
+-- Helper function to get nearby zombies within a certain radius
+local function getNearbyZombies(zombieData, position, radius)
+	local nearbyZombies = {}
+	for _, otherZombieData in zombieData.allZombies do
+		local otherZombie = otherZombieData.model
+		if
+			otherZombie
+			and otherZombie.Parent
+			and otherZombie:FindFirstChild("HumanoidRootPart")
+		then
+			local distance = (otherZombie.HumanoidRootPart.Position - position).Magnitude
+			if distance <= radius and otherZombie ~= zombieData.model then
+				table.insert(nearbyZombies, otherZombie)
+			end
+		end
+	end
+	return nearbyZombies
+end
+
 local attackTypes = {
 	basic = function(zombieData, id)
 		local npc = zombieData.model -- NPC model
 		local attackPower = zombieData.attackPower -- Damage to deal
+		local attackRange = 3 -- Attack range in studs
 
 		if not npc or not npc.Parent or not npc.PrimaryPart then
 			return
 		end
 
-		-- Initialize the debounce table for this zombie if it doesn't exist
-		if not zombieDebounces[id] then
-			zombieDebounces[id] = {
-				lastAttackTime = 0,
-			}
-		end
-
-		-- Get the current time and compare it to the last attack time
-		local currentTime = tick()
-		if currentTime - zombieDebounces[id].lastAttackTime < attackCooldown then
-			-- If the cooldown period hasn't passed, exit the function
+		-- Check if the zombie can attack based on debounce
+		if not canAttack(id) then
 			return
 		end
 
-		-- Update the last attack time
-		zombieDebounces[id].lastAttackTime = currentTime
-
-		-- Iterate over all players to find those within the attack range
-		-- If the player is within the attack range, apply damage
+		-- Find the closest player
 		local player = findClosestTarget(npc:GetPivot().Position)
 
-		local humanoid = player.Character.Humanoid
-		humanoid:TakeDamage(attackPower)
+		if not player or not player.Character or not player.Character.PrimaryPart then
+			return
+		end
+
+		-- Calculate distance between zombie and player
+		local distanceToPlayer = (npc.PrimaryPart.Position - player.Character.PrimaryPart.Position).Magnitude
+
+		-- Ensure player is within attack range (3 studs)
+		if distanceToPlayer <= attackRange then
+			-- Apply damage to the player
+			applyDamageToPlayer(player, attackPower)
+		end
+	end,
+
+	fire = function(zombieData, id)
+		local npc = zombieData.model
+		local attackPower = zombieData.attackPower
+		local burnDamage = zombieData.burnDamage or 5
+		local burnDuration = zombieData.burnDuration or 5
+
+		if not npc or not npc.Parent or not npc.PrimaryPart then
+			return
+		end
+
+		-- Check if the zombie can attack based on debounce
+		if not canAttack(id) then
+			return
+		end
+
+		-- Find the closest player within range
+		local player = findClosestTarget(npc:GetPivot().Position)
+
+		-- Apply initial attack damage
+		applyDamageToPlayer(player, attackPower)
+
+		-- Apply burn effect (damage over time)
+		for i = 1, burnDuration do
+			task.wait(1)
+			applyDamageToPlayer(player, burnDamage)
+		end
+	end,
+}
+
+local zombieSpecials = {
+	spectre = function(zombieData, id)
+		local npc = zombieData.model
+
+		-- Check if the zombie is valid
+		if not npc or not npc.Parent or not npc.PrimaryPart then
+			return
+		end
+
+		-- Set initial transparency
+		local function setTransparency(parent, transparency)
+			for _, v in parent:GetChildren() do
+				if v:IsA("BasePart") then
+					v.Transparency = transparency
+				end
+			end
+		end
+
+		setTransparency(npc, 0.8)
+
+		-- Phase in and out of invisibility every 4 seconds
+		while npc.Parent do
+			setTransparency(npc, 0.8)
+			task.wait(4)
+			setTransparency(npc, 1) -- Fully invisible
+			task.wait(4)
+		end
+	end,
+
+	angel = function(zombieData, id)
+		local npc = zombieData.model
+		local healRadius = 10 -- Radius of the healing pulse
+		local healAmount = 50 -- Amount healed to nearby zombies
+		local healCooldown = 3 -- Pulse every 3 seconds
+
+		if not npc or not npc.Parent or not npc.PrimaryPart then
+			return
+		end
+
+		-- Emit healing pulse every 3 seconds
+		while npc.Parent and npc.Humanoid:GetState() ~= Enum.HumanoidStateType.Dead do
+			-- Get all nearby zombies within the heal radius
+			local nearbyZombies = getNearbyZombies(zombieData, npc.PrimaryPart.Position, healRadius)
+
+			-- Heal each nearby zombie
+			for _, nearbyZombie in nearbyZombies do
+				healZombie(nearbyZombie, healAmount)
+			end
+
+			task.wait(healCooldown) -- Wait before the next pulse
+		end
+	end,
+
+	-- Lightning zombie with lightning bolt attack
+	lightning = function(zombieData, id)
+		local npc = zombieData.model
+		local lightningRange = 10
+		local healthDrain = 0.05
+
+		if not npc or not npc.Parent or not npc.PrimaryPart then
+			return
+		end
+
+		-- Check if the zombie can attack based on debounce
+		if not canAttack(id) then
+			return
+		end
+
+		-- Find the closest player within range
+		while npc.Parent and npc.Humanoid:GetState() ~= Enum.HumanoidStateType.Dead do
+			local player = findClosestTarget(npc:GetPivot().Position)
+
+			if
+				(npc:GetPivot().Position - player.Character:GetPivot().Position).Magnitude
+				<= lightningRange
+			then
+				local damage = player.Character.Humanoid.MaxHealth * healthDrain
+				applyDamageToPlayer(player, damage)
+				task.wait(1)
+			end
+			task.wait()
+		end
 	end,
 }
 
 local function pathfindChase(zombieData, id)
 	local npc = zombieData.model -- NPC model
-	local humanoid = npc:FindFirstChild("Humanoid")
+	local humanoid: Humanoid = npc:FindFirstChild("Humanoid")
 
 	-- Ensure the humanoid exists
 	if not humanoid then
@@ -86,6 +250,11 @@ local function pathfindChase(zombieData, id)
 		end
 	end
 
+	-- Activate zombie special abilities
+	if zombieData.specialAbility then
+		task.spawn(zombieSpecials[zombieData.specialAbility], zombieData, id)
+	end
+
 	-- Create the pathfinding object
 	local path = PathfindingService:CreatePath({
 		AgentRadius = 2.25,
@@ -97,11 +266,15 @@ local function pathfindChase(zombieData, id)
 	})
 
 	local lastTargetPosition = nil
-	local currentWaypointIndex = 0
+	local currentWaypointIndex = 0 -- Recalculate path if target moved significantly or every 2 seconds
 	local waypoints = {}
 
-	-- Function to start pathfinding chase
-	local function startChasing()
+	-- Debounce to prevent excessive pathfinding calculations
+	local recalculationCooldown = 0.75 -- Slightly increased cooldown to prevent rapid recalculation
+	local lastPathCalculation = 0 -- Track last path calculation time
+
+	-- Inside the pathfinding logic
+	local function chase()
 		-- Ensure NPC and its PrimaryPart are valid
 		if not npc or not npc.Parent or not npc.PrimaryPart then
 			return
@@ -115,42 +288,67 @@ local function pathfindChase(zombieData, id)
 			if targetChar and targetChar.PrimaryPart then
 				local targetPosition = targetChar.PrimaryPart.Position
 
-				-- Recalculate path if target moved significantly
+				if not lastTargetPosition then
+					lastTargetPosition = targetPosition
+				end
+
+				-- Only recalculate path if enough time has passed (debounce)
 				if
-					not lastTargetPosition
-					or (targetPosition - lastTargetPosition).Magnitude > 5
+					(tick() - lastPathCalculation) >= recalculationCooldown
+					or (targetPosition - lastTargetPosition).Magnitude > 7 -- Increased magnitude for recalculation
 				then
+					lastPathCalculation = tick() -- Update the last calculation time
+
 					local success, errorMessage = pcall(function()
 						path:ComputeAsync(npc.PrimaryPart.Position, targetPosition)
 					end)
 
-					if success and path.Status == Enum.PathStatus.Success then
-						waypoints = path:GetWaypoints()
-						lastTargetPosition = targetPosition
-						-- Start at the 3rd waypoint if there are enough waypoints
-						currentWaypointIndex = #waypoints >= 3 and 3 or 1
-					elseif not success then
+					if success then
+						if path.Status == Enum.PathStatus.Success then
+							-- If pathfinding is successful, get waypoints and continue
+							waypoints = path:GetWaypoints()
+							lastTargetPosition = targetPosition
+							currentWaypointIndex = #waypoints >= 3 and 3 or #waypoints
+						elseif path.Status == Enum.PathStatus.NoPath then
+							-- Handle NoPath scenario by moving directly towards the target
+							humanoid:MoveTo(targetPosition)
+							humanoid.Jump = true
+							lastTargetPosition = targetPosition
+							return
+						end
+					else
+						-- Pathfinding error
 						warn("Pathfinding error: " .. errorMessage)
 						return
 					end
 				end
 
-				-- Move to the next waypoint if it exists
+				-- Move to the next waypoint if it exists, smoothly transitioning
 				if #waypoints > 0 and currentWaypointIndex <= #waypoints then
 					local waypoint = waypoints[currentWaypointIndex]
-					humanoid:MoveTo(waypoint.Position)
+
+					-- If close to current waypoint, move to the next one
+					if not npc.PrimaryPart then
+						return
+					end
+					local distanceToWaypoint = (npc.PrimaryPart.Position - waypoint.Position).Magnitude
+					if distanceToWaypoint < 2 and currentWaypointIndex < #waypoints then
+						currentWaypointIndex += 1
+					end
+
+					humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
 
 					-- Handle jumping if the waypoint requires it
 					if waypoint.Action == Enum.PathWaypointAction.Jump then
-						humanoid.Jump = true -- Jump to higher ground
+						humanoid.Jump = true
 					end
 				else
-					-- No waypoints, move directly to the target position
+					-- No waypoints, move directly to the target position as a fallback
 					humanoid:MoveTo(targetPosition)
 				end
 
 				-- Check if the zombie is close enough to attack
-				local attackRange = 2
+				local attackRange = 3
 				if not npc.PrimaryPart then
 					return
 				end
@@ -165,13 +363,13 @@ local function pathfindChase(zombieData, id)
 
 	-- Function to handle MoveToFinished
 	local function onMoveToFinished(reached)
-		-- If the zombie reached the waypoint, go to the next one
-		if reached and currentWaypointIndex > 0 and currentWaypointIndex < #waypoints then
+		-- Smooth transition: Move to the next waypoint without stopping
+		if currentWaypointIndex > 0 and currentWaypointIndex < #waypoints then
 			currentWaypointIndex += 1
 			humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
 		else
-			-- Recalculate the path if not reached or no waypoints
-			startChasing()
+			-- Recalculate the path if no waypoints remain
+			chase()
 		end
 	end
 
@@ -182,7 +380,7 @@ local function pathfindChase(zombieData, id)
 			steppedConnection:Disconnect()
 			return
 		end
-		startChasing()
+		chase()
 	end)
 
 	humanoid.MoveToFinished:Connect(onMoveToFinished)
@@ -216,16 +414,8 @@ local M = {
 			beginSpawningRound = 20,
 			xpDropped = 20,
 			moneyDropped = 15,
+			specialAbility = "angel",
 		},
-
-		-- ["Midnight"] = {
-		-- 	health = 50,
-		-- 	speed = 10,
-		-- 	attackPower = 45,
-		-- 	beginSpawningRound = 3,
-		-- 	xpDropped = 15,
-		-- 	moneyDropped = 10,
-		-- },
 
 		["Lightning Zombie"] = {
 			health = 100,
@@ -234,6 +424,7 @@ local M = {
 			beginSpawningRound = 12,
 			xpDropped = 13,
 			moneyDropped = 9,
+			specialAbility = "lightning",
 		},
 
 		["Blue Lightning Zombie"] = {
@@ -243,6 +434,7 @@ local M = {
 			beginSpawningRound = 20,
 			xpDropped = 20,
 			moneyDropped = 9,
+			specialAbility = "lightning",
 		},
 
 		["Spectre"] = {
@@ -252,16 +444,17 @@ local M = {
 			beginSpawningRound = 15,
 			xpDropped = 15,
 			moneyDropped = 9,
+			specialAbility = "spectre",
 		},
 
-		["Mini"] = {
-			health = 80,
-			speed = 18,
-			attackPower = 15,
-			beginSpawningRound = 3,
-			xpDropped = 8,
-			moneyDropped = 2,
-		},
+		-- ["Mini"] = {
+		-- 	health = 80,
+		-- 	speed = 18,
+		-- 	attackPower = 15,
+		-- 	beginSpawningRound = 3,
+		-- 	xpDropped = 8,
+		-- 	moneyDropped = 2,
+		-- },
 
 		["Demon"] = {
 			health = 250,
@@ -270,6 +463,7 @@ local M = {
 			beginSpawningRound = 20,
 			xpDropped = 18,
 			moneyDropped = 12,
+			attackType = "fire",
 		},
 
 		["Flame Zombie"] = {
@@ -279,6 +473,7 @@ local M = {
 			beginSpawningRound = 10,
 			xpDropped = 13,
 			moneyDropped = 7,
+			attackType = "fire",
 		},
 
 		["Water Zombie"] = {

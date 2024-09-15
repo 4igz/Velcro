@@ -50,11 +50,21 @@ end
 
 function levelService.addExperience(player: Player, amt: number)
 	local playerProfile = playerDataService.getProfile(player)
-	local level = playerProfile.Data.Level
-	local xp = playerProfile.Data.Experience
 
-	playerProfile.Data.Level = levelService.levelFromExperience(xp + amt)
-	playerProfile.Data.Experience = xp + amt
+	local currentLevel = playerProfile.Data.Level
+	local xpForNextLevel = levelService.levelCost(currentLevel + 1)
+
+	if playerProfile.Data.Experience > xpForNextLevel then
+		playerProfile.Data.Level += 1
+	end
+
+	playerProfile.Data.Experience += amt
+
+	zap.updateLevelUi.Fire(player, {
+		level = playerProfile.Data.Level,
+		xp = playerProfile.Data.Experience, -- total XP
+		xpMax = levelService.levelCost(playerProfile.Data.Level + 1), -- XP required to reach the next level
+	})
 
 	playerDataService.setProfile(player, playerProfile)
 end
@@ -62,10 +72,9 @@ end
 function levelService.getLevelData(player: Player)
 	local playerProfile = playerDataService.getProfile(player)
 	local level = playerProfile.Data.Level
-	local xp = playerProfile.Data.Experience
-	local levelCost = levelService.levelCost(level)
+	local xpForNextLevel = levelService.levelCost(level + 1)
 
-	return { level = level, xp = xp, xpMax = levelCost }
+	return { level = level, xp = playerProfile.Data.Experience, xpMax = xpForNextLevel }
 end
 
 function levelService.start()

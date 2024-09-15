@@ -15,7 +15,7 @@ return {
 		},
 
 		-- 1st set of weapons
-		["Jacket-3l"] = {
+		["Jacket-3"] = {
 			price = 5000,
 			levelReq = 20,
 			description = "The starting shotgun. Perfect for quick burst of damage into crowds!",
@@ -41,7 +41,7 @@ return {
 		},
 
 		-- 2nd set of weapons
-		["VC-5"] = {
+		["VC-S"] = {
 			price = 20000,
 			levelReq = 50,
 			description = "The better SMG",
@@ -83,7 +83,7 @@ return {
 			description = "Nuh uh",
 			order = 11,
 		},
-		["LaserBadger"] = {
+		["Laserbadger"] = {
 			price = 50000,
 			levelReq = 100,
 			description = "Pew pew said the gun",

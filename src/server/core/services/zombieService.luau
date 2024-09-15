@@ -19,6 +19,7 @@ local defaultZombieConfig = zombieConfig.Zombie
 
 -- Table to keep track of all zombie components
 local zombieComponents = {}
+local queuedZombies = {}
 
 --[[
 	- @param type: String identifier for the type of zombie to create
@@ -41,6 +42,8 @@ function zombieService.newZombie(type, cframe)
 		end
 	end
 
+	assert(gameStateService.mapLoaded(), "Map was not loaded and we're trying to spawn a zombie!")
+
 	-- Implement the logic to spawn the actual zombie model in the game world
 	local zombieModel = zombieFolder:FindFirstChild(type)
 	if not zombieModel then
@@ -52,53 +55,52 @@ function zombieService.newZombie(type, cframe)
 	zombieModel:PivotTo(cframe)
 	zombieModel.Parent = CollectionService:GetTagged("MapContent")[1] or mapContainer
 	zombie.model = zombieModel
+	zombie.allZombies = zombieComponents
 	CollectionService:AddTag(zombieModel, "Zombie")
 	-- Insert the new zombie into the zombieComponents table
-	local i = table.insert(zombieComponents, zombie)
+	table.insert(zombieComponents, zombie)
+	local i = table.find(zombieComponents, zombie)
 
 	local humanoid: Humanoid = zombieModel.Humanoid
 	humanoid.MaxHealth = cfg.health
 	humanoid.Health = cfg.health
+
 	humanoid.WalkSpeed = cfg.speed
+	local ai = zombieAi[cfg.aiType or "basic"]
+	if ai and ai.chase then
+		task.spawn(function()
+			ai.chase(zombie, i)
+		end)
+		zombie.aiRunning = true
+	end
 
 	-- Handle zombie death
 	humanoid.Died:Connect(function()
+		local index = table.find(zombieComponents, zombie)
+		if index then
+			table.remove(zombieComponents, index)
+		end
 		if not gameStateService.isRoundActive() then
 			print("Round wasn't active")
 			return -- Only remove zombies if the round is active
 		end
-		table.remove(zombieComponents, i)
 		task.delay(2, function()
 			zombieModel:Destroy()
 		end)
 		zap.updateUI.FireAll({
-			zombies = #zombieComponents,
+			zombies = #zombieComponents + #queuedZombies,
 			gameActive = gameStateService.isRoundActive(),
 			timeLeft = gameStateService.getTimeLeft(),
 		})
 	end)
 end
 
-function zombieService.getNumZombies()
-	return #zombieComponents
+function zombieService.getActiveZombies()
+	return zombieComponents
 end
 
--- Function to update all active zombies
--- Applies each zombie's AI update method
-function zombieService.startZombieAIs()
-	-- Iterate over all zombies in the components list
-	for i, zombie in zombieComponents do
-		if zombie.aiRunning then
-			continue
-		end
-		local ai = zombieAi[zombie.aiType or "basic"]
-		if ai and ai.chase then
-			task.spawn(function()
-				ai.chase(zombie, i)
-			end)
-			zombie.aiRunning = true
-		end
-	end
+function zombieService.getNumZombies()
+	return #zombieComponents
 end
 
 --[[
@@ -142,8 +144,6 @@ function zombieService.spawnZombies(roundNum)
 		warn("No spawn points found for zombies!")
 		return
 	end
-
-	local queuedZombies = {}
 
 	-- Spawn the calculated number of zombies based on the weighted zombie types
 	for _ = 1, numZombiesToSpawn do
@@ -215,56 +215,65 @@ end
 
 function zombieService.start()
 	RunService.Heartbeat:Connect(function(deltaTime)
-		-- Reduce round time and check for timeout
-		local roundEndedDueToTimeout = gameStateService.reduceRoundTime(deltaTime)
-
-		-- If all zombies are eliminated, start the next round
-		if #zombieComponents == 0 and gameStateService.isRoundActive() then
-			print("All zombies eliminated. Starting next round...")
-			gameStateService.startingRound:Fire(gameStateService.getCurrentRound())
-			-- Increment the round and start a new wave of zombies
+		if #Players:GetPlayers() == 0 then
 			return
 		end
-
-		-- If there are zombies still alive, update their AI
-		if #zombieComponents > 0 then
-			zombieService.startZombieAIs()
+		-- If the intermission is active, reduce the intermission time
+		if gameStateService.getIntermissionActive() then
+			gameStateService.reduceIntermissionTime(deltaTime)
 		else
-			-- If there are no zombies and round ended due to timeout or all players are dead
-			if roundEndedDueToTimeout or not gameStateService.isRoundActive() then
-				-- Ensure the game is ended properly and intermission starts
-				if not gameStateService.getIntermissionActive() then
-					-- If the round ended, start the intermission
-					print("Round has ended, starting intermission...")
-					gameStateService.startIntermission()
-				else
-					-- Reduce the intermission timer
-					gameStateService.reduceIntermissionTime(deltaTime)
+			-- Reduce round time and check for timeout
+			local roundEndedDueToTimeout = gameStateService.reduceRoundTime(deltaTime)
+
+			-- If all zombies are eliminated and round is active, proceed to next round or intermission
+			if #zombieComponents == 0 and gameStateService.isRoundActive() then
+				print("All zombies eliminated. Starting next round...")
+				gameStateService.startNewRound("")
+
+				-- If the round ended due to timeout or all players are dead, start the intermission
+				if roundEndedDueToTimeout or not gameStateService.isRoundActive() then
+					-- Ensure the game is ended properly and intermission starts
+					if not gameStateService.getIntermissionActive() then
+						-- Start the intermission phase
+						print("Round has ended, starting intermission...")
+						gameStateService.startIntermission()
+					end
 				end
 			end
 		end
 	end)
 
 	gameStateService.startingRound:Connect(function(roundNum)
-		gameStateService.advanceRound()
-		gameStateService.resetRoundTime()
 		if roundNum % 10 == 0 then
 			-- zombieService.spawnBoss(gameStateService.getCurrentRound())
 		end
 
+		table.clear(queuedZombies)
 		zombieService.spawnZombies(roundNum)
 
 		zap.updateUI.FireAll({
 			timeLeft = gameStateService.getTimeLeft(),
 			wave = gameStateService.getCurrentRound(),
 			wavesTillBoss = gameStateService.getCurrentRound() % 10,
-			zombies = 5 + roundNum * 2,
+			zombies = #zombieComponents + #queuedZombies,
 			gameActive = true,
 		})
 	end)
 
 	gameStateService.endingGame:Connect(function()
 		zombieService.despawnAll()
+	end)
+
+	Players.PlayerAdded:Connect(function(player)
+		zap.updateUI.Fire(player, {
+			timeLeft = if gameStateService.isRoundActive()
+				then gameStateService.getTimeLeft()
+				else gameStateService.getIntermissionTime(),
+			wave = gameStateService.getCurrentRound(),
+			wavesTillBoss = gameStateService.getCurrentRound() % 10,
+			zombies = #zombieComponents + #queuedZombies,
+			gameActive = true,
+		})
 	end)
 end
 

@@ -44,13 +44,14 @@ return function(props)
 				interval:Disconnect()
 			end
 		end
+		return
 	end, { gameActive, timeLeft })
 
 	return React.createElement("ScreenGui", {
 		IgnoreGuiInset = true,
 		ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-		Enabled = gameActive,
+		Enabled = true,
 	}, {
 		waveCount = React.createElement("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0),

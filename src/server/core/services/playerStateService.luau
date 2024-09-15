@@ -8,20 +8,6 @@ local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local Signal = require(sharedPackages.Signal)
 local playerDataService = require(script.Parent.playerDataService)
 
-local DEFAULT_STATE = {
-	Life = { -- Resets on Respawn
-		isZombie = false,
-	},
-	exampleState = false,
-	Leaderboard = {
-		Level = 0,
-		Kills = 0,
-		Damage = 0,
-		Money = 0,
-	},
-	playing = true,
-	inMap = false,
-}
 local RETRY_GET_STATE_TIMES = 10
 local RETRY_DELAY = 0.1
 
@@ -33,7 +19,20 @@ local playerStates = {}
 
 function playerStateService.start()
 	Players.PlayerAdded:Connect(function(player)
-		playerStates[player] = table.clone(DEFAULT_STATE)
+		playerStates[player] = {
+			Life = { -- Resets on Respawn
+				isZombie = false,
+			},
+			exampleState = false,
+			Leaderboard = {
+				Level = 0,
+				Kills = 0,
+				Damage = 0,
+				Money = 0,
+			},
+			playing = true,
+			inMap = false,
+		}
 		local profile = playerDataService.getProfile(player)
 
 		if profile then
@@ -41,7 +40,9 @@ function playerStateService.start()
 		end
 
 		player.CharacterAdded:Connect(function(_character)
-			playerStates[player].Life = table.clone(DEFAULT_STATE.Life)
+			playerStates[player].Life = {
+				isZombie = false,
+			}
 		end)
 	end)
 
@@ -92,7 +93,7 @@ function playerStateService.updateLeaderstats(player, profile)
 end
 
 -- Preferably used inside of PlayerAdded events
-function playerStateService.waitForPlayerState(player: Player): table?
+function playerStateService.waitForPlayerState(player: Player): {}?
 	local promise = Promise.retryWithDelay(function()
 		return Promise.new(function(resolve, reject)
 			local state = playerStates[player]
@@ -126,7 +127,7 @@ function playerStateService.updatePlayerState(player: Player, updatedState)
 end
 
 function playerStateService.getPlayerState(player: Player)
-	return table.clone(playerStates[player])
+	return playerStates[player]
 end
 
 return playerStateService

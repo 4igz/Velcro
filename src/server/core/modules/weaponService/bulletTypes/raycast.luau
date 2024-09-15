@@ -44,6 +44,7 @@ return function(
 
 	local raysToVisualize = {}
 	local hitsToProcess = {} -- Store all raycast results here
+	local killLocks = {} -- Lock to prevent multiple kill events for the same zombie
 	local headPosition = head.Position
 	local headToTarget = (to - headPosition).Unit
 
@@ -63,11 +64,6 @@ return function(
 
 	-- Create a function to process the hit data once all coroutines finish
 	local function processHitData()
-		for _, hitData in hitsToProcess do
-			local ray = hitData.raycastResult
-			bulletHitSignal:Fire(shooter, ws, ray, weaponName)
-		end
-
 		if ws.bullets > 1 then
 			-- Batch visualizations in one go to reduce latency
 			for _, rayData in raysToVisualize do
@@ -107,15 +103,22 @@ return function(
 					local hitInstance = ray.Instance
 					local hitCharacter = instanceUtil.ancestorWithTag(hitInstance, "Zombie")
 
-					-- If a hit occurs, store the raycast result for later processing
 					if hitCharacter then
-						hits = hits + 1
-						table.insert(hitsToProcess, {
-							raycastResult = ray,
-						})
+						local hitHumanoid = hitCharacter:FindFirstChild("Humanoid")
 
-						-- Decrease the damage for subsequent hits (if piercing is allowed)
-						damage = damage * damageDecrementFactor
+						-- Ensure that this zombie can only be killed once
+						if hitHumanoid and not killLocks[hitCharacter] then
+							hits = hits + 1
+							table.insert(hitsToProcess, {
+								raycastResult = ray,
+							})
+
+							bulletHitSignal:Fire(shooter, ws, ray, weaponName)
+							-- Check if the zombie's health reaches zero and mark it as killed
+
+							-- Decrease the damage for subsequent hits (if piercing is allowed)
+							damage = damage * damageDecrementFactor
+						end
 					end
 
 					-- Update remaining range based on travel distance

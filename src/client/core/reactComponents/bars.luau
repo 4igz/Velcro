@@ -2,17 +2,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.sharedPackages.React)
 
-local currentXp = 0
-local xpMax = 0
-
-local function createBar()
+local function createBar(props)
+	if props == {} then
+		return
+	end
 	return React.createElement("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
+		AnchorPoint = Vector2.new(0, 0),
 		BackgroundColor3 = Color3.fromRGB(255, 207, 14),
 		BorderColor3 = Color3.fromRGB(0, 0, 0),
 		BorderSizePixel = 0,
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromScale(0, 0),
+		Size = UDim2.fromScale(0, 1):Lerp(UDim2.fromScale(1, 1), props.x / props.y),
 	}, {
 		uIGradient = React.createElement("UIGradient", {
 			Color = ColorSequence.new({
@@ -52,9 +52,10 @@ local function createAmountLabel(props)
 		TextTransparency = 0.2,
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Right,
+		ZIndex = 3,
 	}, {
 		uIStroke1 = React.createElement("UIStroke", {
-			Color = Color3.fromRGB(249, 202, 34),
+			Color = Color3.fromRGB(255, 255, 255),
 			Transparency = 0.3,
 		}),
 		uIGradient1 = React.createElement("UIGradient", {
@@ -80,9 +81,9 @@ local function xpBar(props)
 	}, {
 		uIStroke = React.createElement("UIStroke", {
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-			Color = Color3.fromRGB(255, 221, 51),
+			Color = Color3.fromRGB(0, 0, 0),
 		}),
-		bar = createBar(),
+		bar = createBar({ x = props.xp or 0, y = props.xpMax or 0 }),
 		uICorner1 = React.createElement("UICorner", {
 			CornerRadius = UDim.new(0.01, 0),
 		}),
@@ -99,7 +100,7 @@ local function xpBar(props)
 			),
 			Position = UDim2.fromScale(0.251, 0.557),
 			Size = UDim2.fromScale(0.279, 0.982),
-			Text = "Level 10",
+			Text = `Level {props.level}`,
 			TextColor3 = Color3.fromRGB(255, 255, 255),
 			TextScaled = true,
 			TextSize = 14,
@@ -122,7 +123,7 @@ local function xpBar(props)
 		}, {
 			uIAspectRatioConstraint = React.createElement("UIAspectRatioConstraint"),
 		}),
-		amount = createAmountLabel({ text = `{props.xpAmount}/{props.xpMax}` }),
+		amount = createAmountLabel({ text = `{props.xp}/{props.xpMax}` }),
 	})
 end
 
@@ -224,6 +225,32 @@ local function healthBar(props)
 end
 
 local function createMainContainer(props)
+	-- Store the health, maxHealth, xp, and xpMax as state
+	local health, setHealth = React.useState(props.health or 100)
+	local maxHealth, setMaxHealth = React.useState(props.maxHealth or 100)
+	local xp, setXp = React.useState(props.xp or 0)
+	local xpMax, setXpMax = React.useState(props.xpMax or 1)
+	local level, setLevel = React.useState(props.xpMax or 1)
+
+	-- Update the state if new props are passed
+	React.useEffect(function()
+		if props.health then
+			setHealth(props.health)
+		end
+		if props.level then
+			setLevel(props.level)
+		end
+		if props.maxHealth then
+			setMaxHealth(props.maxHealth)
+		end
+		if props.xp then
+			setXp(props.xp)
+		end
+		if props.xpMax then
+			setXpMax(props.xpMax)
+		end
+	end, { props.health, props.maxHealth, props.xp, props.xpMax, props.level })
+
 	return React.createElement("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -233,8 +260,15 @@ local function createMainContainer(props)
 		Position = UDim2.fromScale(0.499, 0.928),
 		Size = UDim2.fromScale(0.999, 0.141),
 	}, {
-		xpBar = xpBar({ xpAmount = 5, maxXp = 10 }),
-		healthBar = healthBar({ health = props.health or 100, maxHealth = props.maxHealth or 100 }),
+		bar = xpBar({
+			xp = xp,
+			xpMax = xpMax,
+			level = level or 1,
+		}),
+		healthBar = healthBar({
+			health = math.round(health),
+			maxHealth = maxHealth,
+		}),
 	})
 end
 

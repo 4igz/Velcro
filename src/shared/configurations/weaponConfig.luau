@@ -21,6 +21,7 @@ export type Settings = {
 	allowTeamKill: boolean?,
 	maxPierce: number?,
 	walkspeed: number?,
+	headshotMultiplier: number?,
 
 	itemType: ("gun" | "melee" | "equipment")?,
 	bulletType: ("melee" | "raycast" | "projectileBullet")?, -- The BulletType function to run on firing
@@ -65,8 +66,7 @@ local default: Settings = {
 	sounds = {
 		-- Name of sound in SoundService>Weapons
 		-- Put "" for no sound
-		fire = "P90Fire",
-		reload = "P90Reload",
+		fire = "SMGFire",
 	},
 }
 
@@ -79,12 +79,16 @@ local Signal = require(sharedPackages.Signal)
 local settings: { [string]: Settings } = {
 	["Starter Pistol"] = {
 		damage = 20,
+		headshotMultiplier = 1.5,
 		bulletType = "raycast",
 		hitType = "normal",
 		hitVisual = "highlight",
 		itemType = "gun",
 		fireCooldown = 0.2,
 		walkspeed = 18,
+		sounds = {
+			fire = "PistolFire",
+		},
 	},
 
 	["Katana"] = {
@@ -94,57 +98,58 @@ local settings: { [string]: Settings } = {
 		walkspeed = 18,
 	},
 
+	["Jacket-3"] = {
+		damage = 16,
+		headshotMultiplier = 1.5,
+		bullets = 8,
+		fireCooldown = 1.2,
+		minBulletSpreadAngle = 1,
+		maxBulletSpreadAngle = 5,
+		range = 30,
+		sounds = {
+			fire = "ShotgunFire",
+		},
+		itemType = "gun",
+	},
+
 	["Sawed-Off Shotgun"] = {
-		damage = 25,
+		damage = 20,
+		headshotMultiplier = 1.5,
 		bullets = 8,
 		fireCooldown = 1,
 		minBulletSpreadAngle = 1,
 		maxBulletSpreadAngle = 5,
-		range = 8,
+		range = 20,
 		sounds = {
 			fire = "ShotgunFire",
-			reload = "ShotgunReload",
 		},
 		itemType = "gun",
 	},
 
 	["BNT-2"] = {
 		damage = 15,
+		headshotMultiplier = 1.5,
 		bullets = 8,
 		fireCooldown = 0.8,
 		minBulletSpreadAngle = 1,
 		maxBulletSpreadAngle = 5,
-		range = 12,
+		range = 30,
 		sounds = {
 			fire = "ShotgunFire",
-			reload = "ShotgunReload",
 		},
 		itemType = "gun",
 	},
 
 	["Super90"] = {
-		damage = 12,
+		damage = 25,
+		headshotMultiplier = 1.5,
 		bullets = 8,
 		fireCooldown = 0.6,
 		minBulletSpreadAngle = 1,
 		maxBulletSpreadAngle = 5,
-		range = 12,
+		range = 40,
 		sounds = {
 			fire = "ShotgunFire",
-			reload = "ShotgunReload",
-		},
-		itemType = "gun",
-	},
-	["Jacket 3"] = {
-		damage = 16,
-		bullets = 8,
-		fireCooldown = 1.2,
-		minBulletSpreadAngle = 1,
-		maxBulletSpreadAngle = 5,
-		range = 12,
-		sounds = {
-			fire = "ShotgunFire",
-			reload = "ShotgunReload",
 		},
 		itemType = "gun",
 	},
@@ -152,23 +157,30 @@ local settings: { [string]: Settings } = {
 	-- Pistols
 	["Deagle"] = {
 		damage = 80,
+		headshotMultiplier = 1.5,
 		headshotDamage = 120,
 		walkspeed = 22,
 		fireCooldown = 0.5,
+		maxPierce = 10,
 		attackDodgeChance = 0.1,
+		sounds = {
+			fire = "PistolFire",
+		},
 		itemType = "gun",
 	},
 
 	-- SMGs
-	["SMG-2"] = {
+	["SMG"] = {
 		damage = 5,
+		headshotMultiplier = 1.5,
 		walkspeed = 16.5,
 		fireCooldown = 0.1,
 		itemType = "gun",
 	},
 
-	["VC-5"] = {
+	["VC-S"] = {
 		damage = 6,
+		headshotMultiplier = 1.5,
 		walkspeed = 16.5,
 		fireCooldown = 0.1,
 		itemType = "gun",
@@ -176,6 +188,7 @@ local settings: { [string]: Settings } = {
 
 	["PM12"] = {
 		damage = 6,
+		headshotMultiplier = 1.5,
 		walkspeed = 16.5,
 		fireCooldown = 0.05,
 		itemType = "gun",
@@ -183,45 +196,63 @@ local settings: { [string]: Settings } = {
 
 	["VP70"] = {
 		damage = 7,
+		headshotMultiplier = 1.5,
 		walkspeed = 17,
 		fireCooldown = 0.05,
 		itemType = "gun",
 	},
 
 	["AR57"] = {
-		damage = 9,
-		walkspeed = 17,
+		damage = 10,
+		headshotMultiplier = 1.5,
+		walkspeed = 19,
 		fireCooldown = 0.04,
 		itemType = "gun",
 	},
 
 	-- Snipers
-	["AWP"] = {
-		damage = 35,
-		maxPierce = 15,
-		fireCooldown = 2,
-		itemType = "gun",
-	},
-
 	["Moisin"] = {
 		damage = 20,
+		headshotMultiplier = 2,
 		maxPierce = 12,
 		fireCooldown = 2.5,
 		itemType = "gun",
+		sounds = {
+			fire = "SniperFire",
+		},
 	},
 
-	["LaserBadger"] = {
-		damage = 80,
-		maxPierce = 25,
-		fireCooldown = 1.2,
+	["AWP"] = {
+		damage = 35,
+		headshotMultiplier = 2,
+		maxPierce = 15,
+		fireCooldown = 2,
 		itemType = "gun",
+		sounds = {
+			fire = "SniperFire",
+		},
 	},
 
 	["BFG-5000"] = {
 		damage = 50,
-		pierce = 20,
+		headshotMultiplier = 2,
+		maxPierce = 20,
 		fireCooldown = 1.5,
+		sounds = {
+			fire = "SniperFire",
+		},
 		itemType = "gun",
+	},
+
+	["Laserbadger"] = {
+		damage = 80,
+		headshotMultiplier = 2,
+		maxPierce = 25,
+		fireCooldown = 0.8,
+		itemType = "gun",
+		sounds = {
+			fire = "SniperFire",
+		},
 	},
 }
 
