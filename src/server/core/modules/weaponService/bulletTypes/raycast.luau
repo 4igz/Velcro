@@ -25,6 +25,7 @@ return function(
 	hitPart: Instance,
 	weaponName: string
 )
+	ws = table.clone(ws)
 	local character = shooter.Character
 	local head = character and character:FindFirstChild("Head")
 	if not head then
@@ -57,7 +58,7 @@ return function(
 	-- Store frequently used values to avoid recalculating them inside the loop
 	local bulletsToFire = ws.bullets
 	local maxPierce = ws.maxPierce
-	local damageDecrementFactor = 0.5
+	local damageDecrementFactor = 0.85
 
 	-- Create a counter to track active coroutines
 	local activeCoroutines = 0
@@ -117,7 +118,7 @@ return function(
 							-- Check if the zombie's health reaches zero and mark it as killed
 
 							-- Decrease the damage for subsequent hits (if piercing is allowed)
-							damage = damage * damageDecrementFactor
+							ws.damage = ws.damage * damageDecrementFactor
 						end
 					end
 

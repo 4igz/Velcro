@@ -152,7 +152,7 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-local events = table.create(14)
+local events = table.create(15)
 reliable.OnServerEvent:Connect(function(player, buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
@@ -193,6 +193,13 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 			end
 		elseif id == 11 then
 			local value
+			local len = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len), len)
+			if events[11] then
+				task.spawn(events[11], player, value)
+			end
+		elseif id == 12 then
+			local value
 			value = {}
 			local len = buffer.readu16(incoming_buff, read(2))
 			value.name = buffer.readstring(incoming_buff, read(len), len)
@@ -211,18 +218,18 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 			else
 				error("Invalid variant")
 			end
-			if events[11] then
-				task.spawn(events[11], player, value)
+			if events[12] then
+				task.spawn(events[12], player, value)
 			end
-		elseif id == 12 then
+		elseif id == 13 then
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			if events[12] then
+			if events[13] then
 				task.spawn(function(player, call_id, value)
-					local rets = events[12](player, value)
+					local rets = events[13](player, value)
 					load_player(player)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 13)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
 					if rets.zombies == nil then
@@ -273,15 +280,15 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					player_map[player] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 13 then
+		elseif id == 14 then
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			if events[13] then
+			if events[14] then
 				task.spawn(function(player, call_id, value)
-					local rets = events[13](player, value)
+					local rets = events[14](player, value)
 					load_player(player)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 14)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
 					alloc(4)
@@ -293,15 +300,15 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					player_map[player] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 14 then
+		elseif id == 15 then
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			if events[14] then
+			if events[15] then
 				task.spawn(function(player, call_id, value)
-					local rets = events[14](player, value)
+					local rets = events[15](player, value)
 					load_player(player)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 14)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 15)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
 					local len = #rets.equippedWeapons.gun
@@ -1197,6 +1204,14 @@ return {
 			end
 		end,
 	},
+	voteForMap = {
+		SetCallback = function(Callback: (Player, (string)) -> ()): () -> ()
+			events[11] = Callback
+			return function()
+				events[11] = nil
+			end
+		end,
+	},
 	attributeChangedEvent = {
 		SetCallback = function(Callback: (Player, ({
 			name: (string),
@@ -1211,9 +1226,9 @@ return {
 				value: (boolean),
 			}),
 		})) -> ()): () -> ()
-			events[11] = Callback
+			events[12] = Callback
 			return function()
-				events[11] = nil
+				events[12] = nil
 			end
 		end,
 	},
@@ -1225,9 +1240,9 @@ return {
 			timeLeft: ((number)?),
 			gameActive: ((boolean)?),
 		}))): () -> ()
-			events[12] = Callback
+			events[13] = Callback
 			return function()
-				events[12] = nil
+				events[13] = nil
 			end
 		end,
 	},
@@ -1237,9 +1252,9 @@ return {
 			xp: (number),
 			xpMax: (number),
 		}))): () -> ()
-			events[13] = Callback
+			events[14] = Callback
 			return function()
-				events[13] = nil
+				events[14] = nil
 			end
 		end,
 	},
@@ -1252,9 +1267,9 @@ return {
 			}),
 			ownedWeapons: ({ (string) }),
 		}))): () -> ()
-			events[14] = Callback
+			events[15] = Callback
 			return function()
-				events[14] = nil
+				events[15] = nil
 			end
 		end,
 	},

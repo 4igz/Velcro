@@ -1,3 +1,4 @@
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -6,10 +7,18 @@ local Signal = require(ReplicatedStorage.sharedPackages.Signal)
 local zap = require(ServerStorage.zap)
 local gameStateService = {}
 
-local START_ROUND_TIME = 120 -- Total time for each round (e.g., 120 seconds)
-local INTERMISSION_TIME = 5 -- Time for the intermission phase (e.g., 30 seconds)
+local MAP_IMAGES = {
+	Dust = "rbxassetid://80196594037659",
+	Grasslands = "rbxassetid://136327362137218",
+	Spaceship = "rbxassetid://109905657060517",
+	Harbor = "rbxassetid://134415720948116",
+	Depot = "rbxassetid://72699928748098",
+}
 
-local currentRound = 100
+local START_ROUND_TIME = 120 -- Total time for each round (e.g., 120 seconds)
+local INTERMISSION_TIME = 15 -- Time for the intermission phase (e.g., 30 seconds)
+
+local currentRound = 30
 local roundActive = false
 local intermissionActive = true
 local roundTime = 0 -- Time left in the current round
@@ -122,11 +131,11 @@ end
 function gameStateService.startIntermission()
 	gameStateService.resetIntermissionTime()
 	intermissionActive = true
-	mapVotes = {} -- Reset map votes
+	table.clear(mapVotes) -- Reset map votes
 	gameStateService.startingIntermission:Fire()
 
 	-- Select 5 random map names from allMaps
-	availableMaps = getRandomMaps(mapFolder:GetChildren(), 5)
+	availableMaps = getRandomMaps(mapFolder:GetChildren(), 4)
 
 	-- Notify all players about the available maps and allow them to vote
 	zap.updateUI.FireAll({
@@ -136,7 +145,16 @@ function gameStateService.startIntermission()
 		zombies = 0,
 		gameActive = true,
 	})
-	zap.showVoteUi.FireAll(availableMaps)
+
+	-- Update voting boards
+	for i, votingUi in CollectionService:GetTagged("VotingBoard") do
+		local selectedMap = availableMaps[i]
+		votingUi:SetAttribute("map", selectedMap)
+
+		local bg = votingUi.BG
+		bg.MapName.Text = selectedMap
+		bg.BG.Image = MAP_IMAGES[selectedMap]
+	end
 end
 
 function gameStateService.getIntermissionActive()
@@ -259,6 +277,12 @@ end
 
 function gameStateService.start()
 	gameStateService.startIntermission()
+
+	zap.voteForMap.SetCallback(function(player, mapName)
+		if intermissionActive then
+			gameStateService.voteForMap(player, mapName)
+		end
+	end)
 
 	Players.PlayerAdded:Connect(function(player)
 		player.CharacterAdded:Connect(function(character)

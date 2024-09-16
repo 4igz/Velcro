@@ -17,9 +17,11 @@ function monetizationUtil.userOwnsGamepass(userId: number, gamepassId: number)
 				gamepassName = name
 			end
 		end
-		if table.find(sharedInfo.GamepassBypass[gamepassName], userId) then
-			resolve(true)
-			return
+		if sharedInfo.GamepassBypass[gamepassName] then
+			if table.find(sharedInfo.GamepassBypass[gamepassName], userId) then
+				resolve(true)
+				return
+			end
 		end
 		local wasSuccessful, owns =
 			pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, userId, gamepassId)

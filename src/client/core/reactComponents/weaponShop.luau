@@ -252,6 +252,12 @@ return function(props)
 			Padding = UDim.new(0.03, 0),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		})
+		state.padding = e("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(0.982, 0.237),
+			LayoutOrder = 1e4,
+		})
 		setWeapons(state)
 	end
 

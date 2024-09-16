@@ -15,10 +15,10 @@ local function moneyGain(newFeed)
 			Enum.FontWeight.Bold,
 			Enum.FontStyle.Normal
 		),
-		Size = UDim2.fromScale(0.2, 0.1),
+		Size = UDim2.fromScale(0.2, 0.15),
 		Text = `+${newFeed.amtGain} {newFeed.reason}`,
 		TextColor3 = Color3.fromRGB(53, 255, 30),
-		TextSize = 14,
+		TextSize = 16,
 	})
 end
 
@@ -49,7 +49,7 @@ local function gainUi(children)
 		BackgroundTransparency = 1,
 		BorderColor3 = Color3.fromRGB(0, 0, 0),
 		BorderSizePixel = 0,
-		Position = UDim2.fromScale(0.55, 0.5),
+		Position = UDim2.fromScale(0.06, 0.7),
 		Size = UDim2.fromScale(0.2, 0.205),
 	}, children)
 end
@@ -94,6 +94,7 @@ return function(newFeed)
 	local layout = React.createElement("UIListLayout", {
 		Padding = UDim.new(0, 5),
 		SortOrder = Enum.SortOrder.LayoutOrder,
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
 	})
 
 	-- Create feed elements based on the current state

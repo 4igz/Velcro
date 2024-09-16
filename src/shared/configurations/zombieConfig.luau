@@ -262,7 +262,7 @@ local function pathfindChase(zombieData, id)
 		AgentCanJump = true,
 		AgentJumpHeight = 30,
 		AgentCanClimb = true,
-		AgentMaxSlope = 50,
+		AgentMaxSlope = 80,
 	})
 
 	local lastTargetPosition = nil
@@ -272,8 +272,9 @@ local function pathfindChase(zombieData, id)
 	-- Debounce to prevent excessive pathfinding calculations
 	local recalculationCooldown = 0.75 -- Slightly increased cooldown to prevent rapid recalculation
 	local lastPathCalculation = 0 -- Track last path calculation time
+	local PREDICTION_TIME_FACTOR = 1 -- Adjust how far into the future to predict
+	local ATTACK_RANGE = 3 -- The range within which the zombie can attack
 
-	-- Inside the pathfinding logic
 	local function chase()
 		-- Ensure NPC and its PrimaryPart are valid
 		if not npc or not npc.Parent or not npc.PrimaryPart then
@@ -287,33 +288,37 @@ local function pathfindChase(zombieData, id)
 			-- Ensure target character and PrimaryPart are valid
 			if targetChar and targetChar.PrimaryPart then
 				local targetPosition = targetChar.PrimaryPart.Position
+				local targetVelocity = targetChar.PrimaryPart.AssemblyLinearVelocity
+
+				-- Predict the future position of the target
+				local predictedPosition = targetPosition + (targetVelocity * PREDICTION_TIME_FACTOR)
 
 				if not lastTargetPosition then
-					lastTargetPosition = targetPosition
+					lastTargetPosition = predictedPosition
 				end
 
 				-- Only recalculate path if enough time has passed (debounce)
 				if
 					(tick() - lastPathCalculation) >= recalculationCooldown
-					or (targetPosition - lastTargetPosition).Magnitude > 7 -- Increased magnitude for recalculation
+					or (predictedPosition - lastTargetPosition).Magnitude > 7 -- Increased magnitude for recalculation
 				then
 					lastPathCalculation = tick() -- Update the last calculation time
 
 					local success, errorMessage = pcall(function()
-						path:ComputeAsync(npc.PrimaryPart.Position, targetPosition)
+						path:ComputeAsync(npc.PrimaryPart.Position, predictedPosition)
 					end)
 
 					if success then
 						if path.Status == Enum.PathStatus.Success then
 							-- If pathfinding is successful, get waypoints and continue
 							waypoints = path:GetWaypoints()
-							lastTargetPosition = targetPosition
+							lastTargetPosition = predictedPosition
 							currentWaypointIndex = #waypoints >= 3 and 3 or #waypoints
 						elseif path.Status == Enum.PathStatus.NoPath then
-							-- Handle NoPath scenario by moving directly towards the target
-							humanoid:MoveTo(targetPosition)
+							-- Handle NoPath scenario by moving directly towards the predicted position
+							humanoid:MoveTo(predictedPosition)
 							humanoid.Jump = true
-							lastTargetPosition = targetPosition
+							lastTargetPosition = predictedPosition
 							return
 						end
 					else
@@ -323,7 +328,10 @@ local function pathfindChase(zombieData, id)
 					end
 				end
 
-				-- Move to the next waypoint if it exists, smoothly transitioning
+				-- Waypoint processing logic with minimum distance
+				local MIN_WAYPOINT_DISTANCE = 3 -- Minimum distance between waypoints
+
+				-- Inside chase() function after checking if there are waypoints
 				if #waypoints > 0 and currentWaypointIndex <= #waypoints then
 					local waypoint = waypoints[currentWaypointIndex]
 
@@ -332,10 +340,16 @@ local function pathfindChase(zombieData, id)
 						return
 					end
 					local distanceToWaypoint = (npc.PrimaryPart.Position - waypoint.Position).Magnitude
-					if distanceToWaypoint < 2 and currentWaypointIndex < #waypoints then
+
+					-- Skip to the next waypoint if it's too close
+					if
+						distanceToWaypoint < MIN_WAYPOINT_DISTANCE
+						and currentWaypointIndex < #waypoints
+					then
 						currentWaypointIndex += 1
 					end
 
+					-- Move the humanoid to the current waypoint
 					humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
 
 					-- Handle jumping if the waypoint requires it
@@ -343,17 +357,14 @@ local function pathfindChase(zombieData, id)
 						humanoid.Jump = true
 					end
 				else
-					-- No waypoints, move directly to the target position as a fallback
-					humanoid:MoveTo(targetPosition)
+					-- No waypoints, move directly to the predicted target position as a fallback
+					humanoid:MoveTo(predictedPosition)
 				end
 
 				-- Check if the zombie is close enough to attack
-				local attackRange = 3
-				if not npc.PrimaryPart then
-					return
-				end
-				if (npc.PrimaryPart.Position - targetPosition).Magnitude <= attackRange then
+				if (npc.PrimaryPart.Position - predictedPosition).Magnitude <= ATTACK_RANGE then
 					if humanoid.Health > 0 then
+						-- Call the attack logic based on the zombie's attack type
 						attackTypes[zombieData.attackType or "basic"](zombieData, id)
 					end
 				end
@@ -368,8 +379,10 @@ local function pathfindChase(zombieData, id)
 			currentWaypointIndex += 1
 			humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
 		else
-			-- Recalculate the path if no waypoints remain
-			chase()
+			-- If no more waypoints are left, move directly to the target
+			if lastTargetPosition then
+				humanoid:MoveTo(lastTargetPosition)
+			end
 		end
 	end
 

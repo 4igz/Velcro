@@ -6,6 +6,7 @@ local SoundService = game:GetService("SoundService")
 local server = ServerStorage.server.modules
 local weaponServiceModules = server.weaponService
 
+local gameStateService = require(script.Parent.gameStateService)
 local levelService = require(ServerStorage.server.services.levelService)
 local moneyService = require(ServerStorage.server.services.moneyService)
 local playerDataService = require(script.Parent.playerDataService)
@@ -192,6 +193,7 @@ function weaponService.buyWeapon(player: Player, data: { weaponName: string, wea
 	if
 		profile.Data.Money >= cfg.price
 		and not table.find(profile.Data.ownedWeapons, data.weaponName)
+		and profile.Data.Level >= cfg.levelReq
 	then
 		profile.Data.Money -= cfg.price
 		table.insert(profile.Data.ownedWeapons, data.weaponName)
@@ -268,10 +270,13 @@ function weaponService.start()
 			-- 	shooter,
 			-- 	{ type = "xp", amtGain = cfg.xpDropped or 1, reason = "Killed Zombie" }
 			-- )
-			moneyService.addMoney(shooter, cfg.moneyDropped or 10)
+			local moneyDropped = cfg.moneyDropped
+					* (1 + (0.10 * gameStateService.getCurrentRound()))
+				or 10
+			moneyService.addMoney(shooter, moneyDropped)
 			zap.updateFeeds.Fire(
 				shooter,
-				{ type = "money", amtGain = cfg.moneyDropped or 10, reason = "Killed Zombie" }
+				{ type = "money", amtGain = moneyDropped, reason = "Killed Zombie" }
 			)
 			-- amounts are temporary
 		end

@@ -124,6 +124,13 @@ event showVoteUi = {
     data: string[]
 }
 
+event voteForMap = {
+    from: Client,
+    type: Reliable,
+    call: SingleAsync,
+    data: string
+}
+
 event attributeChangedEvent = {
 	from: Client,
 	type: Reliable,

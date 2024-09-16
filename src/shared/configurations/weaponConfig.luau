@@ -85,7 +85,7 @@ local settings: { [string]: Settings } = {
 		hitVisual = "highlight",
 		itemType = "gun",
 		fireCooldown = 0.2,
-		walkspeed = 18,
+		walkspeed = 16,
 		sounds = {
 			fire = "PistolFire",
 		},
@@ -99,7 +99,7 @@ local settings: { [string]: Settings } = {
 	},
 
 	["Jacket-3"] = {
-		damage = 16,
+		damage = 25,
 		headshotMultiplier = 1.5,
 		bullets = 8,
 		fireCooldown = 1.2,
@@ -127,7 +127,7 @@ local settings: { [string]: Settings } = {
 	},
 
 	["BNT-2"] = {
-		damage = 15,
+		damage = 35,
 		headshotMultiplier = 1.5,
 		bullets = 8,
 		fireCooldown = 0.8,
@@ -141,7 +141,7 @@ local settings: { [string]: Settings } = {
 	},
 
 	["Super90"] = {
-		damage = 25,
+		damage = 45,
 		headshotMultiplier = 1.5,
 		bullets = 8,
 		fireCooldown = 0.6,
@@ -171,7 +171,7 @@ local settings: { [string]: Settings } = {
 
 	-- SMGs
 	["SMG"] = {
-		damage = 5,
+		damage = 15,
 		headshotMultiplier = 1.5,
 		walkspeed = 16.5,
 		fireCooldown = 0.1,
@@ -179,40 +179,40 @@ local settings: { [string]: Settings } = {
 	},
 
 	["VC-S"] = {
-		damage = 6,
+		damage = 17,
 		headshotMultiplier = 1.5,
-		walkspeed = 16.5,
+		walkspeed = 17,
 		fireCooldown = 0.1,
 		itemType = "gun",
 	},
 
 	["PM12"] = {
-		damage = 6,
+		damage = 19,
 		headshotMultiplier = 1.5,
-		walkspeed = 16.5,
+		walkspeed = 18,
 		fireCooldown = 0.05,
 		itemType = "gun",
 	},
 
 	["VP70"] = {
-		damage = 7,
+		damage = 20,
 		headshotMultiplier = 1.5,
-		walkspeed = 17,
+		walkspeed = 18.5,
 		fireCooldown = 0.05,
 		itemType = "gun",
 	},
 
 	["AR57"] = {
-		damage = 10,
+		damage = 21,
 		headshotMultiplier = 1.5,
-		walkspeed = 19,
+		walkspeed = 19.5,
 		fireCooldown = 0.04,
 		itemType = "gun",
 	},
 
 	-- Snipers
 	["Moisin"] = {
-		damage = 20,
+		damage = 45,
 		headshotMultiplier = 2,
 		maxPierce = 12,
 		fireCooldown = 2.5,
@@ -223,7 +223,7 @@ local settings: { [string]: Settings } = {
 	},
 
 	["AWP"] = {
-		damage = 35,
+		damage = 70,
 		headshotMultiplier = 2,
 		maxPierce = 15,
 		fireCooldown = 2,
@@ -234,7 +234,7 @@ local settings: { [string]: Settings } = {
 	},
 
 	["BFG-5000"] = {
-		damage = 50,
+		damage = 100,
 		headshotMultiplier = 2,
 		maxPierce = 20,
 		fireCooldown = 1.5,
@@ -245,7 +245,7 @@ local settings: { [string]: Settings } = {
 	},
 
 	["Laserbadger"] = {
-		damage = 80,
+		damage = 150,
 		headshotMultiplier = 2,
 		maxPierce = 25,
 		fireCooldown = 0.8,
@@ -256,7 +256,7 @@ local settings: { [string]: Settings } = {
 	},
 }
 
--- Applies to things that are not guns, like grenade pickups
+-- Applies to tools that are not guns, like grenades
 local toolSettings: { [string]: Settings } = {
 	["Grenade"] = {
 		itemType = "equipment",

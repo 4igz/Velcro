@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
+local TweenService = game:GetService("TweenService")
 
 local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local gameStateService = require(script.Parent.gameStateService)
@@ -20,6 +21,8 @@ local defaultZombieConfig = zombieConfig.Zombie
 -- Table to keep track of all zombie components
 local zombieComponents = {}
 local queuedZombies = {}
+
+local zombieDeathTween = TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 --[[
 	- @param type: String identifier for the type of zombie to create
@@ -62,8 +65,11 @@ function zombieService.newZombie(type, cframe)
 	local i = table.find(zombieComponents, zombie)
 
 	local humanoid: Humanoid = zombieModel.Humanoid
-	humanoid.MaxHealth = cfg.health
-	humanoid.Health = cfg.health
+
+	-- zombie health increases per wave
+	humanoid.MaxHealth =
+		math.min(1000, cfg.health * (1 + (0.03 * gameStateService.getCurrentRound())))
+	humanoid.Health = humanoid.MaxHealth
 
 	humanoid.WalkSpeed = cfg.speed
 	local ai = zombieAi[cfg.aiType or "basic"]
@@ -87,6 +93,16 @@ function zombieService.newZombie(type, cframe)
 		task.delay(2, function()
 			zombieModel:Destroy()
 		end)
+
+		for _, des in zombieModel:GetDescendants() do
+			if des:IsA("ParticleEmitter") then
+				des.Rate = 0
+				des.Enabled = false
+			end
+			if des:IsA("BasePart") then
+				TweenService:Create(des, zombieDeathTween, { Transparency = 1 }):Play()
+			end
+		end
 		zap.updateUI.FireAll({
 			zombies = #zombieComponents + #queuedZombies,
 			gameActive = gameStateService.isRoundActive(),
@@ -193,7 +209,6 @@ function zombieService.spawnZombies(roundNum)
 						gameActive = true,
 					})
 				end
-				-- Introduce a slight delay between spawns to avoid overloading the system
 				task.wait()
 			end
 		end)

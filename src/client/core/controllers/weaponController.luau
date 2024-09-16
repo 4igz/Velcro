@@ -1,4 +1,5 @@
 local ContextActionService = game:GetService("ContextActionService")
+local GamePassService = game:GetService("GamePassService")
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,7 +17,9 @@ local React = require(packages.React)
 local ReactRoblox = require(packages.ReactRoblox)
 local contextActionServiceUtil = require(packages.contextActionServiceUtil)
 local loader = require(packages.loader)
+local monetizationUtil = require(ReplicatedStorage.shared.utilities.monetizationUtil)
 local playerUtil = require(shared.utilities.playerUtil)
+local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
 local util = require(shared.utilities.weaponUtil)
 local weaponConfig = require(shared.configurations.weaponConfig)
 local weaponSettings = require(shared.configurations.weaponConfig)
@@ -105,6 +108,9 @@ end
 
 -- Run with your weapon by pressing the sprint CAS key
 function casActions.run(_, state)
+	if true then
+		return
+	end
 	if state ~= Enum.UserInputState.Begin or reloading then
 		return
 	end
@@ -169,7 +175,14 @@ local function setupCharacter(character: Model)
 				return
 			end
 
-			humanoid.WalkSpeed = ws.walkspeed or 16
+			humanoid.WalkSpeed = (ws.walkspeed or 16)
+				* (
+					if monetizationUtil
+							.userOwnsGamepass(localPlayer.UserId, sharedInfo.Gamepasses["Extra Speed!"])
+							:expect()
+						then 1.5
+						else 1
+				)
 
 			-- Initialize weapon if not already
 			if not weapons[child] then
@@ -220,7 +233,6 @@ local function setupCharacter(character: Model)
 					anim:Stop()
 				end
 			end)
-			humanoid.WalkSpeed = 16
 			mouse.Icon = ""
 			expectingInput = false
 			currentWep = nil
@@ -339,7 +351,6 @@ function weaponController.start()
 			if (now - lastFire) > currentWs.fireCooldown then
 				lastFire = now
 				-- Player fired a shot, also make them idle again incase they were running.
-				hum.WalkSpeed = currentWs.walkspeed or 16
 				stopAllAndPlay("idle")
 
 				-- Cast a ray to the player's mouse from their head so they can't shoot

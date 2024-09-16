@@ -22,12 +22,12 @@ local function moneyFrame()
 		Size = UDim2.fromScale(1, 1),
 	}, {
 		frame = React.createElement("Frame", {
-			AnchorPoint = Vector2.new(1, 1),
+			AnchorPoint = Vector2.new(0, 0.5),
 			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 			BackgroundTransparency = 1,
 			BorderColor3 = Color3.fromRGB(0, 0, 0),
 			BorderSizePixel = 0,
-			Position = UDim2.new(1, -15, 1, -15),
+			Position = UDim2.new(0, 15, 0.85, 0),
 			Size = UDim2.fromScale(0.154, 0.0578),
 		}, {
 			button = React.createElement("TextButton", {
