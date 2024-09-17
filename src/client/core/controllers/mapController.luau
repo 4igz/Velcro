@@ -1,8 +1,11 @@
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local localPlayer = Players.LocalPlayer
+
 local zap = require(ReplicatedStorage.zap)
-local votingController = {}
+local mapController = {}
 
 local function setupVotingBoards(votingBoards)
 	for _, votingUi in votingBoards do
@@ -15,7 +18,26 @@ local function setupVotingBoards(votingBoards)
 	end
 end
 
-function votingController.start()
+function mapController.start()
+	----- Teleport to maps:
+	zap.tpToMap.SetCallback(function(mapName)
+		local map = workspace.MapContainer.MapContent[mapName]
+		map:WaitForChild("Floor")
+
+		local spawnRadius = 10
+
+		-- Generate random offset for the player spawn location
+		local randomOffsetX = math.random(-spawnRadius, spawnRadius)
+		local randomOffsetZ = math.random(-spawnRadius, spawnRadius)
+		local spawnLocation = map:WaitForChild("SpawnLocation")	
+
+		-- Create a new CFrame for the spawn location with the random offset
+		local randomSpawnPosition = spawnLocation.CFrame
+			* CFrame.new(randomOffsetX, 0, randomOffsetZ)
+		localPlayer.Character:PivotTo(randomSpawnPosition)
+	end)
+
+	----- Setup voting:
 	local numVotingBoards = workspace:GetAttribute("NumVotingBoards") or 4
 	local votingBoards = CollectionService:GetTagged("VotingBoard")
 
@@ -35,4 +57,4 @@ function votingController.start()
 	end
 end
 
-return votingController
+return mapController

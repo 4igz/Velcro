@@ -144,3 +144,10 @@ event attributeChangedEvent = {
         },
     }
 }
+
+event tpToMap = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+    data: string,
+}

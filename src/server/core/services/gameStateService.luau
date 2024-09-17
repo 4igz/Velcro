@@ -240,23 +240,14 @@ function gameStateService.startNewRound(mapName: string)
 
 	-- Define the area around the SpawnLocation where players can randomly spawn
 	local spawnLocation = loadedMap.SpawnLocation
-	local spawnRadius = 10 -- You can adjust this radius as needed to prevent overlap
 	for _, player in Players:GetPlayers() do
 		if not table.find(playersInMap, player) then
 			task.spawn(function()
-				local character = player.Character or player.CharacterAdded:Wait()
-
-				-- Generate random offset for the player spawn location
-				local randomOffsetX = math.random(-spawnRadius, spawnRadius)
-				local randomOffsetZ = math.random(-spawnRadius, spawnRadius)
-
-				-- Create a new CFrame for the spawn location with the random offset
-				local randomSpawnPosition = spawnLocation.CFrame
-					* CFrame.new(randomOffsetX, 0, randomOffsetZ)
-
-				player:RequestStreamAroundAsync(randomSpawnPosition.Position)
+				player:RequestStreamAroundAsync(spawnLocation.Position)
 				-- Move the player to the new randomized spawn location
-				character:PivotTo(randomSpawnPosition)
+				-- character:PivotTo(randomSpawnPosition)
+				-- We do this in order to make sure the client knows when to tp because the floor will have been streamed
+				zap.tpToMap.Fire(player, loadedMap.Name)
 				table.insert(playersInMap, player)
 			end)
 		end
