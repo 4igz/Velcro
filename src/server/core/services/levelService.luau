@@ -43,45 +43,33 @@ local function getLevel(xp)
 	end
 end
 
-local levelService = { client = {} }
+local levelService = {}
 
--- function levelService.levelFromExperience(xp, baseXp, growthRate)
--- 	-- Set default values if not provided
--- 	baseXp = baseXp or 100
--- 	growthRate = growthRate or 1.2
+function levelService.canRebirth(player: Player)
+	local playerProfile = playerDataService.getProfile(player)
+	local level = playerProfile.Data.Level
+	local rebirth = playerProfile.Data.Rebirth
 
--- 	if xp <= 0 then
--- 		return 1
--- 	end
-
--- 	-- Calculate the level using the logarithmic formula
--- 	local level = math.log(xp / baseXp + 1) / math.log(growthRate)
--- 	return math.floor(level)
--- end
-
--- function levelService.levelCost(level, base_xp, growth_rate)
--- 	-- Set default values if not provided
--- 	base_xp = base_xp or 100
--- 	growth_rate = growth_rate or 1.2
-
--- 	if level <= 1 then
--- 		return base_xp -- Base XP required for level 1
--- 	end
-
--- 	-- Calculate the total experience required for the given level
--- 	local xp = base_xp * math.pow(growth_rate, level - 1)
--- 	return math.floor(xp)
--- end
-
-function levelService.costLeftToNextLevel(experience: number): number
-	if experience - 1 == experience then -- math.huge
-		return 0
+	if level < 100 + rebirth * 100 then
+		return false
 	end
 
-	local currentLevel = getLevel(experience)
-	local experienceRequired = xpForLevel(currentLevel)
+	return true
+end
 
-	return experienceRequired - experience
+function levelService.rebirth(player: Player)
+	local playerProfile = playerDataService.getProfile(player)
+	playerProfile.Data.Level = 1
+	playerProfile.Data.Experience = 0
+	playerProfile.Data.Rebirth += 1 -- Increment rebirth count
+
+	zap.updateLevelUi.Fire(player, {
+		level = 1,
+		xp = 0,
+		xpMax = xpForLevel(2),
+	})
+
+	playerDataService.setProfile(player, playerProfile)
 end
 
 function levelService.addExperience(player: Player, amt: number)

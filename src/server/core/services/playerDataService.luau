@@ -32,6 +32,7 @@ playerDataService.ProfileTemplate = {
 	Experience = 0,
 	Level = 1,
 	Kills = 0,
+	Rebirth = 0,
 
 	-- State
 	gun = "Starter Pistol",

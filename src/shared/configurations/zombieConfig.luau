@@ -154,9 +154,15 @@ local zombieSpecials = {
 
 		-- Set initial transparency
 		local function setTransparency(parent, transparency)
-			for _, v in parent:GetChildren() do
+			for _, v in parent:GetDescendants() do
 				if v:IsA("BasePart") then
 					v.Transparency = transparency
+				elseif v:IsA("ParticleEmitter") then
+					if transparency < 1 then
+						v.Enabled = true
+					else
+						v.Enabled = false
+					end
 				end
 			end
 		end
@@ -166,9 +172,10 @@ local zombieSpecials = {
 		-- Phase in and out of invisibility every 4 seconds
 		while npc.Parent do
 			setTransparency(npc, 0.8)
-			task.wait(4)
+			task.wait(3)
+			-- now make vfx invisible too
 			setTransparency(npc, 1) -- Fully invisible
-			task.wait(4)
+			task.wait(2)
 		end
 	end,
 
@@ -229,70 +236,64 @@ local zombieSpecials = {
 }
 
 local function pathfindChase(zombieData, id)
-	local npc = zombieData.model -- NPC model
+	local npc = zombieData.model
 	local humanoid: Humanoid = npc:FindFirstChild("Humanoid")
 
-	-- Ensure the humanoid exists
 	if not humanoid then
 		warn("Zombie has no humanoid")
 		return
 	end
 
-	-- Ensure PrimaryPart is set, wait if necessary
+	-- Ensure PrimaryPart is set
 	if not npc.PrimaryPart then
 		local rootPart = npc:FindFirstChild("HumanoidRootPart")
 			or npc:FindFirstChildWhichIsA("BasePart")
 		if rootPart then
-			npc.PrimaryPart = rootPart -- Set PrimaryPart to the root part or any available base part
+			npc.PrimaryPart = rootPart
 		else
 			warn("Zombie has no valid PrimaryPart or HumanoidRootPart")
 			return
 		end
 	end
 
-	-- Activate zombie special abilities
+	-- Trigger zombie's special abilities if any
 	if zombieData.specialAbility then
 		task.spawn(zombieSpecials[zombieData.specialAbility], zombieData, id)
 	end
 
-	-- Create the pathfinding object
 	local path = PathfindingService:CreatePath({
 		AgentRadius = 2.25,
-		AgentHeight = 5.5,
+		AgentHeight = 5,
 		AgentCanJump = true,
-		AgentJumpHeight = 30,
+		AgentJumpHeight = 7.2,
 		AgentCanClimb = true,
-		AgentMaxSlope = 80,
+		AgentMaxSlope = 89,
 	})
 
 	local lastTargetPosition = nil
-	local currentWaypointIndex = 0 -- Recalculate path if target moved significantly or every 2 seconds
+	local currentWaypointIndex = 0
 	local waypoints = {}
 
-	-- Debounce to prevent excessive pathfinding calculations
-	local recalculationCooldown = 1.5 -- Increased cooldown to reduce frequent recalculation
-	local randomJumpCooldown = math.random(2, 5) -- Initial random cooldown for jumping between 2 and 5 seconds
-	local lastJumpTime = 0 -- Track when the zombie last jumped
-	local lastPathCalculation = 0 -- Track last path calculation time
-	local lastLineOfSightCheck = 0 -- Debounce for line of sight checks
-	local lineOfSightCheckInterval = 0.25 -- Throttle line of sight checks
-	local PREDICTION_TIME_FACTOR = if zombieData.prediction then 1 else 0 -- Adjust how far into the future to predict
-	local ATTACK_RANGE = 3 -- The range within which the zombie can attack
+	local recalculationCooldown = 1.5
+	local randomJumpCooldown = math.random(1, 3)
+	local lastJumpTime = 0
+	local lastPathCalculation = 0
+	local lastLineOfSightCheck = 0
+	local lineOfSightCheckInterval = 0.25
+	local PREDICTION_TIME_FACTOR = zombieData.prediction and 1 or 0
+	local ATTACK_RANGE = 3
 
 	local function hasLineOfSight(target, targetPosition)
-		-- Cast a ray from the zombie's position to the target position to check for line of sight
 		local ray = Ray.new(
 			npc.PrimaryPart.Position,
 			(targetPosition - npc.PrimaryPart.Position).Unit * 500
 		)
 		local hitPart = workspace:FindPartOnRay(ray, npc)
-
-		-- If the ray hits nothing or the hit part is part of the target, the zombie has line of sight
 		return not hitPart or hitPart:IsDescendantOf(target.Character)
 	end
 
 	local function waypointsContainJumps()
-		for _, waypoint in waypoints do
+		for _, waypoint in ipairs(waypoints) do
 			if waypoint.Action == Enum.PathWaypointAction.Jump then
 				return true
 			end
@@ -300,131 +301,111 @@ local function pathfindChase(zombieData, id)
 		return false
 	end
 
+	local function moveToTarget(predictedPosition)
+		humanoid:MoveTo(predictedPosition)
+		if (tick() - lastJumpTime) >= randomJumpCooldown then
+			humanoid.Jump = true
+			lastJumpTime = tick()
+			randomJumpCooldown = math.random(1, 3)
+		end
+	end
+
+	local function computePath(predictedPosition)
+		local success, errorMessage = pcall(function()
+			path:ComputeAsync(npc.PrimaryPart.Position, predictedPosition)
+		end)
+
+		if success and path.Status == Enum.PathStatus.Success then
+			waypoints = path:GetWaypoints()
+			currentWaypointIndex = #waypoints >= 3 and 3 or #waypoints
+			return true
+		elseif path.Status == Enum.PathStatus.NoPath then
+			moveToTarget(predictedPosition)
+			return false
+		else
+			warn("Pathfinding error: " .. errorMessage)
+			return false
+		end
+	end
+
+	local function handleWaypoints(predictedPosition)
+		local MIN_WAYPOINT_DISTANCE = 5
+
+		if #waypoints > 0 and currentWaypointIndex <= #waypoints then
+			local waypoint = waypoints[currentWaypointIndex]
+			if not npc.PrimaryPart then
+				return
+			end
+			local distanceToWaypoint = (npc.PrimaryPart.Position - waypoint.Position).Magnitude
+
+			if distanceToWaypoint < MIN_WAYPOINT_DISTANCE and currentWaypointIndex < #waypoints then
+				currentWaypointIndex += 1
+			end
+
+			humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
+			if waypoint.Action == Enum.PathWaypointAction.Jump then
+				humanoid.Jump = true
+			end
+		else
+			moveToTarget(predictedPosition)
+		end
+	end
+
 	local function chase()
 		if not npc or not npc.Parent or not npc.PrimaryPart then
 			return
 		end
 
-		-- Find the closest target to the zombie
 		local target = findClosestTarget(npc.PrimaryPart.Position)
-		if target then
-			local targetChar = target.Character
-			if targetChar and targetChar.PrimaryPart then
-				local targetPosition = targetChar.PrimaryPart.Position
-				local targetVelocity = targetChar.PrimaryPart.AssemblyLinearVelocity
+		if not target or not target.Character or not target.Character.PrimaryPart then
+			return
+		end
 
-				-- Predict the future position of the target
-				local predictedPosition = targetPosition + (targetVelocity * PREDICTION_TIME_FACTOR)
+		local targetPosition = target.Character.PrimaryPart.Position
+		local targetVelocity = target.Character.PrimaryPart.AssemblyLinearVelocity
+		local predictedPosition = targetPosition + (targetVelocity * PREDICTION_TIME_FACTOR)
 
-				if not lastTargetPosition then
-					lastTargetPosition = predictedPosition
+		if not lastTargetPosition then
+			lastTargetPosition = predictedPosition
+		end
+
+		if (tick() - lastLineOfSightCheck) >= lineOfSightCheckInterval then
+			lastLineOfSightCheck = tick()
+
+			if hasLineOfSight(target, predictedPosition) and not waypointsContainJumps() then
+				humanoid:MoveTo(predictedPosition)
+			else
+				if
+					(tick() - lastPathCalculation) >= recalculationCooldown
+					or (predictedPosition - lastTargetPosition).Magnitude > 7
+				then
+					lastPathCalculation = tick()
+					computePath(predictedPosition)
 				end
 
-				-- Throttle line-of-sight checks
-				if (tick() - lastLineOfSightCheck) >= lineOfSightCheckInterval then
-					lastLineOfSightCheck = tick()
+				handleWaypoints(predictedPosition)
+			end
+		end
 
-					if
-						hasLineOfSight(target, predictedPosition) and not waypointsContainJumps()
-					then
-						humanoid:MoveTo(predictedPosition)
-					else
-						if
-							(tick() - lastPathCalculation) >= recalculationCooldown
-							or (predictedPosition - lastTargetPosition).Magnitude > 7
-						then
-							lastPathCalculation = tick()
-
-							local success, errorMessage = pcall(function()
-								path:ComputeAsync(npc.PrimaryPart.Position, predictedPosition)
-							end)
-
-							if success then
-								if path.Status == Enum.PathStatus.Success then
-									-- If pathfinding is successful, get waypoints and continue
-									waypoints = path:GetWaypoints()
-									lastTargetPosition = predictedPosition
-									currentWaypointIndex = #waypoints >= 3 and 3 or #waypoints
-								elseif path.Status == Enum.PathStatus.NoPath then
-									-- Handle NoPath scenario by moving directly towards the position
-									humanoid:MoveTo(predictedPosition)
-									lastTargetPosition = predictedPosition
-									if (tick() - lastJumpTime) >= randomJumpCooldown then
-										humanoid.Jump = true
-										lastJumpTime = tick()
-										randomJumpCooldown = math.random(2, 5)
-									end
-									return
-								end
-							else
-								-- Pathfinding error
-								warn("Pathfinding error: " .. errorMessage)
-								return
-							end
-						end
-
-						-- Waypoint processing logic with increased minimum distance
-						local MIN_WAYPOINT_DISTANCE = 5
-
-						if #waypoints > 0 and currentWaypointIndex <= #waypoints then
-							local waypoint = waypoints[currentWaypointIndex]
-
-							-- If close to current waypoint, move to the next one
-							if not npc.PrimaryPart then
-								return
-							end
-							local distanceToWaypoint = (
-								npc.PrimaryPart.Position - waypoint.Position
-							).Magnitude
-
-							-- Skip to the next waypoint if it's too close
-							if
-								distanceToWaypoint < MIN_WAYPOINT_DISTANCE
-								and currentWaypointIndex < #waypoints
-							then
-								currentWaypointIndex += 1
-							end
-
-							-- Move the humanoid to the current waypoint
-							humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
-
-							-- Handle jumping if the waypoint requires it
-							if waypoint.Action == Enum.PathWaypointAction.Jump then
-								humanoid.Jump = true
-							end
-						else
-							-- No waypoints, move directly to the predicted target position as a fallback
-							humanoid:MoveTo(predictedPosition)
-						end
-					end
-				end
-
-				-- Check if the zombie is close enough to attack
-				if (npc.PrimaryPart.Position - predictedPosition).Magnitude <= ATTACK_RANGE then
-					if humanoid.Health > 0 then
-						-- Call the attack logic based on the zombie's attack type
-						attackTypes[zombieData.attackType or "basic"](zombieData, id)
-					end
-				end
+		if not npc.PrimaryPart then
+			return
+		end
+		if (npc.PrimaryPart.Position - predictedPosition).Magnitude <= ATTACK_RANGE then
+			if humanoid.Health > 0 then
+				attackTypes[zombieData.attackType or "basic"](zombieData, id)
 			end
 		end
 	end
 
-	-- Function to handle MoveToFinished
 	local function onMoveToFinished(reached)
-		-- Smooth transition: Move to the next waypoint without stopping
 		if currentWaypointIndex > 0 and currentWaypointIndex < #waypoints then
 			currentWaypointIndex += 1
 			humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
-		else
-			-- If no more waypoints are left, move directly to the target
-			if lastTargetPosition then
-				humanoid:MoveTo(lastTargetPosition)
-			end
+		elseif lastTargetPosition then
+			humanoid:MoveTo(lastTargetPosition)
 		end
 	end
 
-	-- Use Stepped for regular pathfinding checks
 	local steppedConnection
 	steppedConnection = RunService.Stepped:Connect(function()
 		if not npc or not npc.Parent then

@@ -14,6 +14,7 @@ local MAP_IMAGES = {
 	Harbor = "rbxassetid://134415720948116",
 	Depot = "rbxassetid://72699928748098",
 	Bricktops = "rbxassetid://111608068909443",
+	Pitlord = "rbxassetid://115671548050760",
 }
 
 local START_ROUND_TIME = 120 -- Total time for each round (e.g., 120 seconds)
