@@ -11,9 +11,16 @@ local function setupVotingBoards(votingBoards)
 	for _, votingUi in votingBoards do
 		local bg = votingUi:WaitForChild("BG")
 		local vote: TextButton = bg:WaitForChild("Vote")
+		local votingPad: Part = votingUi:WaitForChild("Pad")
 
 		vote.MouseButton1Click:Connect(function()
 			zap.voteForMap.Fire(votingUi:GetAttribute("map"))
+		end)
+
+		votingPad.Touched:Connect(function(touched)
+			if touched.Parent == localPlayer.Character then
+				zap.voteForMap.Fire(votingUi:GetAttribute("map"))
+			end
 		end)
 	end
 end
@@ -29,7 +36,7 @@ function mapController.start()
 		-- Generate random offset for the player spawn location
 		local randomOffsetX = math.random(-spawnRadius, spawnRadius)
 		local randomOffsetZ = math.random(-spawnRadius, spawnRadius)
-		local spawnLocation = map:WaitForChild("SpawnLocation")	
+		local spawnLocation = map:WaitForChild("SpawnLocation")
 
 		-- Create a new CFrame for the spawn location with the random offset
 		local randomSpawnPosition = spawnLocation.CFrame

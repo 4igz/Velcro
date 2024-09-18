@@ -13,6 +13,7 @@ local MAP_IMAGES = {
 	Spaceship = "rbxassetid://109905657060517",
 	Harbor = "rbxassetid://134415720948116",
 	Depot = "rbxassetid://72699928748098",
+	Bricktops = "rbxassetid://111608068909443",
 }
 
 local START_ROUND_TIME = 120 -- Total time for each round (e.g., 120 seconds)
@@ -29,6 +30,7 @@ local mapFolder = ServerStorage.Maps
 local workspaceMapContent = workspace.MapContainer.MapContent
 
 local mapVotes = {} -- Table to track map votes
+local playerVotes = {} -- Track which map each player has voted for
 local playersInMap = {}
 
 local availableMaps = mapFolder:GetChildren()
@@ -152,7 +154,7 @@ function gameStateService.startIntermission()
 		votingUi:SetAttribute("map", selectedMap)
 
 		local bg = votingUi.BG
-		bg.MapName.Text = selectedMap
+		bg.MapName.Text = `{string.upper(selectedMap)} - {mapVotes[selectedMap] or 0}`
 		bg.BG.Image = MAP_IMAGES[selectedMap]
 	end
 end
@@ -181,14 +183,36 @@ function gameStateService.voteForMap(player, mapName)
 		return -- Invalid map vote
 	end
 
-	-- Record player's vote
+	-- Check if the player has already voted for a map
+	local previousVote = playerVotes[player.UserId]
+
+	-- If the player has voted before, remove the old vote
+	if previousVote then
+		mapVotes[previousVote] = mapVotes[previousVote] - 1
+		-- Ensure vote count doesn't go negative
+		if mapVotes[previousVote] < 0 then
+			mapVotes[previousVote] = 0
+		end
+	end
+
+	-- Record the new vote
+	playerVotes[player.UserId] = mapName
 	mapVotes[mapName] = (mapVotes[mapName] or 0) + 1
+
+	-- Update voting boards
+	for i, votingUi in CollectionService:GetTagged("VotingBoard") do
+		local name = votingUi:GetAttribute("map")
+
+		local bg = votingUi.BG
+		bg.MapName.Text = `{string.upper(name)} - {mapVotes[name] or 0}`
+	end
 end
 
 -- Get the map with the most votes
 function gameStateService.getMapWithMostVotes()
 	local highestVotes = 0
 	local selectedMap = availableMaps[1] -- Default to the first map if no votes
+	table.clear(playerVotes)
 
 	for mapName, votes in mapVotes do
 		if votes > highestVotes then

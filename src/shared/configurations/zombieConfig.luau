@@ -270,11 +270,13 @@ local function pathfindChase(zombieData, id)
 	local waypoints = {}
 
 	-- Debounce to prevent excessive pathfinding calculations
-	local recalculationCooldown = 0.75 -- Slightly increased cooldown to prevent rapid recalculation
+	local recalculationCooldown = 1.5 -- Increased cooldown to reduce frequent recalculation
 	local randomJumpCooldown = math.random(2, 5) -- Initial random cooldown for jumping between 2 and 5 seconds
 	local lastJumpTime = 0 -- Track when the zombie last jumped
 	local lastPathCalculation = 0 -- Track last path calculation time
-	local PREDICTION_TIME_FACTOR = 1 -- Adjust how far into the future to predict
+	local lastLineOfSightCheck = 0 -- Debounce for line of sight checks
+	local lineOfSightCheckInterval = 0.25 -- Throttle line of sight checks
+	local PREDICTION_TIME_FACTOR = if zombieData.prediction then 1 else 0 -- Adjust how far into the future to predict
 	local ATTACK_RANGE = 3 -- The range within which the zombie can attack
 
 	local function hasLineOfSight(target, targetPosition)
@@ -290,7 +292,7 @@ local function pathfindChase(zombieData, id)
 	end
 
 	local function waypointsContainJumps()
-		for _, waypoint in ipairs(waypoints) do
+		for _, waypoint in waypoints do
 			if waypoint.Action == Enum.PathWaypointAction.Jump then
 				return true
 			end
@@ -299,7 +301,6 @@ local function pathfindChase(zombieData, id)
 	end
 
 	local function chase()
-		-- Ensure NPC and its PrimaryPart are valid
 		if not npc or not npc.Parent or not npc.PrimaryPart then
 			return
 		end
@@ -308,7 +309,6 @@ local function pathfindChase(zombieData, id)
 		local target = findClosestTarget(npc.PrimaryPart.Position)
 		if target then
 			local targetChar = target.Character
-			-- Ensure target character and PrimaryPart are valid
 			if targetChar and targetChar.PrimaryPart then
 				local targetPosition = targetChar.PrimaryPart.Position
 				local targetVelocity = targetChar.PrimaryPart.AssemblyLinearVelocity
@@ -320,79 +320,82 @@ local function pathfindChase(zombieData, id)
 					lastTargetPosition = predictedPosition
 				end
 
-				-- Check if the zombie has line of sight and no waypoints contain jumps
-				if hasLineOfSight(target, predictedPosition) and not waypointsContainJumps() then
-					-- Move directly towards the player
-					humanoid:MoveTo(predictedPosition)
-				else
-					-- Regular pathfinding behavior
+				-- Throttle line-of-sight checks
+				if (tick() - lastLineOfSightCheck) >= lineOfSightCheckInterval then
+					lastLineOfSightCheck = tick()
+
 					if
-						(tick() - lastPathCalculation) >= recalculationCooldown
-						or (predictedPosition - lastTargetPosition).Magnitude > 7 -- Increased magnitude for recalculation
+						hasLineOfSight(target, predictedPosition) and not waypointsContainJumps()
 					then
-						lastPathCalculation = tick() -- Update the last calculation time
+						humanoid:MoveTo(predictedPosition)
+					else
+						if
+							(tick() - lastPathCalculation) >= recalculationCooldown
+							or (predictedPosition - lastTargetPosition).Magnitude > 7
+						then
+							lastPathCalculation = tick()
 
-						local success, errorMessage = pcall(function()
-							path:ComputeAsync(npc.PrimaryPart.Position, predictedPosition)
-						end)
+							local success, errorMessage = pcall(function()
+								path:ComputeAsync(npc.PrimaryPart.Position, predictedPosition)
+							end)
 
-						if success then
-							if path.Status == Enum.PathStatus.Success then
-								-- If pathfinding is successful, get waypoints and continue
-								waypoints = path:GetWaypoints()
-								lastTargetPosition = predictedPosition
-								currentWaypointIndex = #waypoints >= 3 and 3 or #waypoints
-							elseif path.Status == Enum.PathStatus.NoPath then
-								-- Handle NoPath scenario by moving directly towards the predicted position
-								humanoid:MoveTo(predictedPosition)
-								humanoid.Jump = true
-								lastTargetPosition = predictedPosition
-								if (tick() - lastJumpTime) >= randomJumpCooldown then
-									humanoid.Jump = true -- Make the zombie jump
-									lastJumpTime = tick() -- Update the last jump time
-									randomJumpCooldown = math.random(2, 5) -- Reset the cooldown to a new random value
+							if success then
+								if path.Status == Enum.PathStatus.Success then
+									-- If pathfinding is successful, get waypoints and continue
+									waypoints = path:GetWaypoints()
+									lastTargetPosition = predictedPosition
+									currentWaypointIndex = #waypoints >= 3 and 3 or #waypoints
+								elseif path.Status == Enum.PathStatus.NoPath then
+									-- Handle NoPath scenario by moving directly towards the position
+									humanoid:MoveTo(predictedPosition)
+									lastTargetPosition = predictedPosition
+									if (tick() - lastJumpTime) >= randomJumpCooldown then
+										humanoid.Jump = true
+										lastJumpTime = tick()
+										randomJumpCooldown = math.random(2, 5)
+									end
+									return
 								end
+							else
+								-- Pathfinding error
+								warn("Pathfinding error: " .. errorMessage)
 								return
 							end
+						end
+
+						-- Waypoint processing logic with increased minimum distance
+						local MIN_WAYPOINT_DISTANCE = 5
+
+						if #waypoints > 0 and currentWaypointIndex <= #waypoints then
+							local waypoint = waypoints[currentWaypointIndex]
+
+							-- If close to current waypoint, move to the next one
+							if not npc.PrimaryPart then
+								return
+							end
+							local distanceToWaypoint = (
+								npc.PrimaryPart.Position - waypoint.Position
+							).Magnitude
+
+							-- Skip to the next waypoint if it's too close
+							if
+								distanceToWaypoint < MIN_WAYPOINT_DISTANCE
+								and currentWaypointIndex < #waypoints
+							then
+								currentWaypointIndex += 1
+							end
+
+							-- Move the humanoid to the current waypoint
+							humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
+
+							-- Handle jumping if the waypoint requires it
+							if waypoint.Action == Enum.PathWaypointAction.Jump then
+								humanoid.Jump = true
+							end
 						else
-							-- Pathfinding error
-							warn("Pathfinding error: " .. errorMessage)
-							return
+							-- No waypoints, move directly to the predicted target position as a fallback
+							humanoid:MoveTo(predictedPosition)
 						end
-					end
-
-					-- Waypoint processing logic with minimum distance
-					local MIN_WAYPOINT_DISTANCE = 2 -- Minimum distance between waypoints
-
-					-- Inside chase() function after checking if there are waypoints
-					if #waypoints > 0 and currentWaypointIndex <= #waypoints then
-						local waypoint = waypoints[currentWaypointIndex]
-
-						-- If close to current waypoint, move to the next one
-						if not npc.PrimaryPart then
-							return
-						end
-						local distanceToWaypoint = (npc.PrimaryPart.Position - waypoint.Position).Magnitude
-
-						-- Skip to the next waypoint if it's too close
-						if
-							distanceToWaypoint < MIN_WAYPOINT_DISTANCE
-							and currentWaypointIndex < #waypoints
-						then
-							currentWaypointIndex += 1
-						end
-
-						-- Move the humanoid to the current waypoint
-						humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
-
-						-- Handle jumping if the waypoint requires it
-						if waypoint.Action == Enum.PathWaypointAction.Jump then
-							humanoid.Jump = true
-						end
-					else
-						-- No waypoints, move directly to the predicted target position as a fallback
-						lastTargetPosition = predictedPosition
-						humanoid:MoveTo(predictedPosition)
 					end
 				end
 
@@ -483,6 +486,7 @@ local M = {
 			xpDropped = 20,
 			moneyDropped = 9,
 			specialAbility = "lightning",
+			prediction = true,
 		},
 
 		["Spectre"] = {
@@ -493,6 +497,7 @@ local M = {
 			xpDropped = 15,
 			moneyDropped = 9,
 			specialAbility = "spectre",
+			prediction = true,
 		},
 
 		-- ["Mini"] = {
@@ -512,6 +517,7 @@ local M = {
 			xpDropped = 18,
 			moneyDropped = 12,
 			attackType = "fire",
+			prediction = true,
 		},
 
 		["Flame Zombie"] = {
@@ -540,6 +546,7 @@ local M = {
 			beginSpawningRound = 5,
 			xpDropped = 10,
 			moneyDropped = 10,
+			prediction = true,
 		},
 	},
 	{
