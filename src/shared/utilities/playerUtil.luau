@@ -53,4 +53,12 @@ function playerUtil.getHumanoidDescriptionFromUserId(userId: number)
 	return playerDescription
 end
 
+function playerUtil.avatarImage(
+	userId: number,
+	size: Enum.ThumbnailSize,
+	format: Enum.ThumbnailType
+)
+	return Players:GetUserThumbnailAsync(userId, format, size)
+end
+
 return table.freeze(playerUtil)

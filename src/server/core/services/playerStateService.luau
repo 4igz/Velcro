@@ -59,7 +59,10 @@ function playerStateService.start()
 	end)
 end
 
-function playerStateService.updateLeaderstats(player, profile)
+function playerStateService.updateLeaderstats(player, profileData)
+	if not profileData then
+		return
+	end
 	-- Check if leaderstats folder already exists
 	local leaderstats = player:FindFirstChild("leaderstats")
 	if not leaderstats then
@@ -75,7 +78,7 @@ function playerStateService.updateLeaderstats(player, profile)
 	local playerState = playerStateService.getPlayerState(player)
 
 	for fieldName, value in playerState.Leaderboard do
-		leaderboardFields[fieldName] = profile[fieldName]
+		leaderboardFields[fieldName] = profileData[fieldName]
 	end
 
 	-- Update each stat in the leaderboard data

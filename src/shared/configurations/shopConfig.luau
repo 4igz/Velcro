@@ -6,102 +6,101 @@ export type ShopConfig = {
 }
 
 return {
-	gun = {
-		["Starter Pistol"] = {
-			price = 0,
-			levelReq = 0,
-			description = "Level: 0\nOld Reliable",
-			order = 0,
-		},
-
-		-- 1st set of weapons
+	shotgun = {
 		["Jacket-3"] = {
 			price = 5000,
 			levelReq = 20,
-			description = "Level: 20\nThe starting shotgun. Perfect for quick burst of damage into crowds!",
+			description = "<b>Level: 20</b>\nThe starting shotgun. Perfect for quick burst of damage into crowds!",
 			order = 1,
 		},
+		["Super90"] = {
+			price = 50000,
+			levelReq = 100,
+			description = "<b>Level: 100</b>\nI thought those zombies were hard. Well not anymore...",
+			order = 13,
+		},
+	},
+	smg = {
 		["SMG"] = {
 			price = 5000,
 			levelReq = 20,
-			description = "Level: 20\nYour classic high firerate arsenal. Let them eat lead!",
+			description = "<b>Level: 20</b>\nYour classic high firerate arsenal. Let them eat lead!",
 			order = 2,
 		},
-		["Moisin"] = {
-			price = 5000,
-			levelReq = 20,
-			description = "Level: 20\nHigh damage, slow firerate. But why stick to shooting only 1 zombie?",
-			order = 3,
-		},
-		-- ["Sawed-Off Shotgun"] = {
-		-- 	price = 5000,
-		-- 	levelReq = 20,
-		-- 	description = "Level: 20\nThe Swiss Army knife of the underworld",
-		-- 	order = 4,
-		-- },
-
-		-- 2nd set of weapons
 		["VC-S"] = {
 			price = 20000,
 			levelReq = 50,
-			description = "Level: 50\nThe better SMG",
+			description = "<b>Level: 50</b>\nThe better SMG",
 			order = 5,
+		},
+		["VP70"] = {
+			price = 30500,
+			levelReq = 70,
+			description = "<b>Level: 70</b>\nLIGHT EM UP BOYS",
+			order = 10,
+		},
+	},
+	rifle = {
+		["PM12"] = {
+			price = 27500,
+			levelReq = 60,
+			description = "<b>Level: 60</b>\nZombies? WHERE.",
+			order = 7,
+		},
+		["AR57"] = {
+			price = 50000,
+			levelReq = 100,
+			description = "<b>Level: 100</b>\nWHERE. ARE. THEY.",
+			order = 14,
+		},
+	},
+	sniper = {
+		["Moisin"] = {
+			price = 5000,
+			levelReq = 20,
+			description = "<b>Level: 20</b>\nHigh damage, slow firerate. But why stick to shooting only 1 zombie?",
+			order = 3,
 		},
 		["AWP"] = {
 			price = 20000,
 			levelReq = 50,
-			description = "Level: 50\nWhy be far and weak, when you can be close and strong.",
+			description = "<b>Level: 50</b>\nWhy be far and weak, when you can be close and strong.",
 			order = 6,
-		},
-		["PM12"] = {
-			price = 27500,
-			levelReq = 60,
-			description = "Level: 60\nZombies? WHERE.",
-			order = 7,
 		},
 		["BNT-2"] = {
 			price = 25000,
 			levelReq = 60,
-			description = "Level: 60\nZombies? WHERE.",
+			description = "<b>Level: 60</b>\nZombies? WHERE.",
 			order = 8,
 		},
 		["BFG-5000"] = {
 			price = 30500,
 			levelReq = 70,
-			description = "Level: 70\nYou're only a pile of flesh now..",
+			description = "<b>Level: 70</b>\nYou're only a pile of flesh now..",
 			order = 9,
-		},
-		["VP70"] = {
-			price = 30500,
-			levelReq = 70,
-			description = "Level: 70\nLIGHT EM UP BOYS",
-			order = 10,
-		},
-		["Deagle"] = {
-			price = 50000,
-			levelReq = 100,
-			description = "Level: 100\nNuh uh",
-			order = 11,
 		},
 		["Laserbadger"] = {
 			price = 50000,
 			levelReq = 100,
-			description = "Level: 100\nPew pew said the gun",
+			description = "<b>Level: 100</b>\nPew pew said the gun",
 			order = 12,
 		},
-		["Super90"] = {
-			price = 50000,
-			levelReq = 100,
-			description = "Level: 100\nI thought those zombies were hard. Well not anymore...",
-			order = 13,
+	},
+	pistol = {
+		["Starter Pistol"] = {
+			price = 0,
+			levelReq = 0,
+			description = "<b>Level: 0</b>\nOld Reliable",
+			order = 0,
 		},
-		["AR57"] = {
+		["Deagle"] = {
 			price = 50000,
 			levelReq = 100,
-			description = "Level: 100\nWHERE. ARE. THEY.",
-			order = 14,
+			description = "<b>Level: 100</b>\nNuh uh",
+			order = 11,
 		},
 	},
+
 	melee = {
 		["Katana"] = {
 			price = 1000,

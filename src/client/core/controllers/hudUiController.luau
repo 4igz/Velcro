@@ -11,6 +11,10 @@ gui.Name = "HUD"
 
 local hudUiController = {}
 
+function hudUiController.setVisibility(value)
+	gui.Enabled = value
+end
+
 function hudUiController.start()
 	task.spawn(function()
 		-- Cache all gamepasses so gamepass ui opens immediately.
@@ -18,7 +22,9 @@ function hudUiController.start()
 			MarketplaceService:UserOwnsGamePassAsync(Players.LocalPlayer.UserId, id)
 		end
 	end)
-	hudUi(gui)
+	sharedInfo.UISignals.deployed:Once(function()
+		hudUi(gui)
+	end)
 end
 
 return hudUiController

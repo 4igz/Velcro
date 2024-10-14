@@ -33,6 +33,7 @@ local workspaceMapContent = workspace.MapContainer.MapContent
 local mapVotes = {} -- Table to track map votes
 local playerVotes = {} -- Track which map each player has voted for
 local playersInMap = {}
+local playing = {} -- Players that have deployed and are playing
 
 local availableMaps = mapFolder:GetChildren()
 
@@ -64,10 +65,13 @@ function gameStateService.reduceRoundTime(deltaTime)
 	end
 	return false
 end
+
 -- Reduce the intermission time and check for timeout
 function gameStateService.reduceIntermissionTime(deltaTime)
 	if intermissionActive then
-		intermissionTime -= deltaTime
+		if #playing > 0 then
+			intermissionTime -= deltaTime
+		end
 
 		if intermissionTime <= 0 and intermissionActive then
 			gameStateService.endIntermission()
@@ -266,7 +270,7 @@ function gameStateService.startNewRound(mapName: string)
 	-- Define the area around the SpawnLocation where players can randomly spawn
 	local spawnLocation = loadedMap.SpawnLocation
 	for _, player in Players:GetPlayers() do
-		if not table.find(playersInMap, player) then
+		if not table.find(playersInMap, player) and table.find(playing, player) then
 			task.spawn(function()
 				player:RequestStreamAroundAsync(spawnLocation.Position)
 				-- Move the player to the new randomized spawn location
@@ -294,8 +298,19 @@ end
 function gameStateService.start()
 	gameStateService.startIntermission()
 
+	-- When a player joins the game they are shown a main menu and are not technically in the game yet
+	-- until they hit the deploy button. Once they do so they are able to join the game and play.
+	zap.deployed.SetCallback(function(player)
+		if not table.find(playing, player) then
+			table.insert(playing, player)
+		end
+		zap.updateUI.FireAll({
+			timeLeft = gameStateService.isRoundActive() and roundTime or intermissionTime,
+		})
+	end)
+
 	zap.voteForMap.SetCallback(function(player, mapName)
-		if intermissionActive then
+		if intermissionActive and table.find(playing, player) then
 			gameStateService.voteForMap(player, mapName)
 		end
 	end)
@@ -304,7 +319,7 @@ function gameStateService.start()
 		player.CharacterAdded:Connect(function(character)
 			local humanoid = character:WaitForChild("Humanoid")
 			humanoid.Died:Connect(function()
-				if not roundActive then
+				if not roundActive or not table.find(playing, player) then
 					return
 				end
 
@@ -327,6 +342,10 @@ function gameStateService.start()
 	Players.PlayerRemoving:Connect(function(player)
 		if table.find(playersInMap, player) then
 			table.remove(playersInMap, table.find(playersInMap, player))
+		end
+
+		if table.find(playing, player) then
+			table.remove(playing, table.find(playing, player))
 		end
 
 		-- Check if any players are still in the map

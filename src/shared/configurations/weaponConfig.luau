@@ -78,34 +78,35 @@ local Signal = require(sharedPackages.Signal)
 
 local settings: { [string]: Settings } = {
 	["Starter Pistol"] = {
-		damage = 20,
+		damage = 28,
 		headshotMultiplier = 1.5,
 		bulletType = "raycast",
 		hitType = "normal",
 		hitVisual = "highlight",
 		itemType = "gun",
 		fireCooldown = 0.2,
-		walkspeed = 16,
+		walkspeed = 18,
 		sounds = {
 			fire = "PistolFire",
 		},
 	},
 
 	["Katana"] = {
-		damage = 100,
+		damage = 140,
 		bulletType = "melee",
 		itemType = "melee",
 		walkspeed = 18,
 	},
 
 	["Jacket-3"] = {
-		damage = 25,
-		headshotMultiplier = 1.5,
+		damage = 42,
+		headshotMultiplier = 1.75,
 		bullets = 8,
-		fireCooldown = 1.2,
+		fireCooldown = 0.8,
 		minBulletSpreadAngle = 1,
 		maxBulletSpreadAngle = 5,
-		range = 30,
+		range = 40,
+		walkspeed = 17,
 		sounds = {
 			fire = "ShotgunFire",
 		},
@@ -113,13 +114,14 @@ local settings: { [string]: Settings } = {
 	},
 
 	["Sawed-Off Shotgun"] = {
-		damage = 20,
-		headshotMultiplier = 1.5,
+		damage = 42,
+		headshotMultiplier = 1.75,
 		bullets = 8,
-		fireCooldown = 1,
+		fireCooldown = 0.8,
 		minBulletSpreadAngle = 1,
 		maxBulletSpreadAngle = 5,
-		range = 20,
+		range = 40,
+		walkspeed = 17,
 		sounds = {
 			fire = "ShotgunFire",
 		},
@@ -127,13 +129,14 @@ local settings: { [string]: Settings } = {
 	},
 
 	["BNT-2"] = {
-		damage = 35,
-		headshotMultiplier = 1.5,
+		damage = 48,
+		headshotMultiplier = 1.75,
 		bullets = 8,
-		fireCooldown = 0.8,
+		fireCooldown = 0.6,
 		minBulletSpreadAngle = 1,
 		maxBulletSpreadAngle = 5,
-		range = 30,
+		range = 40,
+		walkspeed = 17,
 		sounds = {
 			fire = "ShotgunFire",
 		},
@@ -141,13 +144,14 @@ local settings: { [string]: Settings } = {
 	},
 
 	["Super90"] = {
-		damage = 45,
-		headshotMultiplier = 1.5,
+		damage = 65,
+		headshotMultiplier = 1.75,
 		bullets = 8,
 		fireCooldown = 0.6,
 		minBulletSpreadAngle = 1,
 		maxBulletSpreadAngle = 5,
 		range = 40,
+		walkspeed = 17,
 		sounds = {
 			fire = "ShotgunFire",
 		},
@@ -156,13 +160,12 @@ local settings: { [string]: Settings } = {
 
 	-- Pistols
 	["Deagle"] = {
-		damage = 80,
-		headshotMultiplier = 1.5,
-		headshotDamage = 120,
-		walkspeed = 22,
+		damage = 112,
+		headshotMultiplier = 2,
+		walkspeed = 18,
 		fireCooldown = 0.5,
-		maxPierce = 10,
-		attackDodgeChance = 0.1,
+		maxPierce = 3,
+		attackDodgeChance = 0.3,
 		sounds = {
 			fire = "PistolFire",
 		},
@@ -171,51 +174,51 @@ local settings: { [string]: Settings } = {
 
 	-- SMGs
 	["SMG"] = {
-		damage = 15,
+		damage = 21,
 		headshotMultiplier = 1.5,
-		walkspeed = 16.5,
+		walkspeed = 18,
 		fireCooldown = 0.1,
 		itemType = "gun",
 	},
 
 	["VC-S"] = {
-		damage = 17,
+		damage = 24,
 		headshotMultiplier = 1.5,
-		walkspeed = 17,
+		walkspeed = 18,
 		fireCooldown = 0.1,
 		itemType = "gun",
 	},
 
 	["PM12"] = {
-		damage = 19,
+		damage = 24,
 		headshotMultiplier = 1.5,
 		walkspeed = 18,
-		fireCooldown = 0.05,
+		fireCooldown = 0.08,
 		itemType = "gun",
 	},
 
 	["VP70"] = {
-		damage = 20,
+		damage = 26,
 		headshotMultiplier = 1.5,
-		walkspeed = 18.5,
-		fireCooldown = 0.05,
+		walkspeed = 18,
+		fireCooldown = 0.08,
 		itemType = "gun",
 	},
 
 	["AR57"] = {
-		damage = 21,
+		damage = 28,
 		headshotMultiplier = 1.5,
-		walkspeed = 19.5,
-		fireCooldown = 0.04,
+		walkspeed = 18,
+		fireCooldown = 0.06,
 		itemType = "gun",
 	},
 
 	-- Snipers
 	["Moisin"] = {
-		damage = 45,
+		damage = 210,
 		headshotMultiplier = 2,
-		maxPierce = 12,
-		fireCooldown = 2.5,
+		maxPierce = 4,
+		fireCooldown = 1.5,
 		itemType = "gun",
 		sounds = {
 			fire = "SniperFire",
@@ -223,9 +226,9 @@ local settings: { [string]: Settings } = {
 	},
 
 	["AWP"] = {
-		damage = 70,
+		damage = 266,
 		headshotMultiplier = 2,
-		maxPierce = 15,
+		maxPierce = 5,
 		fireCooldown = 2,
 		itemType = "gun",
 		sounds = {
@@ -234,10 +237,10 @@ local settings: { [string]: Settings } = {
 	},
 
 	["BFG-5000"] = {
-		damage = 100,
+		damage = 490,
 		headshotMultiplier = 2,
-		maxPierce = 20,
-		fireCooldown = 1.5,
+		maxPierce = 7,
+		fireCooldown = 1.75,
 		sounds = {
 			fire = "SniperFire",
 		},
@@ -245,10 +248,10 @@ local settings: { [string]: Settings } = {
 	},
 
 	["Laserbadger"] = {
-		damage = 150,
+		damage = 420,
 		headshotMultiplier = 2,
-		maxPierce = 25,
-		fireCooldown = 0.8,
+		maxPierce = 5,
+		fireCooldown = 1.2,
 		itemType = "gun",
 		sounds = {
 			fire = "SniperFire",

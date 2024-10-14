@@ -1,5 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Signal = require(ReplicatedStorage.sharedPackages.Signal)
+
 -- For shared information / enums
 return {
 	Gamepasses = {
@@ -22,5 +24,9 @@ return {
 		"Example1",
 		"Example2",
 		"Example3",
+	},
+
+	UISignals = {
+		deployed = Signal.new(),
 	},
 }

@@ -4,7 +4,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.sharedPackages.React)
 local ReactRoblox = require(ReplicatedStorage.sharedPackages.ReactRoblox)
 local gainUi = require(ReplicatedStorage.client.reactComponents.moneyUi)
-local topBarController = {}
+local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
+local moneyUIController = {}
 
 local gui = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
 gui.ResetOnSpawn = false
@@ -14,10 +15,19 @@ local function app()
 	return React.createElement(gainUi)
 end
 
-function topBarController.start()
-	local root = ReactRoblox.createRoot(Instance.new("Folder"))
-
-	root:render(ReactRoblox.createPortal(app(), gui))
+function moneyUIController.setVisibility(value)
+	gui.Enabled = value
 end
 
-return topBarController
+function moneyUIController.start()
+	if true then
+		return
+	end
+	local root = ReactRoblox.createRoot(Instance.new("Folder"))
+
+	sharedInfo.UISignals.deployed:Once(function()
+		root:render(ReactRoblox.createPortal(app(), gui))
+	end)
+end
+
+return moneyUIController

@@ -131,6 +131,12 @@ event voteForMap = {
     data: string
 }
 
+event deployed = {
+    from: Client,
+    type: Reliable,
+    call: SingleAsync,
+}
+
 event attributeChangedEvent = {
 	from: Client,
 	type: Reliable,

@@ -1,3 +1,4 @@
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.sharedPackages.React)
 local Sift = require(ReplicatedStorage.sharedPackages.Sift)

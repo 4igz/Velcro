@@ -1,6 +1,7 @@
 -- A relatively basic player data service that is fully functional.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local ProfileService = require(ServerStorage.serverPackages.ProfileService)
@@ -42,11 +43,99 @@ playerDataService.ProfileTemplate = {
 	ownedWeapons = {
 		"Starter Pistol",
 	},
+
+	skillTree = {
+		pistol = {
+			{
+				id = 1,
+				name = "Skill 1",
+				cost = 5,
+				unlocked = false,
+				description = "Description of Skill 1",
+				dependencies = {}, -- No prerequisites for the root skill
+			},
+			{
+				id = 2,
+				name = "Skill 2",
+				cost = 10,
+				unlocked = false,
+				description = "Description of Skill 2",
+				dependencies = { 1 }, -- Requires Skill 1
+			},
+		},
+		sniper = {
+			{
+				id = 1,
+				name = "Skill 1",
+				cost = 8,
+				unlocked = false,
+				description = "Description of Sniper Skill 1",
+				dependencies = {},
+			},
+		},
+		shotgun = {
+			{
+				id = 1,
+				name = "Skill 1",
+				cost = 6,
+				unlocked = false,
+				description = "Description of Shotgun Skill 1",
+				dependencies = {},
+			},
+		},
+		rifle = {
+			{
+				id = 1,
+				name = "Skill 1",
+				cost = 7,
+				unlocked = false,
+				description = "Description of Rifle Skill 1",
+				dependencies = {},
+			},
+		},
+		smg = {
+			{
+				id = 1,
+				name = "Skill 1",
+				cost = 6,
+				unlocked = false,
+				description = "Description of SMG Skill 1",
+				dependencies = {},
+			},
+		},
+	}, -- weaponType: { skills }
 }
 
 local ProfileStore = ProfileService.GetProfileStore("PlayerData", playerDataService.ProfileTemplate)
 playerDataService.playerDataLoaded = Signal.new()
 playerDataService.playerDataChanged = Signal.new()
+
+-- Sync player data to attributes
+local function syncDataToAttributes(player, data)
+	for key, value in data do
+		if player:GetAttribute(key) ~= value and type(value) ~= "table" then
+			player:SetAttribute(key, value)
+		end
+	end
+end
+
+-- Sync attributes back to the player data
+local function syncAttributesToData(player)
+	local profile = Profiles[player]
+	if not profile then
+		return
+	end
+
+	local updatedData = {}
+	for key, _ in pairs(playerDataService.ProfileTemplate) do
+		local attributeValue = player:GetAttribute(key)
+		if attributeValue ~= nil then
+			updatedData[key] = attributeValue
+		end
+	end
+
+	playerDataService.updateProfile(player, updatedData)
+end
 
 local function playerAdded(player: Player)
 	local profile = ProfileStore:LoadProfileAsync(`Player_{player.UserId}`)
@@ -61,14 +150,22 @@ local function playerAdded(player: Player)
 		if player:IsDescendantOf(Players) == true then
 			Profiles[player] = profile
 			playerDataService.playerDataLoaded:Fire(player)
+
+			-- Sync profile data to player attributes
+			syncDataToAttributes(player, profile.Data)
+
+			-- Listen for attribute changes and sync them back to profile data
+			for name, v in player:GetAttributes() do
+				player:GetAttributeChangedSignal(name):Connect(function()
+					syncAttributesToData(player)
+				end)
+			end
 		else
-			-- Player left before the profile loaded:
+			-- The profile couldn't be loaded possibly due to other
+			--   Roblox servers trying to load this profile at the same time:
 			profile:Release()
+			player:Kick()
 		end
-	else
-		-- The profile couldn't be loaded possibly due to other
-		--   Roblox servers trying to load this profile at the same time:
-		player:Kick()
 	end
 end
 
@@ -84,6 +181,19 @@ function playerDataService.start()
 		local profile = Profiles[player]
 		if profile ~= nil then
 			profile:Release()
+		end
+	end)
+
+	playerDataService.playerDataChanged:Connect(function(changedPlayer, newProfile)
+		if newProfile and newProfile.Data then
+			syncDataToAttributes(changedPlayer, newProfile.Data)
+		end
+	end)
+
+	zap.attributeChangedEvent.SetCallback(function(player, data)
+		if RunService:IsStudio() then
+			player:SetAttribute(data.name, data.value.value)
+			syncAttributesToData(player)
 		end
 	end)
 end

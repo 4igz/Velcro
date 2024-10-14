@@ -5,7 +5,8 @@ local StarterGui = game:GetService("StarterGui")
 local React = require(ReplicatedStorage.sharedPackages.React)
 local ReactRoblox = require(ReplicatedStorage.sharedPackages.ReactRoblox)
 local leaderboardUi = require(ReplicatedStorage.client.reactComponents.leaderboard)
-local topBarController = {}
+local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
+local leaderboardController = {}
 
 local gui = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
 gui.ResetOnSpawn = false
@@ -15,10 +16,16 @@ local function app()
 	return React.createElement(leaderboardUi, {})
 end
 
-function topBarController.start()
-	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
-
-	ReactRoblox.createRoot(Instance.new("Folder")):render(ReactRoblox.createPortal(app(), gui))
+function leaderboardController.setVisibility(value)
+	gui.Enabled = value
 end
 
-return topBarController
+function leaderboardController.start()
+	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+
+	sharedInfo.UISignals.deployed:Once(function()
+		ReactRoblox.createRoot(Instance.new("Folder")):render(ReactRoblox.createPortal(app(), gui))
+	end)
+end
+
+return leaderboardController

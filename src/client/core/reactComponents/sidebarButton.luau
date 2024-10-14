@@ -1,9 +1,11 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
+
 local React = require(ReplicatedStorage.sharedPackages.React)
 local ReactRoblox = require(ReplicatedStorage.sharedPackages.ReactRoblox)
 local ReactSpring = require(ReplicatedStorage.sharedPackages.ReactSpring)
+local mainMenuController = require(ReplicatedStorage.client.controllers.mainMenuController)
 local e = React.createElement
 
 local gui = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
@@ -12,10 +14,10 @@ local root = ReactRoblox.createRoot(gui)
 
 local menus = {
 	Gamepass = require(script.Parent.gamepassMenu),
-	Shop = require(script.Parent.weaponShop),
+	Shop = function()
+		mainMenuController.changeMenu("shop")
+	end,
 }
-
-local openMenus = {}
 
 local function createButton(props)
 	local styles, api = ReactSpring.useSpring(function()
@@ -56,21 +58,7 @@ local function createButton(props)
 		[React.Event.MouseButton1Click] = function()
 			local buttonName = props.text
 
-			if openMenus[buttonName] == nil then
-				openMenus[buttonName] = false
-			end
-
-			local open = openMenus[buttonName]
-			openMenus[buttonName] = not open
-
-			root:render(React.createElement(menus[buttonName], {
-				open = open,
-				onClose = function()
-					openMenus[buttonName] = false
-
-					root:render(React.createElement(menus[buttonName], { open = false }))
-				end,
-			}))
+			menus[buttonName]()
 		end,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
