@@ -37,6 +37,10 @@ local function app(props)
 				image = "rbxassetid://16809903957",
 				buttonImage = "rbxassetid://16809872201",
 				startingSize = UDim2.fromScale(0.657, 0.19),
+				openGamepassShop = props.openGamepassShop,
+				onClose = function()
+					props.openGamepassShop(false)
+				end,
 			}),
 
 			settings = sidebarButton({
@@ -54,11 +58,11 @@ local function app(props)
 	})
 end
 
-return function(target)
+return function(props)
 	local root = ReactRoblox.createRoot(Instance.new("Folder"))
 	root:render(ReactRoblox.createPortal({
-		App = e(app, { target = target }),
-	}, target))
+		App = e(app, { target = props.gui, openGamepassShop = props.openGamepassShop }),
+	}, props.gui))
 
 	return function()
 		root:unmount()

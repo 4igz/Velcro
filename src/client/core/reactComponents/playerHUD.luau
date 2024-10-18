@@ -39,7 +39,7 @@ return function(props)
 		if props.xpMax then
 			setXpMax(props.xpMax)
 		end
-	end, { props.health, props.maxHealth, props.xp, props.xpMax, props.level })
+	end, { props.health, props.maxHealth, props.xp, props.xpMax, props.level, props.visible })
 
 	return e("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -704,7 +704,5 @@ return function(props)
 				}),
 			}),
 		}),
-
-		shop = gamepassShop(),
 	})
 end

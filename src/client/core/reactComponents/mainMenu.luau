@@ -3,7 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.sharedPackages.React)
 local leaderboardController = require(ReplicatedStorage.client.controllers.leaderboardController)
-local moneyUiController = require(ReplicatedStorage.client.controllers.moneyUiController)
+local moneyUi = require(script.Parent.moneyUi)
 local playerHUDController = require(ReplicatedStorage.client.controllers.playerHUDController)
 local playerUtil = require(ReplicatedStorage.shared.utilities.playerUtil)
 local shopConfig = require(ReplicatedStorage.shared.configurations.shopConfig)
@@ -1125,7 +1125,6 @@ return function(props)
 	end, { props.menu })
 
 	playerHUDController.setVisibility(menuShown == "none")
-	moneyUiController.setVisibility(menuShown == "none")
 	leaderboardController.setVisibility(menuShown == "none")
 
 	return e("Frame", {
@@ -1148,6 +1147,7 @@ return function(props)
 			ScaleType = Enum.ScaleType.Crop,
 			Size = UDim2.fromScale(1, 1),
 			ZIndex = -1,
+			Visible = not props.fromSidebar,
 		}, {
 			gradient = e("Frame", {
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1179,6 +1179,8 @@ return function(props)
 			setMenu = setMenuShown,
 			lastMenu = lastMenu,
 		}),
+
+		moneyUi = moneyUi({ position = UDim2.fromScale(0.3, 0.035) }),
 
 		-- Main UI Frame with menus
 		main = e("Frame", {

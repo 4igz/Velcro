@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.sharedPackages.React)
 local ReactRoblox = require(ReplicatedStorage.sharedPackages.ReactRoblox)
+local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local mainMenu = require(ReplicatedStorage.client.reactComponents.mainMenu)
 local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
 local zap = require(ReplicatedStorage.zap)
@@ -22,12 +23,12 @@ local function app(props)
 	return React.createElement(mainMenu, props)
 end
 
-function mainMenuController.changeMenu(menuName)
+function mainMenuController.changeMenu(menuName, props)
 	if currentMenu == menuName then
-		root:render(app({ menu = "none" })) -- Close the shop if already open
+		root:render(app(Sift.Dictionary.merge({ menu = "none" }, props or {}))) -- Close the shop if already open
 		currentMenu = "none"
 	else
-		root:render(app({ menu = menuName })) -- Open the specified menu
+		root:render(app(Sift.Dictionary.merge({ menu = menuName }, props or {}))) -- Open the specified menu
 		currentMenu = menuName
 	end
 end

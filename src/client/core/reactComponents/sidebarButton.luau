@@ -1,25 +1,12 @@
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 
 local React = require(ReplicatedStorage.sharedPackages.React)
-local ReactRoblox = require(ReplicatedStorage.sharedPackages.ReactRoblox)
 local ReactSpring = require(ReplicatedStorage.sharedPackages.ReactSpring)
 local mainMenuController = require(ReplicatedStorage.client.controllers.mainMenuController)
 local e = React.createElement
 
-local gui = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
-gui.ResetOnSpawn = false
-local root = ReactRoblox.createRoot(gui)
-
-local menus = {
-	Gamepass = require(script.Parent.gamepassMenu),
-	Shop = function()
-		mainMenuController.changeMenu("shop")
-	end,
-}
-
-local function createButton(props)
+local function SidebarButton(props)
 	local styles, api = ReactSpring.useSpring(function()
 		return {
 			alpha = 0,
@@ -32,6 +19,15 @@ local function createButton(props)
 	end)
 
 	local moving = false
+
+	-- Functions for handling button clicks
+	local function handleButtonClick(buttonName)
+		if buttonName == "Gamepass" then
+			props.openGamepassShop(true)
+		elseif buttonName == "Shop" then
+			mainMenuController.changeMenu("shop", { fromSidebar = true }) -- Open shop menu
+		end
+	end
 
 	return e("ImageButton", {
 		ImageColor3 = Color3.fromRGB(255, 255, 255),
@@ -56,9 +52,7 @@ local function createButton(props)
 			api.start({ alpha = 0 })
 		end,
 		[React.Event.MouseButton1Click] = function()
-			local buttonName = props.text
-
-			menus[buttonName]()
+			handleButtonClick(props.text)
 		end,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -103,4 +97,4 @@ local function createButton(props)
 	})
 end
 
-return createButton
+return SidebarButton

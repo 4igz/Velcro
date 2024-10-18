@@ -14,6 +14,7 @@ gui.IgnoreGuiInset = true
 gui.Name = "PlayerHUD"
 
 local localPlayer = Players.LocalPlayer
+local root = ReactRoblox.createRoot(gui)
 
 local listeningToUIUpdates = false
 
@@ -78,12 +79,10 @@ local function listenToDeploy(root)
 end
 
 function playerHUDController.setVisibility(value)
-	gui.Enabled = value
+	root:render(app({ visible = value }))
 end
 
 function playerHUDController.start()
-	local root = ReactRoblox.createRoot(gui)
-
 	listenToDeploy(root)
 
 	-- TODO: Unmount UI when undeployed
