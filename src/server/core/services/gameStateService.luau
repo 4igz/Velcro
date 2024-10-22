@@ -15,6 +15,7 @@ local MAP_IMAGES = {
 	Depot = "rbxassetid://72699928748098",
 	Bricktops = "rbxassetid://111608068909443",
 	Pitlord = "rbxassetid://115671548050760",
+	Streets = "rbxassetid://84765611489539",
 }
 
 local START_ROUND_TIME = 120 -- Total time for each round (e.g., 120 seconds)
@@ -160,7 +161,7 @@ function gameStateService.startIntermission()
 
 		local bg = votingUi.BG
 		bg.MapName.Text = `{string.upper(selectedMap)} - {mapVotes[selectedMap] or 0}`
-		bg.BG.Image = MAP_IMAGES[selectedMap]
+		bg.BG.Image = MAP_IMAGES[selectedMap or "Dust"]
 	end
 end
 

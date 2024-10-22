@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Sift = require(ReplicatedStorage.sharedPackages.Sift)
+local Signal = require(ReplicatedStorage.sharedPackages.Signal)
 
 local attackCooldown = 2 -- Cooldown time in seconds between attacks
 local zombieDebounces = {} -- Table to store the debounce status for each zombie
@@ -536,6 +537,9 @@ local M = {
 			chase = pathfindChase,
 		},
 	},
+	{
+		zombieDied = Signal.new()
+	}
 }
 
 return M
