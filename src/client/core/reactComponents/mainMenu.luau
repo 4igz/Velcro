@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 
 local React = require(ReplicatedStorage.sharedPackages.React)
 local leaderboardController = require(ReplicatedStorage.client.controllers.leaderboardController)
@@ -146,7 +147,7 @@ local function createTopBar(props)
 				Size = UDim2.fromScale(0.683, 0.998),
 				SliceCenter = Rect.new(284, 0, 1020, 200),
 			}, {
-				text = e("TextLabel", {
+				text = e("TextButton", {
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 					BackgroundTransparency = 1,
@@ -164,6 +165,10 @@ local function createTopBar(props)
 					TextScaled = true,
 					TextSize = 14,
 					TextWrapped = true,
+					[React.Event.MouseButton1Click] = function()
+						props.setMenu(props.lastMenu.current)
+						props.lastMenu.current = props.shown
+					end,
 				}),
 			}),
 
@@ -326,7 +331,7 @@ local function createMainMenu(props)
 					TextSize = 14,
 					TextTransparency = 0.97,
 					TextWrapped = true,
-					ZIndex = 0,
+					ZIndex = 1,
 				}),
 
 				textLabel1 = e("TextLabel", {
@@ -374,44 +379,44 @@ local function createMainMenu(props)
 					Position = UDim2.fromScale(0.559, 0.5),
 					Size = UDim2.fromScale(0.85, 0.545),
 				}, {
-					frame5 = e("Frame", {
-						AnchorPoint = Vector2.new(0.5, 0.5),
+					bar = e("Frame", {
+						AnchorPoint = Vector2.new(0, 0),
 						BackgroundColor3 = Color3.fromRGB(255, 106, 0),
 						BorderColor3 = Color3.fromRGB(0, 0, 0),
 						BorderSizePixel = 0,
-						Position = UDim2.fromScale(0.271, 0.5),
-						Size = UDim2.fromScale(0.543, 1),
+						Position = UDim2.fromScale(0, 0),
+						Size = UDim2.fromScale(0, 1)
+							:Lerp(UDim2.fromScale(1, 1), props.xp / props.maxXp),
 					}, {
-						textLabel2 = e("TextLabel", {
-							AnchorPoint = Vector2.new(0.5, 0.5),
-							BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-							BackgroundTransparency = 1,
-							BorderColor3 = Color3.fromRGB(0, 0, 0),
-							BorderSizePixel = 0,
-							FontFace = Font.new(
-								"rbxasset://fonts/families/GothamSSm.json",
-								Enum.FontWeight.Bold,
-								Enum.FontStyle.Normal
-							),
-							Position = UDim2.fromScale(0.508, 0.5),
-							Size = UDim2.fromScale(0.964, 1),
-							Text = "491 XP",
-							TextColor3 = Color3.fromRGB(255, 255, 255),
-							TextScaled = true,
-							TextSize = 14,
-							TextTransparency = 0.5,
-							TextWrapped = true,
-							TextXAlignment = Enum.TextXAlignment.Left,
+						uIStroke4 = e("UIStroke", {
+							ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+							Color = Color3.fromRGB(11, 11, 11),
+							LineJoinMode = Enum.LineJoinMode.Miter,
+							Thickness = 2,
 						}),
 					}),
-
-					uIStroke4 = e("UIStroke", {
-						ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-						Color = Color3.fromRGB(11, 11, 11),
-						LineJoinMode = Enum.LineJoinMode.Miter,
-						Thickness = 2,
+					textLabel2 = e("TextLabel", {
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+						BackgroundTransparency = 1,
+						BorderColor3 = Color3.fromRGB(0, 0, 0),
+						BorderSizePixel = 0,
+						FontFace = Font.new(
+							"rbxasset://fonts/families/GothamSSm.json",
+							Enum.FontWeight.Bold,
+							Enum.FontStyle.Normal
+						),
+						Position = UDim2.fromScale(0.508, 0.5),
+						Size = UDim2.fromScale(0.964, 1),
+						Text = `{props.xp} XP`,
+						TextColor3 = Color3.fromRGB(255, 255, 255),
+						TextScaled = true,
+						TextSize = 14,
+						TextTransparency = 0.5,
+						TextWrapped = true,
+						TextXAlignment = Enum.TextXAlignment.Left,
+						ZIndex = 2,
 					}),
-
 					textLabel3 = e("TextLabel", {
 						AnchorPoint = Vector2.new(0.5, 0.5),
 						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -424,59 +429,38 @@ local function createMainMenu(props)
 							Enum.FontStyle.Normal
 						),
 						Position = UDim2.fromScale(0.871, 0.5),
-						Size = UDim2.fromScale(0.239, 1),
-						Text = "1000",
+						Size = UDim2.fromScale(0.2, 1),
+						Text = `{props.maxXp} XP`,
 						TextColor3 = Color3.fromRGB(255, 255, 255),
 						TextScaled = true,
 						TextSize = 14,
 						TextTransparency = 0.5,
 						TextWrapped = true,
 						TextXAlignment = Enum.TextXAlignment.Right,
+						ZIndex = 2,
 					}),
-				}),
-
-				textLabel4 = e("TextLabel", {
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-					BackgroundTransparency = 1,
-					BorderColor3 = Color3.fromRGB(0, 0, 0),
-					BorderSizePixel = 0,
-					FontFace = Font.new(
-						"rbxasset://fonts/families/GothamSSm.json",
-						Enum.FontWeight.Regular,
-						Enum.FontStyle.Italic
-					),
-					Position = UDim2.fromScale(0.066, 0.305),
-					RichText = true,
-					Size = UDim2.fromScale(0.104, 0.462),
-					Text = "Level",
-					TextColor3 = Color3.fromRGB(255, 255, 255),
-					TextScaled = true,
-					TextSize = 14,
-					TextWrapped = true,
-					TextXAlignment = Enum.TextXAlignment.Left,
-				}),
-
-				textLabel5 = e("TextLabel", {
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-					BackgroundTransparency = 1,
-					BorderColor3 = Color3.fromRGB(0, 0, 0),
-					BorderSizePixel = 0,
-					FontFace = Font.new(
-						"rbxasset://fonts/families/GothamSSm.json",
-						Enum.FontWeight.Bold,
-						Enum.FontStyle.Normal
-					),
-					Position = UDim2.fromScale(0.0674, 0.768),
-					RichText = true,
-					Size = UDim2.fromScale(0.101, 0.5),
-					Text = "10",
-					TextColor3 = Color3.fromRGB(255, 255, 255),
-					TextScaled = true,
-					TextSize = 14,
-					TextWrapped = true,
-					TextXAlignment = Enum.TextXAlignment.Left,
+					textLabel4 = e("TextLabel", {
+						AnchorPoint = Vector2.new(0, 0.5),
+						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+						BackgroundTransparency = 1,
+						BorderColor3 = Color3.fromRGB(0, 0, 0),
+						BorderSizePixel = 0,
+						FontFace = Font.new(
+							"rbxasset://fonts/families/GothamSSm.json",
+							Enum.FontWeight.Regular,
+							Enum.FontStyle.Italic
+						),
+						Position = UDim2.fromScale(-0.15, 0.5),
+						RichText = true,
+						Size = UDim2.fromScale(1, 2),
+						Text = `Level\n<b>{props.level}</b>`,
+						TextColor3 = Color3.fromRGB(255, 255, 255),
+						TextScaled = true,
+						TextSize = 19,
+						TextWrapped = true,
+						TextXAlignment = Enum.TextXAlignment.Left,
+						ZIndex = 3,
+					}),
 				}),
 			}),
 
@@ -1067,6 +1051,9 @@ end
 
 return function(props)
 	local menuShown, setMenuShown = React.useState(props.menu or "main")
+	local level = React.useState(props.levelData and props.levelData.level)
+	local xp = React.useState(props.levelData and props.levelData.xp)
+	local maxXP = React.useState(props.levelData and props.levelData.xpMax)
 
 	-- If a menu is opened like the shop that has a back button, we need to know what the last menu was to go back
 	local lastMenu = React.useRef("main")
@@ -1114,6 +1101,9 @@ return function(props)
 	end
 
 	local function handleDeployClick()
+		local menuMusic = Players.LocalPlayer:FindFirstChild("Menu")
+		menuMusic:Stop()
+		menuMusic:Destroy()
 		props.onDeployClicked()
 		setMenuShown("none") -- Hide the menu after deploy
 	end
@@ -1121,8 +1111,15 @@ return function(props)
 	-- update lastMenu and menuShown if props.menu changes
 	React.useEffect(function()
 		lastMenu.current = menuShown -- Store the previous menu
+		updateDisplayedWeapons("pistol")
 		setMenuShown(props.menu or "main") -- Ensure the main menu is set on reopen
 	end, { props.menu })
+
+	React.useEffect(function()
+		local menuMusic = SoundService.Menu
+		menuMusic.Parent = Players.LocalPlayer
+		menuMusic:Play()
+	end, {})
 
 	playerHUDController.setVisibility(menuShown == "none")
 	leaderboardController.setVisibility(menuShown == "none")
@@ -1198,6 +1195,9 @@ return function(props)
 				onDeploy = handleDeployClick,
 				onShopButtonClick = handleShopButtonClick, -- Pass shop click handler
 				lastMenu = lastMenu,
+				xp = xp,
+				maxXp = maxXP,
+				level = level,
 			}),
 
 			-- Shop Menu

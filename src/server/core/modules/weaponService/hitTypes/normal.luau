@@ -6,6 +6,8 @@ local services = ServerStorage.server.services
 
 local ZOMBIE_TAG = "Zombie"
 
+local playerDataService = require(ServerStorage.server.services.playerDataService)
+local skillService = require(services.skillService)
 local weaponSettings = require(ReplicatedStorage.shared.configurations.weaponConfig)
 
 -- Global table to track which zombies have already been killed
@@ -22,35 +24,34 @@ return function(shooter: Player, ws: weaponSettings.Settings, raycastResult: Ray
 		end
 	end
 
+	-- Check if a zombie was hit
 	if hitZombie then
 		local hitHumanoid: Humanoid = hitZombie:FindFirstChildOfClass("Humanoid")
 		if not hitHumanoid or hitHumanoid:GetState() == Enum.HumanoidStateType.Dead then
-			return -- If the zombie is already dead, return
+			return
 		end
 
-		-- Ensure there's an entry in the kill tracker for this zombie
 		zombieKillTracker[hitZombie] = zombieKillTracker[hitZombie] or {}
 
-		-- Check if the zombie is globally marked as dead (already killed)
 		if zombieKillLocks[hitZombie] then
-			return -- If the zombie has already been killed, return early
+			return
 		end
 
-		-- Check if the player has already killed this zombie
 		if not zombieKillTracker[hitZombie][shooter.UserId] then
-			-- Player hasn't killed this zombie yet, deal damage and track the kill
+			-- Apply skills (player effects, weapon changes, area-based effects, etc.)
+			-- Player hasn't killed this zombie yet, deal damage with modified weapon settings
 			hitHumanoid:TakeDamage(
 				if raycastResult.Instance.Name == "Head"
 					then ws.damage * ws.headshotMultiplier
 					else ws.damage
 			)
+			skillService.trackHitZombie(shooter, hitZombie)
+			skillService.trackHeadshotHit(shooter, hitZombie, raycastResult.Instance)
+			skillService.applySkills(shooter, ws)
 
-			-- Defer kill handling to avoid race conditions
 			if hitHumanoid:GetState() == Enum.HumanoidStateType.Dead or hitHumanoid.Health <= 0 then
-				-- Mark that the player has killed this zombie
 				zombieKillTracker[hitZombie][shooter.UserId] = true
 
-				-- Trigger the kill event if the zombie dies
 				weaponSettings.signals.kill:Fire(shooter, hitZombie, ws)
 			end
 		end

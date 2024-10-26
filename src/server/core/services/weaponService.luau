@@ -8,14 +8,16 @@ local weaponServiceModules = server.weaponService
 
 local gameStateService = require(script.Parent.gameStateService)
 local levelService = require(ServerStorage.server.services.levelService)
+local monetizationUtil = require(ReplicatedStorage.shared.utilities.monetizationUtil)
 local moneyService = require(ServerStorage.server.services.moneyService)
 local playerDataService = require(script.Parent.playerDataService)
 local playerUtil = require(ReplicatedStorage.shared.utilities.playerUtil)
+local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
 local shopConfig = require(ReplicatedStorage.shared.configurations.shopConfig)
+local skillService = require(script.Parent.skillService)
 local weaponConfig = require(ReplicatedStorage.shared.configurations.weaponConfig)
-local weaponUtil = require(ReplicatedStorage.shared.utilities.weaponUtil)
 local zap = require(ServerStorage.zap)
-local zombieConfig = require(ReplicatedStorage.shared.configurations.zombieConfig)
+local zombieStatConfig = require(ReplicatedStorage.shared.configurations.zombieStatConfig)
 
 local meleeHitParams = OverlapParams.new()
 meleeHitParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -24,7 +26,6 @@ local trackedWeapons = {}
 local bulletTypes = {}
 local hitTypes = {}
 local cooldowns = {}
-local zombieDeathLocks = {}
 
 local COOLDOWN = 0.01
 
@@ -73,23 +74,36 @@ local function fireGun(player: Player, weapon: Tool, to: Vector3, hitPart: Insta
 	end
 	local ws = weaponConfig.settings[weaponName]
 	if not ws then
-		return error(`Weapon {weaponName} not found.`)
+		error(`Weapon {weaponName} not found.`)
 	end
 
 	-- Play gunshot sound
 	local soundName = ws.sounds.fire
 	if soundName ~= "" then
-		local sound = handle:FindFirstChild(ws.sounds.fire)
-		if not sound then
-			sound = SoundService.Weapons:FindFirstChild(ws.sounds.fire)
-			if sound then
-				sound:Clone().Parent = handle
-			else
-				warn(`Fire sound {soundName} not found in SoundService.`)
-			end
+		local sound = SoundService.Weapons:FindFirstChild(ws.sounds.fire) :: Sound
+
+		if sound then
+			local a = Instance.new("Part")
+			a.Position = firepoint.WorldPosition
+			a.CanCollide = false
+			a.Transparency = 1
+			a.Name = "SoundPart"
+			a.Parent = workspace
+
+			local newSound = sound:Clone()
+			newSound.Parent = a
+
+			sound.Ended:Connect(function()
+				a:Destroy()
+			end)
+			sound:Play()
+		else
+			warn(`Fire sound {soundName} not found in SoundService.`)
 		end
-		sound:Play()
 	end
+
+	-- Modify ws
+	ws = skillService.applySkills(player, ws)
 
 	bulletTypes[ws.bulletType](player, ws, firepoint, to, hitPart, weapon.Name)
 end
@@ -201,6 +215,31 @@ function weaponService.buyWeapon(player: Player, data: { weaponName: string, wea
 	end
 end
 
+function weaponService.onWeaponEquipped(player: Player, weapon: Tool)
+	local ws = weaponConfig.settings[weapon.Name]
+	if not ws then
+		warn(`Weapon {weapon.Name} not found in weaponConfig.settings.`)
+		return
+	end
+
+	ws = skillService.applySkills(player, ws)
+
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildWhichIsA("Humanoid")
+	if not humanoid then
+		return
+	end
+
+	humanoid.WalkSpeed = (ws.walkspeed or 16)
+		* (
+			if monetizationUtil
+					.userOwnsGamepass(player.UserId, sharedInfo.Gamepasses["Extra Speed!"])
+					:expect()
+				then 1.5
+				else 1
+		)
+end
+
 function weaponService.getWeaponFromPlayer(player: Player): Tool?
 	local char = player.Character
 	if not char then
@@ -261,15 +300,20 @@ function weaponService.start()
 	-- Fires when someone has been killed by a hitType
 	weaponConfig.signals.kill:Connect(
 		function(shooter: Player, zombie: Model, ws: weaponConfig.Settings)
+			skillService.trackZombieKill(shooter, zombie)
+			skillService.applySkills(shooter, ws)
+
 			-- TODO: Add money and xp to player for killing certain zombies
-			local cfg = zombieConfig[1][zombie.Name]
+			local cfg = zombieStatConfig[zombie.Name]
+
+			if math.random() < 0.1 then
+				local profile = playerDataService.getProfile(shooter)
+				profile.Data.rampageEssence += 1
+				playerDataService.setProfile(shooter, profile)
+			end
 
 			--TODO:  This will later change based on rebirth status and gamepasses and such
 			levelService.addExperience(shooter, cfg.xpDropped or 1)
-			-- zap.updateFeeds.Fire(
-			-- 	shooter,
-			-- 	{ type = "xp", amtGain = cfg.xpDropped or 1, reason = "Killed Zombie" }
-			-- )
 			local moneyDropped = cfg.moneyDropped
 					* (1 + (0.10 * gameStateService.getCurrentRound()))
 				or 10
@@ -287,6 +331,16 @@ function weaponService.start()
 			registerHit(shooter, ws, raycastResult, weaponName)
 		end
 	)
+
+	Players.PlayerAdded:Connect(function(player)
+		player.CharacterAdded:Connect(function(character)
+			character.ChildAdded:Connect(function(child)
+				if weaponConfig.settings[child.Name] then
+					weaponService.onWeaponEquipped(player, child)
+				end
+			end)
+		end)
+	end)
 
 	Players.PlayerRemoving:Connect(function(player)
 		if cooldowns[player] then

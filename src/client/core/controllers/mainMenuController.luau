@@ -46,7 +46,9 @@ function mainMenuController.start()
 		end
 	end
 
-	root:render(app({ onDeployClicked = deploy }))
+	-- Get xp info from the server
+	local levelData = zap.getLevelData.Call()
+	root:render(app({ onDeployClicked = deploy, levelData = levelData }))
 end
 
 return mainMenuController

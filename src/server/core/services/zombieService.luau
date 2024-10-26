@@ -9,6 +9,7 @@ local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local gameStateService = require(script.Parent.gameStateService)
 local zap = require(ServerStorage.zap)
 local zombieConfigModule = require(ReplicatedStorage.shared.configurations.zombieConfig)
+local zombieUtil = require(ReplicatedStorage.shared.utilities.zombieUtil)
 local zombieConfig, zombieAi = zombieConfigModule[1], zombieConfigModule[2]
 local zombieService = {}
 
@@ -23,6 +24,29 @@ local zombieComponents = {}
 local queuedZombies = {}
 
 local zombieDeathTween = TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+-- Function to apply highlight to a zombie
+local function applyHighlightToZombie(zombieModel)
+	-- Check if the highlight instance already exists
+	if not zombieModel:FindFirstChild("Highlight") then
+		local highlight = Instance.new("Highlight")
+		highlight.Parent = zombieModel
+	end
+end
+
+-- Function to remove highlight from a zombie
+local function removeHighlightFromZombie(zombieModel)
+	local highlight = zombieModel:FindFirstChild("Highlight")
+	if highlight then
+		highlight:Destroy()
+	end
+end
+
+local function clearAllHighlights()
+	for _, zombie in pairs(zombieComponents) do
+		removeHighlightFromZombie(zombie.model)
+	end
+end
 
 --[[
 	- @param type: String identifier for the type of zombie to create
@@ -81,6 +105,7 @@ function zombieService.newZombie(type, cframe)
 	end
 
 	-- Handle zombie death
+	-- Handle zombie death
 	humanoid.Died:Connect(function()
 		local index = table.find(zombieComponents, zombie)
 		if index then
@@ -94,6 +119,7 @@ function zombieService.newZombie(type, cframe)
 			zombieModel:Destroy()
 		end)
 
+		-- Tween and clean up after zombie death
 		for _, des in zombieModel:GetDescendants() do
 			if des:IsA("ParticleEmitter") then
 				des.Rate = 0
@@ -103,6 +129,15 @@ function zombieService.newZombie(type, cframe)
 				TweenService:Create(des, zombieDeathTween, { Transparency = 1 }):Play()
 			end
 		end
+
+		-- Highlight the last 4 zombies
+		if #zombieComponents <= 4 then
+			for _, z in pairs(zombieComponents) do
+				applyHighlightToZombie(z.model)
+			end
+		end
+
+		-- Update UI
 		zap.updateUI.FireAll({
 			zombies = #zombieComponents + #queuedZombies,
 			gameActive = gameStateService.isRoundActive(),
@@ -229,6 +264,24 @@ function zombieService.spawnBoss()
 end
 
 function zombieService.start()
+	zombieUtil.createShockwave:Connect(function(hitZombies, radius, shockwaveDamage)
+		print("Creating shockwave with radius", radius, "and damage", shockwaveDamage)
+		-- Trigger shockwave, damaging nearby zombies
+		for _, hitZombie in hitZombies do
+			local nearbyZombies = zombieUtil.getNearbyZombies(
+				zombieComponents,
+				hitZombie.HumanoidRootPart.Position,
+				radius
+			)
+			for _, nearbyZombie in nearbyZombies do
+				local humanoid = nearbyZombie:FindFirstChild("Humanoid")
+				if humanoid then
+					humanoid:TakeDamage(shockwaveDamage)
+				end
+			end
+		end
+	end)
+
 	RunService.Heartbeat:Connect(function(deltaTime)
 		if #Players:GetPlayers() == 0 then
 			return
@@ -259,6 +312,7 @@ function zombieService.start()
 	end)
 
 	gameStateService.startingRound:Connect(function(roundNum)
+		clearAllHighlights()
 		if roundNum % 10 == 0 then
 			-- zombieService.spawnBoss(gameStateService.getCurrentRound())
 		end

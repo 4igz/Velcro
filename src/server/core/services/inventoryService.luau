@@ -1,12 +1,21 @@
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
+
 local playerDataService = require(ServerStorage.server.services.playerDataService)
+local shopConfig = require(ReplicatedStorage.shared.configurations.shopConfig)
 local weaponService = require(ServerStorage.server.services.weaponService)
 local zap = require(ServerStorage.zap)
 
 local weaponsFolder = ServerStorage.Weapons
 
 local inventoryService = {}
+
+local weaponLookup = {}
+
+local function getWeaponClass(weaponName)
+	return weaponLookup[weaponName]
+end
 
 function inventoryService.checkIfIsWeaponType(tool: Tool, type)
 	local success, ws = pcall(function()
@@ -58,6 +67,7 @@ function inventoryService.equipWeapon(player, weaponName)
 		current:Destroy()
 	end
 	profile.Data[ws.itemType] = weaponName
+	profile.Data.weaponClass = getWeaponClass(weaponName)
 
 	weapon:Clone().Parent = player.Backpack
 
@@ -65,6 +75,12 @@ function inventoryService.equipWeapon(player, weaponName)
 end
 
 function inventoryService.start()
+	for weaponClass, weapons in shopConfig do
+		for weaponName, _ in weapons do
+			weaponLookup[weaponName] = weaponClass
+		end
+	end
+
 	Players.PlayerAdded:Connect(function(player)
 		player.CharacterAdded:Connect(function()
 			local profile = playerDataService.getProfile(player)

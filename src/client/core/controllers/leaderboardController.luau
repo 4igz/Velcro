@@ -24,7 +24,8 @@ function leaderboardController.start()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
 
 	sharedInfo.UISignals.deployed:Once(function()
-		ReactRoblox.createRoot(Instance.new("Folder")):render(ReactRoblox.createPortal(app(), gui))
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, true)
+		-- ReactRoblox.createRoot(Instance.new("Folder")):render(ReactRoblox.createPortal(app(), gui))
 	end)
 end
 

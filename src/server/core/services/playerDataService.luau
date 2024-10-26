@@ -7,6 +7,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local ProfileService = require(ServerStorage.serverPackages.ProfileService)
 local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local Signal = require(ReplicatedStorage.sharedPackages.Signal)
+local skillConfig = require(ReplicatedStorage.shared.configurations.skillConfig)
 local zap = require(ServerStorage.zap)
 
 local Profiles = {} -- [player] = profile
@@ -26,6 +27,17 @@ type PlayerProfile = {
 	ownedWeapons: { string },
 }
 
+local function generateSkillTree(skillConfig)
+	local skillTree = {}
+	for weaponType, skills in skillConfig do
+		skillTree[weaponType] = {}
+		for _, skill in skills do
+			table.insert(skillTree[weaponType], { unlocked = false, level = 0 })
+		end
+	end
+	return skillTree
+end
+
 -- ProfileTemplate table is what empty profiles will default to.
 playerDataService.ProfileTemplate = {
 	-- Leaderstats
@@ -40,73 +52,19 @@ playerDataService.ProfileTemplate = {
 	melee = "",
 	equipment = "",
 
+	weaponClass = "pistol",
+
 	ownedWeapons = {
 		"Starter Pistol",
 	},
 
-	skillTree = {
-		pistol = {
-			{
-				id = 1,
-				name = "Skill 1",
-				cost = 5,
-				unlocked = false,
-				description = "Description of Skill 1",
-				dependencies = {}, -- No prerequisites for the root skill
-			},
-			{
-				id = 2,
-				name = "Skill 2",
-				cost = 10,
-				unlocked = false,
-				description = "Description of Skill 2",
-				dependencies = { 1 }, -- Requires Skill 1
-			},
-		},
-		sniper = {
-			{
-				id = 1,
-				name = "Skill 1",
-				cost = 8,
-				unlocked = false,
-				description = "Description of Sniper Skill 1",
-				dependencies = {},
-			},
-		},
-		shotgun = {
-			{
-				id = 1,
-				name = "Skill 1",
-				cost = 6,
-				unlocked = false,
-				description = "Description of Shotgun Skill 1",
-				dependencies = {},
-			},
-		},
-		rifle = {
-			{
-				id = 1,
-				name = "Skill 1",
-				cost = 7,
-				unlocked = false,
-				description = "Description of Rifle Skill 1",
-				dependencies = {},
-			},
-		},
-		smg = {
-			{
-				id = 1,
-				name = "Skill 1",
-				cost = 6,
-				unlocked = false,
-				description = "Description of SMG Skill 1",
-				dependencies = {},
-			},
-		},
-	}, -- weaponType: { skills }
+	rampageEssence = 0,
+	skillPoints = 0,
+
+	skillTree = generateSkillTree(skillConfig),
 }
 
-local ProfileStore = ProfileService.GetProfileStore("PlayerData", playerDataService.ProfileTemplate)
+local ProfileStore = ProfileService.GetProfileStore("V0.1.0", playerDataService.ProfileTemplate)
 playerDataService.playerDataLoaded = Signal.new()
 playerDataService.playerDataChanged = Signal.new()
 
@@ -182,6 +140,25 @@ function playerDataService.start()
 		if profile ~= nil then
 			profile:Release()
 		end
+	end)
+
+	zap.getSkillTree.SetCallback(function(player)
+		local profile = Profiles[player]
+		if profile then
+			return profile.Data.skillTree
+		end
+		return
+	end)
+
+	zap.getSkillPoints.SetCallback(function(player)
+		local profile = Profiles[player]
+		if profile then
+			return {
+				rampageEssence = profile.Data.rampageEssence,
+				skillPoints = profile.Data.skillPoints,
+			}
+		end
+		return
 	end)
 
 	playerDataService.playerDataChanged:Connect(function(changedPlayer, newProfile)

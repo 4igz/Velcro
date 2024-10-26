@@ -34,9 +34,9 @@ end
 function hudUiController.start()
 	task.spawn(function()
 		-- Cache all gamepasses so gamepass ui opens immediately.
-		for _, id in sharedInfo.Gamepasses do
-			MarketplaceService:UserOwnsGamePassAsync(Players.LocalPlayer.UserId, id)
-		end
+		root:render(gamepassShop({
+			visible = false,
+		}))
 	end)
 	sharedInfo.UISignals.deployed:Once(function()
 		hudUi({ gui = gui, openGamepassShop = openGamepassShop })

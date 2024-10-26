@@ -2,9 +2,13 @@ local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local ServerStorage = game:GetService("ServerStorage")
 
-local Sift = require(ReplicatedStorage.sharedPackages.Sift)
+local vfxFolder = ServerStorage.VFX
 
+local skillService = require(ServerStorage.server.services.skillService)
+local zombieStatConfig = require(script.Parent.zombieStatConfig)
+local zombieUtil = require(ReplicatedStorage.shared.utilities.zombieUtil)
 local attackCooldown = 2 -- Cooldown time in seconds between attacks
 local zombieDebounces = {} -- Table to store the debounce status for each zombie
 
@@ -33,6 +37,13 @@ end
 local function applyDamageToPlayer(player, damage)
 	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
 	if humanoid then
+		local skillData = skillService.getSkillData(player, "Dodging")
+		if skillService.getEquippedWeaponClass(player) == "pistol" and skillData.level > 0 then
+			-- Added 5% chance to dodge per level
+			if math.random(1, 100) <= (skillData.level * 5) then
+				return
+			end
+		end
 		humanoid:TakeDamage(damage)
 	end
 end
@@ -61,25 +72,6 @@ local function healZombie(zombie, healAmount)
 	if humanoid then
 		humanoid.Health = math.min(humanoid.Health + healAmount, humanoid.MaxHealth) -- Ensure health doesn't exceed max
 	end
-end
-
--- Helper function to get nearby zombies within a certain radius
-local function getNearbyZombies(zombieData, position, radius)
-	local nearbyZombies = {}
-	for _, otherZombieData in zombieData.allZombies do
-		local otherZombie = otherZombieData.model
-		if
-			otherZombie
-			and otherZombie.Parent
-			and otherZombie:FindFirstChild("HumanoidRootPart")
-		then
-			local distance = (otherZombie.HumanoidRootPart.Position - position).Magnitude
-			if distance <= radius and otherZombie ~= zombieData.model then
-				table.insert(nearbyZombies, otherZombie)
-			end
-		end
-	end
-	return nearbyZombies
 end
 
 local attackTypes = {
@@ -135,11 +127,29 @@ local attackTypes = {
 		-- Apply initial attack damage
 		applyDamageToPlayer(player, attackPower)
 
+		-- Apply burning vfx
+		for _, part in player.Character:GetDescendants() do
+			if part:IsA("BasePart") then
+				local fire = vfxFolder.Fire:Clone()
+				for _, v in fire:GetChildren() do
+					if v:IsA("ParticleEmitter") then
+						v = v:Clone()
+						v.Parent = part
+						task.delay(burnDuration, function()
+							v:Destroy()
+						end)
+					end
+				end
+			end
+		end
+
 		-- Apply burn effect (damage over time)
 		for i = 1, burnDuration do
 			task.wait(1)
 			applyDamageToPlayer(player, burnDamage)
 		end
+
+		-- Remove burning vfx
 	end,
 }
 
@@ -192,7 +202,8 @@ local zombieSpecials = {
 		-- Emit healing pulse every 3 seconds
 		while npc.Parent and npc.Humanoid:GetState() ~= Enum.HumanoidStateType.Dead do
 			-- Get all nearby zombies within the heal radius
-			local nearbyZombies = getNearbyZombies(zombieData, npc.PrimaryPart.Position, healRadius)
+			local nearbyZombies =
+				zombieUtil.getNearbyZombies(zombieData, npc.PrimaryPart.Position, healRadius)
 
 			-- Heal each nearby zombie
 			for _, nearbyZombie in nearbyZombies do
@@ -420,117 +431,8 @@ end
 
 local M = {
 	-- Data structure to hold common properties
-	{
-		Zombie = {
-			health = 100,
-			speed = 10,
-			attackPower = 15,
-			beginSpawningRound = 1,
-			xpDropped = 10,
-			moneyDropped = 4,
-		},
-
-		["Enchanted"] = {
-			health = 200,
-			attackPower = 20,
-			speed = 14,
-			beginSpawningRound = 3,
-			xpDropped = 12,
-			moneyDropped = 10,
-		},
-
-		["Fallen Angel"] = {
-			health = 300,
-			speed = 14,
-			attackPower = 25,
-			beginSpawningRound = 20,
-			xpDropped = 20,
-			moneyDropped = 15,
-			specialAbility = "angel",
-		},
-
-		["Lightning Zombie"] = {
-			health = 100,
-			speed = 20,
-			attackPower = 20,
-			beginSpawningRound = 12,
-			xpDropped = 13,
-			moneyDropped = 9,
-			specialAbility = "lightning",
-		},
-
-		["Blue Lightning Zombie"] = {
-			health = 100,
-			speed = 22,
-			attackPower = 20,
-			beginSpawningRound = 20,
-			xpDropped = 20,
-			moneyDropped = 9,
-			specialAbility = "lightning",
-			prediction = true,
-		},
-
-		["Spectre"] = {
-			health = 80,
-			speed = 14,
-			attackPower = 40,
-			beginSpawningRound = 15,
-			xpDropped = 15,
-			moneyDropped = 9,
-			specialAbility = "spectre",
-			prediction = true,
-		},
-
-		-- ["Mini"] = {
-		-- 	health = 80,
-		-- 	speed = 18,
-		-- 	attackPower = 15,
-		-- 	beginSpawningRound = 3,
-		-- 	xpDropped = 8,
-		-- 	moneyDropped = 2,
-		-- },
-
-		["Demon"] = {
-			health = 250,
-			speed = 14,
-			attackPower = 25, -- plus burn
-			beginSpawningRound = 20,
-			xpDropped = 18,
-			moneyDropped = 12,
-			attackType = "fire",
-			prediction = true,
-		},
-
-		["Flame Zombie"] = {
-			health = 100,
-			speed = 16,
-			attackPower = 20, -- plus burn
-			beginSpawningRound = 10,
-			xpDropped = 13,
-			moneyDropped = 7,
-			attackType = "fire",
-		},
-
-		["Water Zombie"] = {
-			health = 100,
-			speed = 16,
-			attackPower = 20,
-			beginSpawningRound = 10,
-			xpDropped = 13,
-			moneyDropped = 10,
-		},
-
-		["Enraged"] = {
-			health = 100,
-			speed = 16,
-			attackPower = 20,
-			beginSpawningRound = 5,
-			xpDropped = 10,
-			moneyDropped = 10,
-			prediction = true,
-		},
-	},
-	{
+	[1] = zombieStatConfig,
+	[2] = {
 		-- Pathfinding and AI logic
 		basic = {
 			chase = pathfindChase,

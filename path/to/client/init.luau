@@ -113,6 +113,75 @@ assert(reliable:IsA("RemoteEvent"), "Expected ZAP_RELIABLE to be a RemoteEvent")
 assert(unreliable:IsA("UnreliableRemoteEvent"), "Expected ZAP_UNRELIABLE to be an UnreliableRemoteEvent")
 
 local time = 0
+export type Skill = ({
+	unlocked: (boolean),
+	level: (number),
+})
+function types.write_Skill(value: Skill)
+	alloc(1)
+	buffer.writeu8(outgoing_buff, outgoing_apos, value.unlocked and 1 or 0)
+	alloc(4)
+	buffer.writei32(outgoing_buff, outgoing_apos, value.level)
+end
+function types.read_Skill()
+	local value;
+	value = {}
+	value.unlocked = buffer.readu8(incoming_buff, read(1)) == 1
+	value.level = buffer.readi32(incoming_buff, read(4))
+	return value
+end
+export type WeaponSkills = ({ [(string)]: (Skill) })
+function types.write_WeaponSkills(value: WeaponSkills)
+	local len_pos = alloc(2)
+	local len = 0
+	for k, v in value do
+		len = len + 1
+		local len = #k
+		alloc(2)
+		buffer.writeu16(outgoing_buff, outgoing_apos, len)
+		alloc(len)
+		buffer.writestring(outgoing_buff, outgoing_apos, k, len)
+		types.write_Skill(v)
+	end
+	buffer.writeu16(outgoing_buff, len_pos, len)
+end
+function types.read_WeaponSkills()
+	local value;
+	value = {}
+	for _ = 1, buffer.readu16(incoming_buff, read(2)) do
+		local key
+		local val
+		local len = buffer.readu16(incoming_buff, read(2))
+		key = buffer.readstring(incoming_buff, read(len), len)
+		val = types.read_Skill()
+		value[key] = val
+	end
+	return value
+end
+export type SkillTree = ({
+	pistol: (WeaponSkills),
+	sniper: (WeaponSkills),
+	shotgun: (WeaponSkills),
+	rifle: (WeaponSkills),
+	smg: (WeaponSkills),
+})
+function types.write_SkillTree(value: SkillTree)
+	types.write_WeaponSkills(value.pistol)
+	types.write_WeaponSkills(value.sniper)
+	types.write_WeaponSkills(value.shotgun)
+	types.write_WeaponSkills(value.rifle)
+	types.write_WeaponSkills(value.smg)
+end
+function types.read_SkillTree()
+	local value;
+	value = {}
+	value.pistol = types.read_WeaponSkills()
+	value.sniper = types.read_WeaponSkills()
+	value.shotgun = types.read_WeaponSkills()
+	value.rifle = types.read_WeaponSkills()
+	value.smg = types.read_WeaponSkills()
+	return value
+end
 
 RunService.Heartbeat:Connect(function(dt)
 	time += dt
@@ -134,19 +203,23 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 end)
 
-local events = table.create(17)
-local event_queue: { [number]: { any } } = table.create(17)
+local events = table.create(22)
+local event_queue: { [number]: { any } } = table.create(22)
 local function_call_id = 0
-event_queue[5] = {}
-event_queue[6] = {}
+event_queue[1] = {}
 event_queue[7] = {}
 event_queue[8] = {}
 event_queue[9] = {}
 event_queue[10] = {}
-event_queue[14] = {}
-event_queue[15] = table.create(255)
-event_queue[16] = table.create(255)
+event_queue[11] = {}
+event_queue[12] = {}
+event_queue[16] = {}
 event_queue[17] = table.create(255)
+event_queue[18] = table.create(255)
+event_queue[19] = table.create(255)
+event_queue[20] = table.create(255)
+event_queue[21] = table.create(255)
+event_queue[22] = table.create(255)
 reliable.OnClientEvent:Connect(function(buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
@@ -155,7 +228,23 @@ reliable.OnClientEvent:Connect(function(buff, inst)
 	local len = buffer.len(buff)
 	while incoming_read < len do
 		local id = buffer.readu8(buff, read(1))
-		if id == 6 then
+		if id == 1 then
+			local value
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				incoming_ipos = incoming_ipos + 1
+				value = incoming_inst[incoming_ipos]
+			else
+				value = nil
+			end
+			if events[1] then
+				task.spawn(events[1], value)
+			else
+				table.insert(event_queue[1], value)
+				if #event_queue[1] > 64 then
+					warn(`[ZAP] {#event_queue[1]} events in queue for updatedSkillUi. Did you forget to attach a listener?`)
+				end
+			end
+		elseif id == 8 then
 			local value
 			value = {}
 			incoming_ipos = incoming_ipos + 1
@@ -169,15 +258,15 @@ reliable.OnClientEvent:Connect(function(buff, inst)
 			else
 				value.beamColor = nil
 			end
-			if events[6] then
-				task.spawn(events[6], value)
+			if events[8] then
+				task.spawn(events[8], value)
 			else
-				table.insert(event_queue[6], value)
-				if #event_queue[6] > 64 then
-					warn(`[ZAP] {#event_queue[6]} events in queue for replicateCast. Did you forget to attach a listener?`)
+				table.insert(event_queue[8], value)
+				if #event_queue[8] > 64 then
+					warn(`[ZAP] {#event_queue[8]} events in queue for replicateCast. Did you forget to attach a listener?`)
 				end
 			end
-		elseif id == 7 then
+		elseif id == 9 then
 			local value
 			value = {}
 			if buffer.readu8(incoming_buff, read(1)) == 1 then
@@ -205,29 +294,29 @@ reliable.OnClientEvent:Connect(function(buff, inst)
 			else
 				value.gameActive = nil
 			end
-			if events[7] then
-				task.spawn(events[7], value)
+			if events[9] then
+				task.spawn(events[9], value)
 			else
-				table.insert(event_queue[7], value)
-				if #event_queue[7] > 64 then
-					warn(`[ZAP] {#event_queue[7]} events in queue for updateUI. Did you forget to attach a listener?`)
+				table.insert(event_queue[9], value)
+				if #event_queue[9] > 64 then
+					warn(`[ZAP] {#event_queue[9]} events in queue for updateUI. Did you forget to attach a listener?`)
 				end
 			end
-		elseif id == 8 then
+		elseif id == 10 then
 			local value
 			value = {}
 			value.level = buffer.readu32(incoming_buff, read(4))
 			value.xp = buffer.readu32(incoming_buff, read(4))
 			value.xpMax = buffer.readu32(incoming_buff, read(4))
-			if events[8] then
-				task.spawn(events[8], value)
+			if events[10] then
+				task.spawn(events[10], value)
 			else
-				table.insert(event_queue[8], value)
-				if #event_queue[8] > 64 then
-					warn(`[ZAP] {#event_queue[8]} events in queue for updateLevelUi. Did you forget to attach a listener?`)
+				table.insert(event_queue[10], value)
+				if #event_queue[10] > 64 then
+					warn(`[ZAP] {#event_queue[10]} events in queue for updateLevelUi. Did you forget to attach a listener?`)
 				end
 			end
-		elseif id == 9 then
+		elseif id == 11 then
 			local value
 			value = {}
 			local len = buffer.readu16(incoming_buff, read(2))
@@ -235,15 +324,15 @@ reliable.OnClientEvent:Connect(function(buff, inst)
 			value.amtGain = buffer.readi32(incoming_buff, read(4))
 			local len = buffer.readu16(incoming_buff, read(2))
 			value.reason = buffer.readstring(incoming_buff, read(len), len)
-			if events[9] then
-				task.spawn(events[9], value)
+			if events[11] then
+				task.spawn(events[11], value)
 			else
-				table.insert(event_queue[9], value)
-				if #event_queue[9] > 64 then
-					warn(`[ZAP] {#event_queue[9]} events in queue for updateFeeds. Did you forget to attach a listener?`)
+				table.insert(event_queue[11], value)
+				if #event_queue[11] > 64 then
+					warn(`[ZAP] {#event_queue[11]} events in queue for updateFeeds. Did you forget to attach a listener?`)
 				end
 			end
-		elseif id == 10 then
+		elseif id == 12 then
 			local value
 			value = {}
 			local len = buffer.readu16(incoming_buff, read(2))
@@ -253,27 +342,52 @@ reliable.OnClientEvent:Connect(function(buff, inst)
 				value_v = buffer.readstring(incoming_buff, read(len), len)
 				value[i] = value_v
 			end
-			if events[10] then
-				task.spawn(events[10], value)
+			if events[12] then
+				task.spawn(events[12], value)
 			else
-				table.insert(event_queue[10], value)
-				if #event_queue[10] > 64 then
-					warn(`[ZAP] {#event_queue[10]} events in queue for showVoteUi. Did you forget to attach a listener?`)
+				table.insert(event_queue[12], value)
+				if #event_queue[12] > 64 then
+					warn(`[ZAP] {#event_queue[12]} events in queue for showVoteUi. Did you forget to attach a listener?`)
 				end
 			end
-		elseif id == 14 then
+		elseif id == 16 then
 			local value
 			local len = buffer.readu16(incoming_buff, read(2))
 			value = buffer.readstring(incoming_buff, read(len), len)
-			if events[14] then
-				task.spawn(events[14], value)
+			if events[16] then
+				task.spawn(events[16], value)
 			else
-				table.insert(event_queue[14], value)
-				if #event_queue[14] > 64 then
-					warn(`[ZAP] {#event_queue[14]} events in queue for tpToMap. Did you forget to attach a listener?`)
+				table.insert(event_queue[16], value)
+				if #event_queue[16] > 64 then
+					warn(`[ZAP] {#event_queue[16]} events in queue for tpToMap. Did you forget to attach a listener?`)
 				end
 			end
-		elseif id == 15 then
+		elseif id == 17 then
+			local call_id = buffer.readu8(incoming_buff, read(1))
+			local value
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				incoming_ipos = incoming_ipos + 1
+				value = incoming_inst[incoming_ipos]
+			else
+				value = nil
+			end
+			task.spawn(event_queue[17][call_id], value)
+			event_queue[17][call_id] = nil
+		elseif id == 18 then
+			local call_id = buffer.readu8(incoming_buff, read(1))
+			local value
+			value = buffer.readf64(incoming_buff, read(8))
+			task.spawn(event_queue[18][call_id], value)
+			event_queue[18][call_id] = nil
+		elseif id == 19 then
+			local call_id = buffer.readu8(incoming_buff, read(1))
+			local value
+			value = {}
+			value.skillPoints = buffer.readi32(incoming_buff, read(4))
+			value.rampageEssence = buffer.readi32(incoming_buff, read(4))
+			task.spawn(event_queue[19][call_id], value)
+			event_queue[19][call_id] = nil
+		elseif id == 20 then
 			local call_id = buffer.readu8(incoming_buff, read(1))
 			local value
 			value = {}
@@ -302,18 +416,18 @@ reliable.OnClientEvent:Connect(function(buff, inst)
 			else
 				value.gameActive = nil
 			end
-			task.spawn(event_queue[15][call_id], value)
-			event_queue[15][call_id] = nil
-		elseif id == 16 then
+			task.spawn(event_queue[20][call_id], value)
+			event_queue[20][call_id] = nil
+		elseif id == 21 then
 			local call_id = buffer.readu8(incoming_buff, read(1))
 			local value
 			value = {}
 			value.level = buffer.readu32(incoming_buff, read(4))
 			value.xp = buffer.readu32(incoming_buff, read(4))
 			value.xpMax = buffer.readu32(incoming_buff, read(4))
-			task.spawn(event_queue[16][call_id], value)
-			event_queue[16][call_id] = nil
-		elseif id == 17 then
+			task.spawn(event_queue[21][call_id], value)
+			event_queue[21][call_id] = nil
+		elseif id == 22 then
 			local call_id = buffer.readu8(incoming_buff, read(1))
 			local value
 			value = {}
@@ -332,8 +446,8 @@ reliable.OnClientEvent:Connect(function(buff, inst)
 				value_ownedWeapons_v = buffer.readstring(incoming_buff, read(len), len)
 				value.ownedWeapons[i] = value_ownedWeapons_v
 			end
-			task.spawn(event_queue[17][call_id], value)
-			event_queue[17][call_id] = nil
+			task.spawn(event_queue[22][call_id], value)
+			event_queue[22][call_id] = nil
 		else
 			error("Unknown event id")
 		end
@@ -345,7 +459,7 @@ unreliable.OnClientEvent:Connect(function(buff, inst)
 	incoming_read = 0
 	incoming_ipos = 0
 	local id = buffer.readu8(buff, read(1))
-	if id == 5 then
+	if id == 7 then
 		local value
 		value = {}
 		local len = buffer.readu16(incoming_buff, read(2))
@@ -358,12 +472,12 @@ unreliable.OnClientEvent:Connect(function(buff, inst)
 		else
 			value.victim = nil
 		end
-		if events[5] then
-			task.spawn(events[5], value)
+		if events[7] then
+			task.spawn(events[7], value)
 		else
-			table.insert(event_queue[5], value)
-			if #event_queue[5] > 64 then
-				warn(`[ZAP] {#event_queue[5]} events in queue for replicateHit. Did you forget to attach a listener?`)
+			table.insert(event_queue[7], value)
+			if #event_queue[7] > 64 then
+				warn(`[ZAP] {#event_queue[7]} events in queue for replicateHit. Did you forget to attach a listener?`)
 			end
 		end
 	else
@@ -371,13 +485,29 @@ unreliable.OnClientEvent:Connect(function(buff, inst)
 	end
 end)
 return {
+	upgradeSkill = {
+		Fire = function(Value: ({
+			weapon: (string),
+			skill: (number),
+		}))
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
+			local len = #Value.weapon
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value.weapon, len)
+			alloc(4)
+			buffer.writei32(outgoing_buff, outgoing_apos, Value.skill)
+		end,
+	},
 	buyWeapon = {
 		Fire = function(Value: ({
 			weaponName: (string),
 			weaponType: (string),
 		}))
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
 			local len = #Value.weaponName
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -393,7 +523,7 @@ return {
 	equipWeapon = {
 		Fire = function(Value: (string))
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
 			local len = #Value
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -407,7 +537,7 @@ return {
 			rayHit: ((Instance)?),
 		}))
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
 			alloc(4)
 			buffer.writef32(outgoing_buff, outgoing_apos, Value.hitPos.X)
 			alloc(4)
@@ -429,7 +559,7 @@ return {
 			local saved = save()
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
 			local buff = buffer.create(outgoing_used)
 			buffer.copy(buff, 0, outgoing_buff, 0, outgoing_used)
 			unreliable:FireServer(buff, outgoing_inst)
@@ -439,7 +569,7 @@ return {
 	voteForMap = {
 		Fire = function(Value: (string))
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
 			local len = #Value
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -450,7 +580,7 @@ return {
 	deployed = {
 		Fire = function()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
 		end,
 	},
 	attributeChangedEvent = {
@@ -468,7 +598,7 @@ return {
 			}),
 		}))
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
 			local len = #Value.name
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -497,44 +627,22 @@ return {
 			end
 		end,
 	},
+	updatedSkillUi = {
+		SetCallback = function(Callback: (((unknown)?)) -> ()): () -> ()
+			events[1] = Callback
+			for _, value in event_queue[1] do
+				task.spawn(Callback, value)
+			end
+			event_queue[1] = {}
+			return function()
+				events[1] = nil
+			end
+		end,
+	},
 	replicateHit = {
 		SetCallback = function(Callback: (({
 			weaponName: (string),
 			victim: ((string)?),
-		})) -> ()): () -> ()
-			events[5] = Callback
-			for _, value in event_queue[5] do
-				task.spawn(Callback, value)
-			end
-			event_queue[5] = {}
-			return function()
-				events[5] = nil
-			end
-		end,
-	},
-	replicateCast = {
-		SetCallback = function(Callback: (({
-			firepoint: (Attachment),
-			hit: (Vector3),
-			beamColor: ((unknown)?),
-		})) -> ()): () -> ()
-			events[6] = Callback
-			for _, value in event_queue[6] do
-				task.spawn(Callback, value)
-			end
-			event_queue[6] = {}
-			return function()
-				events[6] = nil
-			end
-		end,
-	},
-	updateUI = {
-		SetCallback = function(Callback: (({
-			zombies: ((number)?),
-			wave: ((number)?),
-			wavesTillBoss: ((number)?),
-			timeLeft: ((number)?),
-			gameActive: ((boolean)?),
 		})) -> ()): () -> ()
 			events[7] = Callback
 			for _, value in event_queue[7] do
@@ -546,11 +654,11 @@ return {
 			end
 		end,
 	},
-	updateLevelUi = {
+	replicateCast = {
 		SetCallback = function(Callback: (({
-			level: (number),
-			xp: (number),
-			xpMax: (number),
+			firepoint: (Attachment),
+			hit: (Vector3),
+			beamColor: ((unknown)?),
 		})) -> ()): () -> ()
 			events[8] = Callback
 			for _, value in event_queue[8] do
@@ -562,11 +670,13 @@ return {
 			end
 		end,
 	},
-	updateFeeds = {
+	updateUI = {
 		SetCallback = function(Callback: (({
-			type: (string),
-			amtGain: (number),
-			reason: (string),
+			zombies: ((number)?),
+			wave: ((number)?),
+			wavesTillBoss: ((number)?),
+			timeLeft: ((number)?),
+			gameActive: ((boolean)?),
 		})) -> ()): () -> ()
 			events[9] = Callback
 			for _, value in event_queue[9] do
@@ -578,8 +688,12 @@ return {
 			end
 		end,
 	},
-	showVoteUi = {
-		SetCallback = function(Callback: (({ (string) })) -> ()): () -> ()
+	updateLevelUi = {
+		SetCallback = function(Callback: (({
+			level: (number),
+			xp: (number),
+			xpMax: (number),
+		})) -> ()): () -> ()
 			events[10] = Callback
 			for _, value in event_queue[10] do
 				task.spawn(Callback, value)
@@ -590,53 +704,47 @@ return {
 			end
 		end,
 	},
-	tpToMap = {
-		SetCallback = function(Callback: ((string)) -> ()): () -> ()
-			events[14] = Callback
-			for _, value in event_queue[14] do
+	updateFeeds = {
+		SetCallback = function(Callback: (({
+			type: (string),
+			amtGain: (number),
+			reason: (string),
+		})) -> ()): () -> ()
+			events[11] = Callback
+			for _, value in event_queue[11] do
 				task.spawn(Callback, value)
 			end
-			event_queue[14] = {}
+			event_queue[11] = {}
 			return function()
-				events[14] = nil
+				events[11] = nil
 			end
 		end,
 	},
-	getTopbarUIInfo = {
-		Call = function()
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
-			function_call_id += 1
-			function_call_id %= 256
-			if event_queue[15][function_call_id] then
-				function_call_id -= 1
-				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
+	showVoteUi = {
+		SetCallback = function(Callback: (({ (string) })) -> ()): () -> ()
+			events[12] = Callback
+			for _, value in event_queue[12] do
+				task.spawn(Callback, value)
 			end
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
-			event_queue[15][function_call_id] = coroutine.running()
-			local value = coroutine.yield()
-			return value
+			event_queue[12] = {}
+			return function()
+				events[12] = nil
+			end
 		end,
 	},
-	getLevelData = {
-		Call = function()
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
-			function_call_id += 1
-			function_call_id %= 256
-			if event_queue[16][function_call_id] then
-				function_call_id -= 1
-				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
+	tpToMap = {
+		SetCallback = function(Callback: ((string)) -> ()): () -> ()
+			events[16] = Callback
+			for _, value in event_queue[16] do
+				task.spawn(Callback, value)
 			end
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
-			event_queue[16][function_call_id] = coroutine.running()
-			local value = coroutine.yield()
-			return value
+			event_queue[16] = {}
+			return function()
+				events[16] = nil
+			end
 		end,
 	},
-	getOwnedWeapons = {
+	getSkillTree = {
 		Call = function()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
@@ -649,6 +757,91 @@ return {
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
 			event_queue[17][function_call_id] = coroutine.running()
+			local value = coroutine.yield()
+			return value
+		end,
+	},
+	getFirerate = {
+		Call = function()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
+			function_call_id += 1
+			function_call_id %= 256
+			if event_queue[18][function_call_id] then
+				function_call_id -= 1
+				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
+			end
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
+			event_queue[18][function_call_id] = coroutine.running()
+			local value = coroutine.yield()
+			return value
+		end,
+	},
+	getSkillPoints = {
+		Call = function()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 19)
+			function_call_id += 1
+			function_call_id %= 256
+			if event_queue[19][function_call_id] then
+				function_call_id -= 1
+				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
+			end
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
+			event_queue[19][function_call_id] = coroutine.running()
+			local value = coroutine.yield()
+			return value
+		end,
+	},
+	getTopbarUIInfo = {
+		Call = function()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 20)
+			function_call_id += 1
+			function_call_id %= 256
+			if event_queue[20][function_call_id] then
+				function_call_id -= 1
+				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
+			end
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
+			event_queue[20][function_call_id] = coroutine.running()
+			local value = coroutine.yield()
+			return value
+		end,
+	},
+	getLevelData = {
+		Call = function()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 21)
+			function_call_id += 1
+			function_call_id %= 256
+			if event_queue[21][function_call_id] then
+				function_call_id -= 1
+				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
+			end
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
+			event_queue[21][function_call_id] = coroutine.running()
+			local value = coroutine.yield()
+			return value
+		end,
+	},
+	getOwnedWeapons = {
+		Call = function()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 22)
+			function_call_id += 1
+			function_call_id %= 256
+			if event_queue[22][function_call_id] then
+				function_call_id -= 1
+				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
+			end
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
+			event_queue[22][function_call_id] = coroutine.running()
 			local value = coroutine.yield()
 			return value
 		end,

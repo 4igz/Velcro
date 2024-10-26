@@ -264,7 +264,7 @@ return function(props)
 
 	React.useEffect(function()
 		if props.open then
-			updateDisplayedWeapons("gun")
+			updateDisplayedWeapons("smg")
 		end
 	end, { props.open })
 

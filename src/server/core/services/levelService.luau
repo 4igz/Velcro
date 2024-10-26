@@ -11,23 +11,11 @@ local transitionLevel = 100 -- Level where exponential growth begins
 
 -- Experience required for the logarithmic part (before transition level)
 local function xpForLogLevel(level)
-	return a * math.log(level) + b * level + c
-end
-
--- Experience required for the exponential part (after transition level)
-local function xpForExpLevel(level)
-	return a * math.log(transitionLevel)
-		+ b * transitionLevel
-		+ c
-		+ ((level - transitionLevel) ^ expFactor) * b
+	return math.floor(100 * math.log(level + 1))
 end
 
 local function xpForLevel(level)
-	if level < transitionLevel then
-		return xpForLogLevel(level)
-	else
-		return xpForExpLevel(level)
-	end
+	return xpForLogLevel(level)
 end
 
 local function getLevel(xp)
@@ -77,12 +65,16 @@ function levelService.addExperience(player: Player, amt: number)
 
 	local currentLevel = playerProfile.Data.Level
 	local xpForNextLevel = xpForLevel(currentLevel + 1)
+	playerProfile.Data.Experience += amt
 
 	if playerProfile.Data.Experience > xpForNextLevel then
 		playerProfile.Data.Level += 1
-	end
+		playerProfile.Data.Experience = 0
 
-	playerProfile.Data.Experience += amt
+		if playerProfile.Data.Level % 10 == 0 then
+			playerProfile.Data.skillPoints += 1
+		end
+	end
 
 	zap.updateLevelUi.Fire(player, {
 		level = playerProfile.Data.Level,

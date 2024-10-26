@@ -89,6 +89,9 @@ local settings: { [string]: Settings } = {
 		sounds = {
 			fire = "PistolFire",
 		},
+		anims = {
+			idle = "rbxassetid://95617185581990",
+		},
 	},
 
 	["Katana"] = {
@@ -111,6 +114,9 @@ local settings: { [string]: Settings } = {
 			fire = "ShotgunFire",
 		},
 		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://13726957002",
+		},
 	},
 
 	["Sawed-Off Shotgun"] = {
@@ -126,6 +132,9 @@ local settings: { [string]: Settings } = {
 			fire = "ShotgunFire",
 		},
 		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://13726957002",
+		},
 	},
 
 	["BNT-2"] = {
@@ -141,6 +150,9 @@ local settings: { [string]: Settings } = {
 			fire = "ShotgunFire",
 		},
 		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://13726957002",
+		},
 	},
 
 	["Super90"] = {
@@ -156,6 +168,9 @@ local settings: { [string]: Settings } = {
 			fire = "ShotgunFire",
 		},
 		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://13726957002",
+		},
 	},
 
 	-- Pistols
@@ -170,6 +185,87 @@ local settings: { [string]: Settings } = {
 			fire = "PistolFire",
 		},
 		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://95617185581990",
+		},
+	},
+
+	-- Assault Rifles
+	["M4 Carbine"] = {
+		damage = 7.5,
+		headshotMultiplier = 1.2,
+		walkspeed = 17,
+		fireCooldown = 0.15,
+		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://107732452399041",
+		},
+	},
+
+	["Tommy Gun"] = {
+		damage = 9,
+		headshotMultiplier = 1.2,
+		walkspeed = 17,
+		fireCooldown = 0.12,
+		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://107732452399041",
+		},
+	},
+
+	["Scar-H"] = {
+		damage = 15,
+		headshotMultiplier = 1.2,
+		walkspeed = 17,
+		fireCooldown = 0.15,
+		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://107732452399041",
+		},
+	},
+
+	["Nova-9"] = {
+		damage = 15,
+		headshotMultiplier = 1.2,
+		walkspeed = 17,
+		fireCooldown = 0.1,
+		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://107732452399041",
+		},
+	},
+
+	["Viper"] = {
+		damage = 14,
+		headshotMultiplier = 1.2,
+		walkspeed = 17,
+		fireCooldown = 0.07,
+		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://107732452399041",
+		},
+	},
+
+	["Annihilator"] = {
+		damage = 32,
+		headshotMultiplier = 1.2,
+		walkspeed = 18,
+		fireCooldown = 0.1,
+		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://107732452399041",
+		},
+	},
+
+	["Nightfall"] = {
+		damage = 80,
+		headshotMultiplier = 2,
+		walkspeed = 19,
+		fireCooldown = 0.15,
+		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://107732452399041",
+		},
 	},
 
 	-- SMGs
@@ -179,6 +275,9 @@ local settings: { [string]: Settings } = {
 		walkspeed = 18,
 		fireCooldown = 0.1,
 		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://107113017419325",
+		},
 	},
 
 	["VC-S"] = {
@@ -187,6 +286,9 @@ local settings: { [string]: Settings } = {
 		walkspeed = 18,
 		fireCooldown = 0.1,
 		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://107113017419325",
+		},
 	},
 
 	["PM12"] = {
@@ -195,6 +297,9 @@ local settings: { [string]: Settings } = {
 		walkspeed = 18,
 		fireCooldown = 0.08,
 		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://107113017419325",
+		},
 	},
 
 	["VP70"] = {
@@ -203,6 +308,9 @@ local settings: { [string]: Settings } = {
 		walkspeed = 18,
 		fireCooldown = 0.08,
 		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://107113017419325",
+		},
 	},
 
 	["AR57"] = {
@@ -211,6 +319,9 @@ local settings: { [string]: Settings } = {
 		walkspeed = 18,
 		fireCooldown = 0.06,
 		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://107732452399041",
+		},
 	},
 
 	-- Snipers
@@ -223,6 +334,9 @@ local settings: { [string]: Settings } = {
 		sounds = {
 			fire = "SniperFire",
 		},
+		anims = {
+			idle = "rbxassetid://121962199292086",
+		},
 	},
 
 	["AWP"] = {
@@ -233,6 +347,9 @@ local settings: { [string]: Settings } = {
 		itemType = "gun",
 		sounds = {
 			fire = "SniperFire",
+		},
+		anims = {
+			idle = "rbxassetid://121962199292086",
 		},
 	},
 
@@ -245,6 +362,9 @@ local settings: { [string]: Settings } = {
 			fire = "SniperFire",
 		},
 		itemType = "gun",
+		anims = {
+			idle = "rbxassetid://121962199292086",
+		},
 	},
 
 	["Laserbadger"] = {
@@ -255,6 +375,9 @@ local settings: { [string]: Settings } = {
 		itemType = "gun",
 		sounds = {
 			fire = "SniperFire",
+		},
+		anims = {
+			idle = "rbxassetid://121962199292086",
 		},
 	},
 }

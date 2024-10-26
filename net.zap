@@ -2,6 +2,58 @@
 opt server_output = "path/to/server/init.luau"
 opt client_output = "path/to/client/init.luau"
 
+type Skill = struct {
+    unlocked: boolean,
+    level: i32
+}
+
+type WeaponSkills = map {
+    [string]: Skill
+}
+
+type SkillTree = struct {
+    pistol: WeaponSkills,
+    sniper: WeaponSkills,
+    shotgun: WeaponSkills,
+    rifle: WeaponSkills,
+    smg: WeaponSkills,
+}
+
+funct getSkillTree = {
+    call: Async,
+    rets: unknown,
+}
+
+event updatedSkillUi = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+    data: unknown,
+}
+
+event upgradeSkill = {
+    from: Client,
+    type: Reliable,
+    call: SingleAsync,
+    data: struct {
+        weapon: string,
+        skill: i32,
+    }
+}
+
+funct getFirerate = {
+    call: Async,
+    rets: f64
+}
+
+funct getSkillPoints = {
+    call: Async,
+    rets: struct {
+        skillPoints: i32,
+        rampageEssence: i32,
+    },
+}
+
 event buyWeapon = {
     from: Client,
     type: Reliable,
@@ -18,6 +70,7 @@ event equipWeapon = {
     call: SingleAsync,
     data: string, -- WeaponName
 }
+
 
 event fireGun = {
     from: Client,
