@@ -9,8 +9,7 @@ local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local gameStateService = require(script.Parent.gameStateService)
 local zap = require(ServerStorage.zap)
 local zombieConfigModule = require(ReplicatedStorage.shared.configurations.zombieConfig)
-local zombieUtil = require(ReplicatedStorage.shared.utilities.zombieUtil)
-local zombieConfig, zombieAi = zombieConfigModule[1], zombieConfigModule[2]
+local zombieConfig, zombieAi, signals = zombieConfigModule[1], zombieConfigModule[2], zombieConfigModule[3]
 local zombieService = {}
 
 local MAX_ZOMBIES_SPAWNED_AT_ONCE = 30
@@ -143,6 +142,7 @@ function zombieService.newZombie(type, cframe)
 			gameActive = gameStateService.isRoundActive(),
 			timeLeft = gameStateService.getTimeLeft(),
 		})
+		signals.zombieDied:Fire(zombie)
 	end)
 end
 

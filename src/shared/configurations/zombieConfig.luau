@@ -5,6 +5,8 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local vfxFolder = ServerStorage.VFX
+local Sift = require(ReplicatedStorage.sharedPackages.Sift)
+local Signal = require(ReplicatedStorage.sharedPackages.Signal)
 
 local skillService = require(ServerStorage.server.services.skillService)
 local zombieStatConfig = require(script.Parent.zombieStatConfig)
@@ -438,6 +440,9 @@ local M = {
 			chase = pathfindChase,
 		},
 	},
+	{
+		zombieDied = Signal.new()
+	}
 }
 
 return M

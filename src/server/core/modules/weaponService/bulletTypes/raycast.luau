@@ -91,7 +91,6 @@ return function(
 
 			local currentPosition = headPosition
 			local remainingRange = range
-			local damage = ws.damage
 			local hits = 0
 			local iterationLimit = maxPierce
 
