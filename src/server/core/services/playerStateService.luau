@@ -26,18 +26,25 @@ function playerStateService.start()
 			exampleState = false,
 			Leaderboard = {
 				Level = 0,
-				Kills = 0,
-				Damage = 0,
 				Money = 0,
 			},
 			playing = true,
 			inMap = false,
 		}
+		local leaderstats = player:FindFirstChild("leaderstats")
+		if not leaderstats then
+			-- Create the leaderstats folder if it doesn't exist
+			leaderstats = Instance.new("Folder")
+			leaderstats.Name = "leaderstats"
+			leaderstats.Parent = player
+		end
+
+		-- Initialize for now
+		playerStateService.updateLeaderstats(player, playerStates[player].Leaderboard)
+
 		local profile = playerDataService.getProfile(player)
 
-		if profile then
-			playerStateService.updateLeaderstats(player, profile.Data)
-		end
+		playerStateService.updateLeaderstats(player, profile.Data)
 
 		player.CharacterAdded:Connect(function(_character)
 			playerStates[player].Life = {

@@ -6,16 +6,19 @@ local ServerStorage = game:GetService("ServerStorage")
 local TweenService = game:GetService("TweenService")
 
 local Sift = require(ReplicatedStorage.sharedPackages.Sift)
+local fogCycle = require(script.Parent.fogCycleService)
 local gameStateService = require(script.Parent.gameStateService)
 local zap = require(ServerStorage.zap)
 local zombieConfigModule = require(ReplicatedStorage.shared.configurations.zombieConfig)
-local zombieConfig, zombieAi, signals = zombieConfigModule[1], zombieConfigModule[2], zombieConfigModule[3]
+local zombieUtil = require(ReplicatedStorage.shared.utilities.zombieUtil)
+local zombieConfig, zombieAi, signals =
+	zombieConfigModule[1], zombieConfigModule[2], zombieConfigModule[3]
 local zombieService = {}
+local zombieContainer = workspace.Zombies
 
 local MAX_ZOMBIES_SPAWNED_AT_ONCE = 30
 
 local zombieFolder = ServerStorage.ZombieTypes
-local mapContainer = workspace.MapContainer
 local defaultZombieConfig = zombieConfig.Zombie
 
 -- Table to keep track of all zombie components
@@ -44,6 +47,33 @@ end
 local function clearAllHighlights()
 	for _, zombie in pairs(zombieComponents) do
 		removeHighlightFromZombie(zombie.model)
+	end
+end
+
+local function createRagdoll(zombie)
+	for _, joint in pairs(zombie:GetDescendants()) do
+		if joint:IsA("Motor6D") then
+			local part0, part1 = joint.Part0, joint.Part1
+			local attachment0 = Instance.new("Attachment", part0)
+			local attachment1 = Instance.new("Attachment", part1)
+			attachment0.CFrame = joint.C0
+			attachment1.CFrame = joint.C1
+
+			local constraint
+			-- Add different constraint types based on the body part
+			if part0.Name == "Torso" or part1.Name == "Torso" then
+				-- Use a HingeConstraint for the torso
+				constraint = Instance.new("HingeConstraint")
+			else
+				-- Use BallSocketConstraints for limbs
+				constraint = Instance.new("BallSocketConstraint")
+			end
+
+			constraint.Attachment0 = attachment0
+			constraint.Attachment1 = attachment1
+			constraint.Parent = part0
+			joint:Destroy()
+		end
 	end
 end
 
@@ -79,7 +109,7 @@ function zombieService.newZombie(type, cframe)
 	zombieModel = zombieModel:Clone()
 	zombieModel.PrimaryPart = zombieModel:FindFirstChild("HumanoidRootPart")
 	zombieModel:PivotTo(cframe)
-	zombieModel.Parent = CollectionService:GetTagged("MapContent")[1] or mapContainer
+	zombieModel.Parent = zombieContainer
 	zombie.model = zombieModel
 	zombie.allZombies = zombieComponents
 	CollectionService:AddTag(zombieModel, "Zombie")
@@ -94,7 +124,7 @@ function zombieService.newZombie(type, cframe)
 		math.min(1000, cfg.health * (1 + (0.03 * gameStateService.getCurrentRound())))
 	humanoid.Health = humanoid.MaxHealth
 
-	humanoid.WalkSpeed = cfg.speed
+	humanoid.WalkSpeed = if fogCycle.fogEnabled then cfg.speed * 1.5 else cfg.speed
 	local ai = zombieAi[cfg.aiType or "basic"]
 	if ai and ai.chase then
 		task.spawn(function()
@@ -106,18 +136,14 @@ function zombieService.newZombie(type, cframe)
 	-- Handle zombie death
 	-- Handle zombie death
 	humanoid.Died:Connect(function()
+		createRagdoll(zombieModel)
 		local index = table.find(zombieComponents, zombie)
 		if index then
 			table.remove(zombieComponents, index)
 		end
 		if not gameStateService.isRoundActive() then
-			print("Round wasn't active")
 			return -- Only remove zombies if the round is active
 		end
-		task.delay(2, function()
-			zombieModel:Destroy()
-		end)
-
 		-- Tween and clean up after zombie death
 		for _, des in zombieModel:GetDescendants() do
 			if des:IsA("ParticleEmitter") then
@@ -128,6 +154,9 @@ function zombieService.newZombie(type, cframe)
 				TweenService:Create(des, zombieDeathTween, { Transparency = 1 }):Play()
 			end
 		end
+		task.delay(2, function()
+			zombieModel:Destroy()
+		end)
 
 		-- Highlight the last 4 zombies
 		if #zombieComponents <= 4 then
@@ -154,6 +183,9 @@ function zombieService.getNumZombies()
 	return #zombieComponents
 end
 
+local hasSpawnedElite = false
+local spawnedElites = {} -- Track spawned elite zombies per round
+
 --[[
     @param roundNum The current round number, determining which zombie types are eligible and how many zombies to spawn.
 
@@ -166,16 +198,27 @@ function zombieService.spawnZombies(roundNum)
 	-- Calculate the number of zombies to spawn for this round
 	local numZombiesToSpawn = (5 + 6 * (roundNum - 1)) * (1 + math.log(numPlayers))
 	local possibleTypes = {}
+	local eliteTypes = {}
 	local totalWeight = 0
 
 	-- Collect eligible zombie types and their cumulative weights
 	for zombieType, config in zombieConfig do
 		if roundNum >= config.beginSpawningRound then
 			local wt = totalWeight + (roundNum - config.beginSpawningRound + 1)
-			table.insert(possibleTypes, {
-				type = zombieType,
-				cumulativeWeight = wt,
-			})
+
+			-- Handle elite zombies separately
+			if config.type == "elite" then
+				table.insert(eliteTypes, {
+					type = zombieType,
+					cumulativeWeight = wt,
+				})
+			else
+				-- Normal zombies
+				table.insert(possibleTypes, {
+					type = zombieType,
+					cumulativeWeight = wt,
+				})
+			end
 			totalWeight = wt
 		end
 	end
@@ -209,6 +252,18 @@ function zombieService.spawnZombies(roundNum)
 			end
 		end
 
+		-- Check for elite zombies: spawn each elite zombie only once per round
+		for _, eliteType in eliteTypes do
+			if
+				not spawnedElites[eliteType.type]
+				and roundNum >= zombieConfig[eliteType.type].beginSpawningRound
+			then
+				zombieType = eliteType.type
+				spawnedElites[eliteType.type] = true -- Mark this elite as spawned
+				break
+			end
+		end
+
 		-- Choose a random spawn point
 		local spawnPoint = spawnPoints[math.random(1, #spawnPoints)].CFrame
 
@@ -217,6 +272,7 @@ function zombieService.spawnZombies(roundNum)
 			table.insert(queuedZombies, { type = zombieType, spawnPoint = spawnPoint })
 		else
 			zombieService.newZombie(zombieType, spawnPoint)
+			task.wait(0.25)
 		end
 	end
 
@@ -243,6 +299,7 @@ function zombieService.spawnZombies(roundNum)
 						zombies = #zombieComponents + #queuedZombies,
 						gameActive = true,
 					})
+					task.wait(0.25)
 				end
 				task.wait()
 			end
@@ -303,7 +360,7 @@ function zombieService.start()
 					-- Ensure the game is ended properly and intermission starts
 					if not gameStateService.getIntermissionActive() then
 						-- Start the intermission phase
-						print("Round has ended, starting intermission...")
+						print("Round ended due to timeout, starting intermission...")
 						gameStateService.startIntermission()
 					end
 				end
@@ -312,6 +369,8 @@ function zombieService.start()
 	end)
 
 	gameStateService.startingRound:Connect(function(roundNum)
+		hasSpawnedElite = false
+		table.clear(spawnedElites)
 		clearAllHighlights()
 		if roundNum % 10 == 0 then
 			-- zombieService.spawnBoss(gameStateService.getCurrentRound())
@@ -319,7 +378,6 @@ function zombieService.start()
 
 		table.clear(queuedZombies)
 		zombieService.spawnZombies(roundNum)
-
 		zap.updateUI.FireAll({
 			timeLeft = gameStateService.getTimeLeft(),
 			wave = gameStateService.getCurrentRound(),
@@ -341,7 +399,7 @@ function zombieService.start()
 			wave = gameStateService.getCurrentRound(),
 			wavesTillBoss = gameStateService.getCurrentRound() % 10,
 			zombies = #zombieComponents + #queuedZombies,
-			gameActive = true,
+			gameActive = gameStateService.isRoundActive(),
 		})
 	end)
 end

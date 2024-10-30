@@ -746,6 +746,7 @@ return function(props)
 			ZIndex = 10,
 			[React.Event.MouseButton1Click] = function()
 				props.onClose()
+				sharedInfo.UISignals.closedUi:Fire()
 			end,
 		}, {
 			uIAspectRatioConstraint = React.createElement("UIAspectRatioConstraint"),

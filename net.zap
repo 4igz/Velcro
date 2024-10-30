@@ -46,6 +46,12 @@ funct getFirerate = {
     rets: f64
 }
 
+event joinCurrentRound = {
+    from: Client,
+    type: Reliable,
+    call: SingleAsync,
+}
+
 funct getSkillPoints = {
     call: Async,
     rets: struct {
@@ -88,13 +94,71 @@ event melee = {
     call: SingleAsync,
 }
 
+funct getPlayerMissions = {
+    call: Async,
+    rets: unknown
+}
+
+funct claimMissionRewards = {
+	call: Async,
+	args: i32,
+	rets: boolean,
+}
+
+event missionUpdated = {
+	from: Server,
+	type: Reliable,
+	call: SingleAsync,
+	data: unknown,
+}
+
+event missionGoalCompleted = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+    data: struct {
+        taskId: i32,
+        goalId: i32,
+    },
+}
+
+event updateLbData = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+    data: unknown
+}
+
+event replicateKill = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+}
+
+funct getLbData = {
+    call: Async,
+    args: string,
+    rets: unknown
+}
+
+event missionRewardClaimed = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+    data: struct {
+        taskId: i32,
+        goalId: unknown,
+    },
+}
+
 event replicateHit = {
     from: Server,
     type: Unreliable,
     call: SingleAsync,
     data: struct {
-        weaponName: string(..50),
-        victim: string(..20)?,
+        hitPart: Instance(BasePart)?,
+        damage: f64,
+        isCritical: boolean,
     }
 }
 
@@ -109,6 +173,15 @@ event replicateCast = {
 	}
 }
 
+event useEquipment = {
+    from: Client,
+    type: Reliable,
+    call: SingleAsync,
+    data: struct {
+        equipmentName: string,
+        hitPos: Vector3,
+    }
+}
 
 event updateUI = {
     from: Server,
@@ -119,7 +192,8 @@ event updateUI = {
         wave: u16?,
         wavesTillBoss: u16?,
         timeLeft: f64?,
-        gameActive: boolean?
+        gameActive: boolean?,
+        playerState: string?,
     }
 }
 

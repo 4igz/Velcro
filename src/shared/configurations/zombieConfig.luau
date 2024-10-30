@@ -5,14 +5,36 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local vfxFolder = ServerStorage.VFX
-local Sift = require(ReplicatedStorage.sharedPackages.Sift)
+local FastCast = require(ReplicatedStorage.sharedPackages.FastCast)
+local PartCache = require(ReplicatedStorage.shared.utilities.PartCache)
 local Signal = require(ReplicatedStorage.sharedPackages.Signal)
+local fogCycle = require(ServerStorage.server.services.fogCycleService)
 
 local skillService = require(ServerStorage.server.services.skillService)
 local zombieStatConfig = require(script.Parent.zombieStatConfig)
 local zombieUtil = require(ReplicatedStorage.shared.utilities.zombieUtil)
 local attackCooldown = 2 -- Cooldown time in seconds between attacks
 local zombieDebounces = {} -- Table to store the debounce status for each zombie
+
+local spitterCaster = FastCast.new()
+spitterCaster.PartCache = PartCache.new(vfxFolder.AcidSpit, 10, workspace.Terrain)
+
+local behavior = FastCast.newBehavior()
+behavior.RaycastParams = RaycastParams.new()
+behavior.MaxDistance = 100
+behavior.Acceleration = Vector3.new(0, -workspace.Gravity / 4, 0)
+behavior.CosmeticBulletContainer = workspace.Terrain
+behavior.CosmeticBulletProvider = spitterCaster.PartCache
+behavior.CanPierceFunction = function(cast, result, hitPos)
+	if result.Instance then
+		if result.Instance:IsDescendantOf(workspace.MapContainer) then
+			return false
+		end
+		return Players:GetPlayerFromCharacter(result.Instance.Parent) == nil
+	else
+		return true
+	end
+end
 
 -- Helper function to find the closest player to the given position
 local function findClosestTarget(zombiePosition)
@@ -51,7 +73,7 @@ local function applyDamageToPlayer(player, damage)
 end
 
 -- Helper function for attack debouncing
-local function canAttack(zombieId)
+local function canAttack(zombieId, cd)
 	local currentTime = tick()
 
 	-- Initialize debounce table if it doesn't exist
@@ -60,7 +82,7 @@ local function canAttack(zombieId)
 	end
 
 	-- Check cooldown
-	if currentTime - zombieDebounces[zombieId].lastAttackTime >= attackCooldown then
+	if currentTime - zombieDebounces[zombieId].lastAttackTime >= (cd or attackCooldown) then
 		zombieDebounces[zombieId].lastAttackTime = currentTime
 		return true
 	end
@@ -76,39 +98,56 @@ local function healZombie(zombie, healAmount)
 	end
 end
 
+spitterCaster.LengthChanged:Connect(function(cast, lastPoint, dir, displacment, segVel, pellet)
+	pellet.CFrame = CFrame.lookAt(lastPoint + (dir * displacment), lastPoint)
+end)
+
+spitterCaster.RayHit:Connect(function(cast, result, segVel, pellet)
+	local acidSpitDamage = 10
+
+	if result.Instance then
+		cast.UserData.pellet = pellet
+		local character = result.Instance:FindFirstAncestorWhichIsA("Model")
+		local humanoid = character and character:FindFirstChild("Humanoid")
+		if humanoid then
+			local player = Players:GetPlayerFromCharacter(character)
+			if player then
+				applyDamageToPlayer(player, acidSpitDamage)
+			end
+		end
+	end
+end)
+
+spitterCaster.CastTerminating:Connect(function(cast)
+	local cosmeticBullet = cast.RayInfo.CosmeticBulletObject
+	if cosmeticBullet ~= nil then
+		behavior.CosmeticBulletProvider:ReturnPart(cosmeticBullet)
+	end
+end)
+
 local attackTypes = {
-	basic = function(zombieData, id)
+	basic = function(zombieData, id, target)
 		local npc = zombieData.model -- NPC model
 		local attackPower = zombieData.attackPower -- Damage to deal
-		local attackRange = 3 -- Attack range in studs
 
 		if not npc or not npc.Parent or not npc.PrimaryPart then
 			return
 		end
 
+		if not target or not target.Character or not target.Character.PrimaryPart then
+			return
+		end
+
+		-- Ensure player is within attack range (3 studs)
 		-- Check if the zombie can attack based on debounce
 		if not canAttack(id) then
 			return
 		end
-
-		-- Find the closest player
-		local player = findClosestTarget(npc:GetPivot().Position)
-
-		if not player or not player.Character or not player.Character.PrimaryPart then
-			return
-		end
-
-		-- Calculate distance between zombie and player
-		local distanceToPlayer = (npc.PrimaryPart.Position - player.Character.PrimaryPart.Position).Magnitude
-
-		-- Ensure player is within attack range (3 studs)
-		if distanceToPlayer <= attackRange then
-			-- Apply damage to the player
-			applyDamageToPlayer(player, attackPower)
-		end
+		-- Apply damage to the player
+		applyDamageToPlayer(target, attackPower)
 	end,
 
-	fire = function(zombieData, id)
+	fire = function(zombieData, id, target)
 		local npc = zombieData.model
 		local attackPower = zombieData.attackPower
 		local burnDamage = zombieData.burnDamage or 5
@@ -123,14 +162,11 @@ local attackTypes = {
 			return
 		end
 
-		-- Find the closest player within range
-		local player = findClosestTarget(npc:GetPivot().Position)
-
 		-- Apply initial attack damage
-		applyDamageToPlayer(player, attackPower)
+		applyDamageToPlayer(target, attackPower)
 
 		-- Apply burning vfx
-		for _, part in player.Character:GetDescendants() do
+		for _, part in target.Character:GetDescendants() do
 			if part:IsA("BasePart") then
 				local fire = vfxFolder.Fire:Clone()
 				for _, v in fire:GetChildren() do
@@ -148,14 +184,45 @@ local attackTypes = {
 		-- Apply burn effect (damage over time)
 		for i = 1, burnDuration do
 			task.wait(1)
-			applyDamageToPlayer(player, burnDamage)
+			applyDamageToPlayer(target, burnDamage)
 		end
-
-		-- Remove burning vfx
 	end,
 }
 
 local zombieSpecials = {
+	devil = function(zombieData, id) end,
+	spit = function(zombieData, id)
+		-- This zombie will shoot acid spit at nearby players
+		local npc = zombieData.model
+		local acidSpitSpeed = 100
+		local acidSpitCooldown = 3
+		local acidSpitRange = 100
+
+		if not npc or not npc.Parent or not npc.PrimaryPart then
+			return
+		end
+
+		-- Check if the zombie can attack based on debounce
+		if not canAttack(id, acidSpitCooldown) then
+			return
+		end
+
+		-- Find the closest player within range
+		while npc.Parent and npc.Humanoid:GetState() ~= Enum.HumanoidStateType.Dead do
+			local player = findClosestTarget(npc:GetPivot().Position)
+
+			local character = player.Character
+			if
+				(npc:GetPivot().Position - character:GetPivot().Position).Magnitude
+				<= acidSpitRange
+			then
+				local direction = (character:GetPivot().Position - npc:GetPivot().Position).Unit
+				spitterCaster:Fire(npc.Head.Position, direction, acidSpitSpeed, behavior)
+			end
+			task.wait(acidSpitCooldown)
+		end
+	end,
+
 	spectre = function(zombieData, id)
 		local npc = zombieData.model
 
@@ -243,7 +310,7 @@ local zombieSpecials = {
 				applyDamageToPlayer(player, damage)
 				task.wait(1)
 			end
-			task.wait()
+			task.wait(1)
 		end
 	end,
 }
@@ -293,8 +360,9 @@ local function pathfindChase(zombieData, id)
 	local lastPathCalculation = 0
 	local lastLineOfSightCheck = 0
 	local lineOfSightCheckInterval = 0.25
-	local PREDICTION_TIME_FACTOR = zombieData.prediction and 1 or 0
-	local ATTACK_RANGE = 3
+	local PREDICTION_TIME_FACTOR = zombieData.prediction and 1
+		or if fogCycle.fogEnabled then 1 else 0
+	local ATTACK_RANGE = 3.5
 
 	local function hasLineOfSight(target, targetPosition)
 		local ray = Ray.new(
@@ -306,7 +374,7 @@ local function pathfindChase(zombieData, id)
 	end
 
 	local function waypointsContainJumps()
-		for _, waypoint in ipairs(waypoints) do
+		for _, waypoint in waypoints do
 			if waypoint.Action == Enum.PathWaypointAction.Jump then
 				return true
 			end
@@ -403,9 +471,15 @@ local function pathfindChase(zombieData, id)
 		if not npc.PrimaryPart then
 			return
 		end
-		if (npc.PrimaryPart.Position - predictedPosition).Magnitude <= ATTACK_RANGE then
+		if not target.Character then
+			return
+		end
+		if
+			(npc.PrimaryPart.Position - target.Character:GetPivot().Position).Magnitude
+			<= ATTACK_RANGE
+		then
 			if humanoid.Health > 0 then
-				attackTypes[zombieData.attackType or "basic"](zombieData, id)
+				attackTypes[zombieData.attackType or "basic"](zombieData, id, target)
 			end
 		end
 	end
@@ -440,9 +514,9 @@ local M = {
 			chase = pathfindChase,
 		},
 	},
-	{
-		zombieDied = Signal.new()
-	}
+	[3] = {
+		zombieDied = Signal.new(),
+	},
 }
 
 return M

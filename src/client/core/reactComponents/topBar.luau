@@ -2,11 +2,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local React = require(ReplicatedStorage.sharedPackages.React)
+local zap = require(ReplicatedStorage.zap)
 
 local wave = 1
 local zombies = 0
 local waveTillBoss = 10
 local gameActive = false
+local playerState = "inHud"
 
 local e = React.createElement
 
@@ -26,10 +28,11 @@ return function(props)
 	zombies = props.zombies or zombies
 	waveTillBoss = props.waveTillBoss or waveTillBoss
 	gameActive = props.gameActive or gameActive
+	playerState = props.playerState or playerState
 
 	-- Effect to handle the timer
 	React.useEffect(function()
-		if gameActive and timeLeft > 0 then
+		if timeLeft > 0 then
 			local lastUpdateTime = tick() -- Get the current time
 
 			local interval = RunService.Stepped:Connect(function()
@@ -208,6 +211,54 @@ return function(props)
 				Padding = UDim.new(0.025, 0),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
+			}),
+		}),
+		joinCurrentRound = React.createElement("TextButton", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = Color3.fromRGB(22, 22, 22),
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			FontFace = Font.new(
+				"rbxasset://fonts/families/Guru.json",
+				Enum.FontWeight.Bold,
+				Enum.FontStyle.Normal
+			),
+			Position = UDim2.fromScale(0.5, 0.7),
+			Size = UDim2.fromScale(0.0948, 0.4),
+			Text = "",
+			TextColor3 = Color3.fromRGB(0, 0, 0),
+			TextSize = 14,
+			Visible = playerState == "inLobby" and gameActive,
+			[React.Event.MouseButton1Click] = function()
+				zap.joinCurrentRound.Fire()
+			end,
+		}, {
+			text = React.createElement("TextLabel", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+				BackgroundTransparency = 1,
+				BorderColor3 = Color3.fromRGB(0, 0, 0),
+				BorderSizePixel = 0,
+				FontFace = Font.new(
+					"rbxassetid://11702779517",
+					Enum.FontWeight.Medium,
+					Enum.FontStyle.Italic
+				),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.fromScale(0.907, 0.92),
+				Text = "Join current round",
+				TextColor3 = Color3.fromRGB(255, 255, 255),
+				TextScaled = true,
+				TextSize = 14,
+				TextTransparency = 0.5,
+				TextWrapped = true,
+			}),
+
+			uIStroke = React.createElement("UIStroke", {
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+				Color = Color3.fromRGB(15, 15, 15),
+				LineJoinMode = Enum.LineJoinMode.Miter,
+				Thickness = 2,
 			}),
 		}),
 	})

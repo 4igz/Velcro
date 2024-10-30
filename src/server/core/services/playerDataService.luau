@@ -44,7 +44,6 @@ playerDataService.ProfileTemplate = {
 	Money = 1000,
 	Experience = 0,
 	Level = 1,
-	Kills = 0,
 	Rebirth = 0,
 
 	-- State
@@ -58,13 +57,16 @@ playerDataService.ProfileTemplate = {
 		"Starter Pistol",
 	},
 
+	HighestRound = 0,
+	GamesPlayed = 0,
+
 	rampageEssence = 0,
 	skillPoints = 0,
 
 	skillTree = generateSkillTree(skillConfig),
 }
 
-local ProfileStore = ProfileService.GetProfileStore("V0.1.0", playerDataService.ProfileTemplate)
+local ProfileStore = ProfileService.GetProfileStore("V0.2.0", playerDataService.ProfileTemplate)
 playerDataService.playerDataLoaded = Signal.new()
 playerDataService.playerDataChanged = Signal.new()
 

@@ -56,8 +56,12 @@ local effectHandlers = {
 					* ownsSpeedGamepass(player)
 				task.delay(7, function()
 					if #kills == 0 then
-						player.Character.Humanoid.WalkSpeed = ws.walkspeed
-							* ownsSpeedGamepass(player)
+						local char = player.Character
+						local hum = char and char:FindFirstChild("Humanoid")
+						if not hum then
+							return
+						end
+						hum.WalkSpeed = ws.walkspeed * ownsSpeedGamepass(player)
 					end
 				end)
 			end

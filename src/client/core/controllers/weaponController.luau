@@ -1,6 +1,5 @@
 local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
-local GamePassService = game:GetService("GamePassService")
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,16 +11,15 @@ local UserInputService = game:GetService("UserInputService")
 local shared = ReplicatedStorage.shared
 local packages = ReplicatedStorage.sharedPackages
 
+local CameraShaker = require(ReplicatedStorage.CameraShaker) :: ModuleScript
 local Input = require(packages.Input)
+local OTS = require(ReplicatedStorage.OTS) :: ModuleScript
 local PartCache = require(shared.utilities.PartCache)
 local React = require(packages.React)
-local ReactRoblox = require(packages.ReactRoblox)
-local contextActionServiceUtil = require(packages.contextActionServiceUtil)
-local loader = require(packages.loader)
-local monetizationUtil = require(ReplicatedStorage.shared.utilities.monetizationUtil)
-local playerUtil = require(shared.utilities.playerUtil)
-local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
-local util = require(shared.utilities.weaponUtil)
+local ReactRoblox = require(ReplicatedStorage.sharedPackages.ReactRoblox)
+local damageNumberContainer =
+	require(ReplicatedStorage.client.reactComponents.damageNumberContainer)
+local uiController = require(script.Parent.uiController)
 local weaponConfig = require(shared.configurations.weaponConfig)
 local weaponSettings = require(shared.configurations.weaponConfig)
 local zap = require(ReplicatedStorage.zap)
@@ -29,7 +27,6 @@ local zap = require(ReplicatedStorage.zap)
 local RAYCAST_BEAM_DURATION = 0.05
 local HITMARKER_DURATION = 0.05
 local HIT_PARTICLE_DURATION = 0.5
-local SPRINT_SPEED = 21
 local DAMAGE_DISPLAY_LIFETIME = 2
 -- The keys of the control keys to their names in ContextActionService
 -- List of controls for cross platform compatibilty
@@ -37,9 +34,25 @@ local CONTROLS = {
 	activation = { Enum.UserInputType.MouseButton1, Enum.KeyCode.ButtonR2 }, -- Aka attack, shoot, swing, throw, etc
 }
 
+local otsEnabled = false
+
+local camera = workspace.CurrentCamera
 local localPlayer = Players.LocalPlayer
 local mouse = localPlayer:GetMouse()
+local playerGui = localPlayer:WaitForChild("PlayerGui")
 local mouseInput = Input.Mouse.new()
+local cameraShaker = CameraShaker.new(Enum.RenderPriority.Last.Value, function(shakeCf)
+	camera.CFrame = camera.CFrame * shakeCf
+end)
+
+cameraShaker:Start()
+
+local hitmarkerRoot = ReactRoblox.createRoot(uiController.getUi("Hitmarker"))
+local hitmarkerSound = SoundService.Weapons.Hitsound1
+local killSound = SoundService.Weapons.Kill
+
+local damageNumberUi = uiController.getUi("DamageNumberContainer")
+local damageNumberRoot = ReactRoblox.createRoot(damageNumberUi)
 
 -- Create the params just once at the top for increased performance.
 local params = RaycastParams.new()
@@ -62,12 +75,10 @@ hitParticle2.Lifetime = NumberRange.new(0.3, HIT_PARTICLE_DURATION)
 hitParticle2.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
 
 local WEAPON_CACHE_SIZE = 50
-local cacheFolder = Instance.new("Folder")
 -- Create a cache of attachments and beams that are reused for optimal performance.
 local attachmentCache =
 	PartCache.new(Instance.new("Attachment"), WEAPON_CACHE_SIZE * 2, workspace.Terrain)
 local beamCache = PartCache.new(beam, WEAPON_CACHE_SIZE, workspace.Terrain)
-local hp1Cache = PartCache.new(hitParticle1, WEAPON_CACHE_SIZE, cacheFolder)
 
 local fadeOutBeamTweenInfo =
 	TweenInfo.new(RAYCAST_BEAM_DURATION, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
@@ -77,7 +88,6 @@ local weapons = {}
 local weaponEngaged = false
 local expectingInput = false
 local reloading = false
-local currentAnim = "idle"
 local currentWep = nil
 local dead = true
 local animTracks = {}
@@ -85,31 +95,8 @@ local casActions = {}
 
 local weaponController = {}
 
-local camera = game.Workspace.CurrentCamera
-local cameraAngleX = 0
-local cameraAngleY = 0
-
-local GOAL_CAMERA_FOVS = { onSprint = 80, onWeaponAim = 45, default = 70 }
-local CAMERA_LERP_ALPHAS = { onWeaponAim = 15, onSprint = 8, default = 10 }
-local CAMERA_LERP_SPEED = 0.5
-local MAX_ZOOM_DISTANCE = 8
-local MIN_ZOOM_DISTANCE = 8
-local VERTICAL_ANGLE_LIMITS = NumberRange.new(-75, 75)
-local CAMERA_IGNORE_INSTANCE_TAG = "CameraCanIgnore"
-
-local isFirstRun = true
-local isInputFromUI = false -- Flag to track if input is active
-
 local raycastParams = RaycastParams.new()
 raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-
-local weaponCamera = {
-	CAMERA_PRIMARY_PART_OFFSET = Vector3.new(2.5, 2.5, 8),
-}
-
-local function lerpCameraFOV(goal: number, alpha: number)
-	camera.FieldOfView = camera.FieldOfView + (goal - camera.FieldOfView) * alpha
-end
 
 local function getMobileAdjustedCenterScreenRay()
 	-- Get the center of the screen for mobile shooting
@@ -117,134 +104,10 @@ local function getMobileAdjustedCenterScreenRay()
 	local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
 
 	-- Adjust the Y value to move the crosshair slightly higher
-	local adjustedY = screenCenter.Y - 20 -- Adjust this value to move the crosshair higher or lower
+	local adjustedY = screenCenter.Y - 87 -- Adjust this value to move the crosshair higher or lower
 
 	-- Return the ray cast from the adjusted position
 	return camera:ScreenPointToRay(screenCenter.X, adjustedY)
-end
-
-local function setCharTransparency(character, transparency: number)
-	for _, v in character:GetChildren() do
-		if v:IsA("BasePart") then
-			if v.Name == "HumanoidRootPart" then
-				continue
-			end
-			v.LocalTransparencyModifier = transparency --lerp(0, 0.95, obstructionDisplacement.Unit.Y)
-		elseif v:IsA("Accessory") then
-			v.Handle.LocalTransparencyModifier = transparency
-		end
-	end
-end
-
-local function updateCamera(isUiInput)
-	-- Function to update the camera position and rotation
-	local character = localPlayer.Character
-	local humanoid = character:FindFirstChild("Humanoid")
-	if not humanoid then
-		return
-	end
-	local primaryPart = character:FindFirstChild("HumanoidRootPart")
-	local head = character:FindFirstChild("Head")
-
-	camera.CameraType = Enum.CameraType.Scriptable
-	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-	humanoid.AutoRotate = false
-	localPlayer.CameraMaxZoomDistance = MAX_ZOOM_DISTANCE
-	localPlayer.CameraMinZoomDistance = MIN_ZOOM_DISTANCE
-
-	if head and head.LocalTransparencyModifier == 1 then
-		for _, v in character:GetChildren() do
-			if v:IsA("BasePart") then
-				if v.Name == "HumanoidRootPart" then
-					continue
-				end
-				v.LocalTransparencyModifier = 0
-			elseif v:IsA("Accessory") then
-				v.Handle.LocalTransparencyModifier = 0
-			end
-		end
-	end
-
-	if isFirstRun then
-		lerpCameraFOV(GOAL_CAMERA_FOVS.default, CAMERA_LERP_ALPHAS.default)
-
-		local cameraCFrame = workspace.CurrentCamera.CFrame
-		cameraAngleY, cameraAngleX = cameraCFrame:ToOrientation()
-	end
-
-	-- Change camera angle based on mouse movements
-	local mouseDelta = UserInputService:GetMouseDelta() * (isUiInput and 1 or 10) --activeCameraSettings.Sensitivity
-	cameraAngleX -= mouseDelta.X / camera.ViewportSize.X
-	cameraAngleY -= mouseDelta.Y / camera.ViewportSize.Y
-	cameraAngleY = math.rad(
-		math.clamp(math.deg(cameraAngleY), VERTICAL_ANGLE_LIMITS.Min, VERTICAL_ANGLE_LIMITS.Max)
-	)
-
-	if primaryPart then
-		-- Address shoulder direction
-		local offset = weaponCamera.CAMERA_PRIMARY_PART_OFFSET
-		offset = Vector3.new(offset.X * 1--[[ShoulderDirection]], offset.Y, offset.Z)
-
-		-- Calculate new camera CFrame
-		local newCameraCFrame = CFrame.new(primaryPart.Position)
-			* CFrame.Angles(0, cameraAngleX, 0)
-			* CFrame.Angles(cameraAngleY, 0, 0)
-			* CFrame.new(offset)
-
-		newCameraCFrame = camera.CFrame:Lerp(newCameraCFrame, CAMERA_LERP_SPEED)
-
-		-- Raycast for obstructions
-		raycastParams.FilterDescendantsInstances = {
-			character,
-			workspace.RaycastIgnore,
-			CollectionService:GetTagged(CAMERA_IGNORE_INSTANCE_TAG),
-		}
-		local raycastResult = workspace:Raycast(
-			primaryPart.Position,
-			newCameraCFrame.Position - primaryPart.Position,
-			raycastParams
-		)
-
-		-- Address obstructions if any
-		if raycastResult then
-			local obstructionDisplacement = (raycastResult.Position - primaryPart.Position)
-			local obstructionPosition = primaryPart.Position
-				+ (obstructionDisplacement.Unit * (obstructionDisplacement.Magnitude - 0.1))
-			local _, _, _, r00, r01, r02, r10, r11, r12, r20, r21, r22 =
-				newCameraCFrame:GetComponents()
-			newCameraCFrame = CFrame.new(
-				obstructionPosition.x,
-				obstructionPosition.y + 1, -- Give a little extra height so you can see over yourself easier
-				obstructionPosition.z,
-				r00,
-				r01,
-				r02,
-				r10,
-				r11,
-				r12,
-				r20,
-				r21,
-				r22
-			)
-			-- Essentially when the player's camera is colliding with something, it becomes hard to see.
-			-- so here we make the player's character more and more transparent the closer they get to an obstruction.
-			if obstructionDisplacement.Magnitude < 5 then
-				local transparency = 1 - math.exp(-3 / obstructionDisplacement.Magnitude)
-				setCharTransparency(character, transparency)
-			end
-			-- If we see that there is a body part with transparency, but there is no obstruction, then set it back.
-		elseif character:FindFirstChild("Head").LocalTransparencyModifier > 0 then
-			setCharTransparency(character, 0)
-		end
-
-		-- Align character with camera
-		local newHumanoidRootPartCFrame = CFrame.new(primaryPart.Position)
-			* CFrame.Angles(0, cameraAngleX, 0)
-		primaryPart.CFrame =
-			primaryPart.CFrame:Lerp(newHumanoidRootPartCFrame, CAMERA_LERP_SPEED / 2)
-
-		camera.CFrame = newCameraCFrame
-	end
 end
 
 -- This stops all weapon animations that could be playing and plays the desired animation.
@@ -259,8 +122,6 @@ local function stopAllAndPlay(animName: string)
 	if animTracks[animName] then
 		animTracks[animName]:Play()
 	end
-	-- end
-	currentAnim = animName
 end
 
 -- Whenever an activation key is pressed this function is fired
@@ -280,15 +141,20 @@ local function weaponEquipped(tool: Tool)
 		mag.Transparency = 0
 	end
 
-	-- Setup controls
-	for casName, controls in CONTROLS do
-		contextActionServiceUtil.bindActionNoInputSink(
-			casName,
-			casActions[casName],
-			true,
-			table.unpack(controls)
-		)
+	if UserInputService.TouchEnabled then
+		local mobileUi = playerGui:WaitForChild("MobileUi")
+		mobileUi.mobileUI.crosshair.Visible = true
 	end
+	if UserInputService.TouchEnabled or otsEnabled then
+		OTS.SetCharacterAlignment(true)
+		OTS.Enable()
+	end
+
+	-- Setup controls
+	ContextActionService:BindAction("activation", function(...)
+		casActions.activation(...)
+		return Enum.ContextActionResult.Pass
+	end, false, unpack(CONTROLS.activation))
 end
 
 local function setupCharacter(character: Model)
@@ -300,17 +166,18 @@ local function setupCharacter(character: Model)
 	currentWep = nil
 	dead = false
 	mouse.Icon = ""
-	currentAnim = "idle"
 	table.clear(animTracks)
 	table.clear(weapons)
 
 	character.ChildAdded:Connect(function(child: Instance)
 		if child:IsA("Tool") then
 			-- Check that the tool is a weapon
-			local ws = table.clone(weaponConfig.settings[child.Name])
-			if not ws then
+			local exists = weaponConfig.settings[child.Name]
+			if not exists then
 				return
 			end
+
+			local ws = table.clone(exists)
 
 			-- humanoid.WalkSpeed = (ws.walkspeed or 16)
 			-- 	* (
@@ -376,6 +243,16 @@ local function setupCharacter(character: Model)
 			expectingInput = false
 			currentWep = nil
 
+			if UserInputService.TouchEnabled then
+				local mobileUi = playerGui:WaitForChild("MobileUi")
+				mobileUi.mobileUI.crosshair.Visible = false
+			end
+			if UserInputService.TouchEnabled or otsEnabled then
+				OTS.Disable()
+				OTS.LockMouse(false)
+				OTS.SetCharacterAlignment(false)
+			end
+
 			-- Disconnect controls
 			for name, _ in casActions do
 				ContextActionService:UnbindAction(name)
@@ -386,11 +263,15 @@ local function setupCharacter(character: Model)
 	character.Humanoid.Died:Connect(function()
 		dead = true
 		-- TODO: UI action
+		OTS.Disable()
 	end)
 end
 
 local function hitmarker()
 	local mousePosition = UserInputService:GetMouseLocation() - GuiService:GetGuiInset()
+	if UserInputService.TouchEnabled then
+		mousePosition = Vector2.new(camera.ViewportSize.X / 2, (camera.ViewportSize.Y / 2) - 87)
+	end
 	return React.createElement("ImageLabel", {
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -409,12 +290,13 @@ function weaponController.visualizeCast(data)
 	local a0: Attachment = attachmentCache:GetPart()
 	local a1: Attachment = attachmentCache:GetPart() --getUnusedCachePart(attachmentCache, "ParticleEmitter")
 	local cachedBeam = beamCache:GetPart()
-	cachedBeam.Color = ColorSequence.new(data.beamColor)
-	cachedBeam.Attachment0 = a0
-	cachedBeam.Attachment1 = a1
+	-- print(data)
+	-- cachedBeam.Color = ColorSequence.new(data.beamColor)
 
 	a0.WorldPosition = data.firepoint.WorldPosition
 	a1.WorldPosition = data.hit
+	cachedBeam.Attachment0 = a0
+	cachedBeam.Attachment1 = a1
 
 	task.spawn(function()
 		local fadeOutTween = TweenService:Create(cachedBeam, fadeOutBeamTweenInfo, { Width0 = 0 })
@@ -432,28 +314,36 @@ end
 
 -- Perform any client sided actions when a bullet hits something.
 function weaponController.replicateBulletHit(data)
-	local weaponName = data.weaponName
-	local victim = data.victim
-	-- If a player is hit and this is replicated to the client, make sure that person isn't the client who is being shot.
-	local ws = weaponSettings.settings[weaponName]
-	assert(ws, `No weapon settings for weapon named {weaponName}`)
-	if victim and victim ~= localPlayer.Name then
-		local hitmarkerSound = SoundService.Weapons.Hitmarker
-		hitmarkerSound:Play()
-		-- hitmarkerRoot:render(hitmarker())
-		-- task.delay(HITMARKER_DURATION, function()
-		-- 	hitmarkerRoot:unmount()
-		-- end)
+	-- local hitPart = data.hitPart
 
-		-- victim = playerUtil.playerFromName(victim)
-		-- if not victim and not data.targetHit then
-		-- 	return
-		-- end
-		-- if not data.targetHit and not util.canDamage(localPlayer, victim, ws) then
-		-- 	return
-		-- end
-		-- displayDamage(ws)
-	end
+	local viewportSize = camera.ViewportSize
+
+	local mp = if UserInputService.TouchEnabled
+		then Vector2.new(viewportSize.X / 2, viewportSize.Y / 2 - 87)
+		else UserInputService:GetMouseLocation() - GuiService:GetGuiInset()
+
+	damageNumberRoot:render(React.createElement(damageNumberContainer, {
+		damage = math.floor(data.damage),
+		critical = data.isCritical,
+		-- Get mouse position on screen
+		position = mp,
+		timestamp = tick(),
+	}))
+
+	hitmarkerSound:Play()
+	hitmarkerRoot:render(hitmarker())
+	task.delay(HITMARKER_DURATION, function()
+		hitmarkerRoot:unmount()
+	end)
+end
+
+function weaponController.visualizeKill(data)
+	killSound:Play()
+
+	local c = CameraShaker.CameraShakeInstance.new(1, 4, 0, 0.3)
+	c.PositionInfluence = Vector3.new(0.5, 0.5, 0.5)
+	c.RotationInfluence = Vector3.new(0, 0, 0)
+	cameraShaker:Shake(c)
 end
 
 function weaponController.start()
@@ -469,33 +359,45 @@ function weaponController.start()
 		end
 	end
 
+	if UserInputService.TouchEnabled then
+		local mobileUi = localPlayer.PlayerGui:WaitForChild("MobileUi")
+		mobileUi.Enabled = true
+
+		local fireButton: TextButton = mobileUi.mobileUI:WaitForChild("fireButton")
+		fireButton.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch then
+				weaponEngaged = true
+			end
+		end)
+
+		fireButton.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch then
+				weaponEngaged = false
+			end
+		end)
+	end
+
+	UserInputService.InputBegan:Connect(function(input)
+		if input.KeyCode == Enum.KeyCode.LeftShift then
+			if expectingInput then
+				if otsEnabled then
+					OTS.Disable()
+					OTS.LockMouse(false)
+					OTS.SetCharacterAlignment(false)
+				else
+					OTS.Enable()
+					OTS.LockMouse(true)
+					OTS.SetCharacterAlignment(true)
+				end
+				otsEnabled = not otsEnabled
+			end
+		end
+	end)
+
 	-- Do this as soon as the system starts incase the CharacterAdded event is called before the system
 	-- has had a chance to start. This is where we initially setup the weapon controller.
 	local char = localPlayer.Character or localPlayer.CharacterAdded:Wait()
 	setupCharacter(char)
-
-	-- Detect when player starts interacting with the screen (mouse, touch, etc.)
-	UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-		-- If the input is processed by the game UI (joystick or other UI elements), set the flag
-		if gameProcessedEvent then
-			isInputFromUI = true
-		end
-	end)
-
-	-- Detect when player stops interacting with the screen
-	UserInputService.InputEnded:Connect(function(input, gameProcessedEvent)
-		-- Reset the flag when input ends
-		if gameProcessedEvent then
-			isInputFromUI = false
-		end
-	end)
-
-	-- Continuously update the camera while input is active
-	RunService.RenderStepped:Connect(function()
-		if UserInputService.TouchEnabled then
-			updateCamera(isInputFromUI)
-		end
-	end)
 
 	RunService.RenderStepped:Connect(function(dt)
 		if weaponEngaged and expectingInput and not dead then
@@ -522,31 +424,64 @@ function weaponController.start()
 				local hitPosition
 				local hitInstance
 
+				local function isVisible(instance)
+					return instance.Transparency < 1 and instance.CanCollide -- Adjust as needed
+				end
+
+				local function performRaycast(origin, direction, range, params)
+					local rayOrigin = origin
+					local hitPosition, hitInstance
+					local maxIterations = 10 -- Limit the number of attempts to avoid infinite loop
+					local stepDistance = range / maxIterations -- Step size to move through invisible parts
+					local iteration = 0
+
+					while iteration < maxIterations do
+						local hit = workspace:Raycast(rayOrigin, direction * stepDistance, params)
+
+						if hit and hit.Instance then
+							if isVisible(hit.Instance) then
+								-- Found a visible part, return the hit position and instance
+								hitPosition = hit.Position
+								hitInstance = hit.Instance
+								break
+							else
+								-- Hit an invisible part, move the origin forward by a small step
+								rayOrigin = hit.Position + direction * 0.1 -- Small offset to continue
+							end
+						else
+							-- No hit in this iteration; increment the origin by stepDistance
+							rayOrigin = rayOrigin + direction * stepDistance
+						end
+
+						iteration = iteration + 1
+					end
+
+					-- If we haven’t hit anything visible, set hitPosition to the max range position
+					if not hitPosition then
+						hitPosition = origin + direction * range
+					end
+
+					return hitPosition, hitInstance
+				end
+
+				params.FilterDescendantsInstances = {
+					workspace.RaycastIgnore,
+					localPlayer.Character,
+					CollectionService:GetTagged("ZombieSpawns"),
+					CollectionService:GetTagged("SoundPart"),
+				}
+
 				if UserInputService.TouchEnabled then
 					-- For mobile: shoot based on the center of the screen
 					local ray = getMobileAdjustedCenterScreenRay()
-					local hit =
-						workspace:Raycast(ray.Origin, ray.Direction * currentWs.range, params)
-					if hit then
-						hitPosition = hit.Position
-						hitInstance = hit.Instance
-					else
-						-- If no hit, cast the ray outwards to max range
-						hitPosition = ray.Origin + ray.Direction * currentWs.range
-					end
+					hitPosition, hitInstance =
+						performRaycast(ray.Origin, ray.Direction, currentWs.range, params)
 				else
 					-- For non-mobile: shoot towards the mouse hit position
-					params.FilterDescendantsInstances =
-						{ workspace.RaycastIgnore, localPlayer.Character }
-					local hit = workspace:Raycast(
-						character.Head.Position,
-						(mouse.Hit.Position - character.Head.Position).Unit * currentWs.range,
-						params
-					)
-					hitPosition = if hit then hit.Position else mouseInput:Project(currentWs.range)
-					hitInstance = if hit then hit.Instance else nil
+					local direction = (mouse.Hit.Position - character.Head.Position).Unit
+					hitPosition, hitInstance =
+						performRaycast(character.Head.Position, direction, currentWs.range, params)
 				end
-
 				-- If the cast doesn't hit anything then let's say they hit somewhere at the
 				-- end of the range of their weapon.
 				-- Multiple bullets are visualized by the server because each bullets direction is calculated by the server.
@@ -566,6 +501,7 @@ function weaponController.start()
 		end
 	end)
 
+	zap.replicateKill.SetCallback(weaponController.visualizeKill)
 	zap.replicateHit.SetCallback(weaponController.replicateBulletHit)
 	zap.replicateCast.SetCallback(weaponController.visualizeCast)
 	localPlayer.CharacterAdded:Connect(setupCharacter)

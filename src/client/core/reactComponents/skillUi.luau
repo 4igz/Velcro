@@ -1,10 +1,14 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 
 local React = require(ReplicatedStorage.sharedPackages.React)
 local Sift = require(ReplicatedStorage.sharedPackages.Sift)
+local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
 local skillConfig = require(ReplicatedStorage.shared.configurations.skillConfig)
 local zap = require(ReplicatedStorage.zap)
 local e = React.createElement
+
+local uiSounds = SoundService:WaitForChild("UI")
 
 local function createReq(props)
 	return e("Frame", {
@@ -47,6 +51,7 @@ local function createSkillButton(props)
 	local requirements, setRequirements = React.useState({})
 
 	local function updateRequirement()
+		-- Start with base requirements like icon and divider
 		local newRequirements = {
 			icon1 = e("ImageLabel", {
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -75,7 +80,7 @@ local function createSkillButton(props)
 			}),
 		}
 
-		-- 0.43, 0.65, 0.87
+		-- Now add each requirement in the loop without reinitializing the table
 		for i = 1, math.min(3, #props.requirements) do
 			local cost = props.requirements[i]
 			table.insert(
@@ -90,6 +95,7 @@ local function createSkillButton(props)
 			)
 		end
 
+		-- Update the state with the full list of requirements
 		setRequirements(newRequirements)
 	end
 
@@ -129,6 +135,7 @@ local function createSkillButton(props)
 				TextSize = 14,
 				[React.Event.MouseButton1Click] = function()
 					props.onClick()
+					uiSounds.Click:Play()
 				end,
 			}, {
 				name = e("TextLabel", {
@@ -299,6 +306,12 @@ local function skillInfo(props)
 			TextSize = 14,
 			[React.Event.MouseButton1Click] = function()
 				zap.upgradeSkill.Fire({ skill = props.id, weapon = selectedSkill })
+
+				if props.data.unlocked then
+					uiSounds.Upgrade:Play()
+				else
+					uiSounds.Unlock:Play()
+				end
 			end,
 		}, {
 			uIStroke9 = e("UIStroke", {
@@ -493,7 +506,8 @@ return function(props)
 						level = skillData.level or 0,
 						requirements = Sift.Array.slice(
 							skillInfo.costs,
-							(skillData.level or 0 + 1)
+							(skillData.level or 0) + 1,
+							#skillInfo.costs
 						),
 						onClick = function()
 							setSelectedSkill(selectedSkill)
@@ -681,6 +695,8 @@ return function(props)
 			TextSize = 14,
 			TextWrapped = true,
 			[React.Event.MouseButton1Click] = function()
+				uiSounds.CloseMenu:Play()
+				sharedInfo.UISignals.closedUi:Fire()
 				props.onClose()
 			end,
 		}, {

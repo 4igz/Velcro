@@ -8,7 +8,7 @@ export type ShopConfig = {
 return {
 	shotgun = {
 		["Jacket-3"] = {
-			price = 5000,
+			price = 3000,
 			levelReq = 5,
 			description = "<b>Level: 5</b>\nThe starting shotgun. Perfect for quick burst of damage into crowds!",
 			order = 1,
@@ -28,21 +28,21 @@ return {
 	},
 	smg = {
 		["SMG"] = {
-			price = 5000,
+			price = 3000,
 			levelReq = 5,
 			description = "<b>Level: 5</b>\nYour classic high firerate arsenal. Let them eat lead!",
 			order = 2,
 		},
 		["VC-S"] = {
-			price = 20000,
-			levelReq = 50,
-			description = "<b>Level: 50</b>\nThe better SMG",
+			price = 10000,
+			levelReq = 20,
+			description = "<b>Level: 20</b>\nThe better SMG",
 			order = 5,
 		},
 		["VP70"] = {
-			price = 30500,
-			levelReq = 70,
-			description = "<b>Level: 70</b>\nLIGHT EM UP BOYS",
+			price = 20500,
+			levelReq = 50,
+			description = "<b>Level: 50</b>\nLIGHT EM UP BOYS",
 			order = 10,
 		},
 		["PM12"] = {
@@ -78,19 +78,19 @@ return {
 			order = 3,
 		},
 		["Nova-9"] = {
-			price = 12500,
+			price = 10000,
 			levelReq = 30,
 			description = "<b>Level: 30</b>\nPure power",
 			order = 4,
 		},
 		["Viper"] = {
-			price = 25000,
+			price = 20000,
 			levelReq = 50,
 			description = "<b>Level: 50</b>\nNow we're talking",
 			order = 5,
 		},
 		["Annihilator"] = {
-			price = 35000,
+			price = 30000,
 			levelReq = 60,
 			description = "<b>Level: 60</b>\nPerfect gun for the maximum amount of death",
 			order = 6,
@@ -104,7 +104,7 @@ return {
 	},
 	sniper = {
 		["Moisin"] = {
-			price = 5000,
+			price = 3000,
 			levelReq = 5,
 			description = "<b>Level: 5</b>\nHigh damage, slow firerate. But why stick to shooting only 1 zombie?",
 			order = 3,
@@ -114,12 +114,6 @@ return {
 			levelReq = 30,
 			description = "<b>Level: 30</b>\nWhy be far and weak, when you can be close and strong.",
 			order = 6,
-		},
-		["BNT-2"] = {
-			price = 25000,
-			levelReq = 60,
-			description = "<b>Level: 60</b>\nZombies? WHERE.",
-			order = 8,
 		},
 		["BFG-5000"] = {
 			price = 30500,

@@ -1,3 +1,5 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local uiController = {}
 
 local gui = Instance.new("ScreenGui")

@@ -106,7 +106,7 @@ return {
 		{
 			name = "Adrenaline Surge",
 			description = "Grants a 7% movement speed boost per level after getting a kill.",
-			costs = { 5, 10, 15, 20, 25 },
+			costs = { 20, 40, 55, 70, 85 },
 		},
 	},
 }

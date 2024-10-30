@@ -28,5 +28,6 @@ return {
 
 	UISignals = {
 		deployed = Signal.new(),
+		closedUi = Signal.new(),
 	},
 }

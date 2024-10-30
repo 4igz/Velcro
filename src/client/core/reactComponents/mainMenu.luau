@@ -3,13 +3,16 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 
 local React = require(ReplicatedStorage.sharedPackages.React)
+local ReactSpring = require(ReplicatedStorage.sharedPackages.ReactSpring)
 local leaderboardController = require(ReplicatedStorage.client.controllers.leaderboardController)
 local moneyUi = require(script.Parent.moneyUi)
 local playerHUDController = require(ReplicatedStorage.client.controllers.playerHUDController)
 local playerUtil = require(ReplicatedStorage.shared.utilities.playerUtil)
+local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
 local shopConfig = require(ReplicatedStorage.shared.configurations.shopConfig)
 local weaponConfig = require(ReplicatedStorage.shared.configurations.weaponConfig)
 local zap = require(ReplicatedStorage.zap)
+local uiSounds = SoundService:WaitForChild("UI")
 
 local WHATS_NEW = "New UI"
 
@@ -166,6 +169,8 @@ local function createTopBar(props)
 					TextSize = 14,
 					TextWrapped = true,
 					[React.Event.MouseButton1Click] = function()
+						uiSounds.CloseMenu:Play()
+						sharedInfo.UISignals.closedUi:Fire()
 						props.setMenu(props.lastMenu.current)
 						props.lastMenu.current = props.shown
 					end,
@@ -194,6 +199,7 @@ local function createTopBar(props)
 					Position = UDim2.fromScale(0.4, 0.17),
 					Size = UDim2.fromScale(0.187, 0.609),
 					[React.Event.MouseButton1Click] = function()
+						uiSounds.CloseMenu:Play()
 						props.setMenu(props.lastMenu.current)
 						props.lastMenu.current = props.shown
 					end,
@@ -206,6 +212,18 @@ local function createTopBar(props)
 end
 
 local function createMainMenu(props)
+	local styles, api = ReactSpring.useSpring(function()
+		return {
+			from = { color = Color3.fromRGB(255, 255, 255) }, -- White
+			to = { color = Color3.fromRGB(0, 0, 0) }, -- Black
+			loop = true, -- Enable looping
+			config = {
+				duration = 1, -- Duration in milliseconds
+				easing = ReactSpring.easings.easeInOutQuad, -- Easing function for smooth transition
+			},
+		}
+	end)
+
 	return e("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -229,14 +247,14 @@ local function createMainMenu(props)
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BackgroundTransparency = 1,
-				BorderColor3 = Color3.fromRGB(0, 0, 0),
+				BorderColor3 = Color3.fromRGB(255, 255, 255),
 				BorderSizePixel = 0,
 				Image = "rbxassetid://18416084269",
 				Position = UDim2.fromScale(0.5, 0.153),
 				ScaleType = Enum.ScaleType.Crop,
 				Size = UDim2.fromScale(0.925, 0.249),
 
-				[React.Event.MouseButton1Click] = function()
+				[React.Event.Activated] = function()
 					props.onDeploy()
 					props.lastMenu.current = "none"
 				end,
@@ -251,19 +269,19 @@ local function createMainMenu(props)
 
 				uIStroke1 = e("UIStroke", {
 					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-					Color = Color3.fromRGB(15, 15, 15),
+					Color = styles.color,
 					LineJoinMode = Enum.LineJoinMode.Miter,
 					Thickness = 3,
 				}),
 
 				button1 = e("Frame", {
-					Active = true,
+					Active = false,
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					BackgroundColor3 = Color3.fromRGB(22, 22, 22),
 					BorderColor3 = Color3.fromRGB(0, 0, 0),
 					BorderSizePixel = 0,
 					Position = UDim2.fromScale(0.126, 0.501),
-					Selectable = true,
+					Selectable = false,
 					Size = UDim2.fromScale(0.252, 1),
 				}, {
 					imageLabel = e("ImageLabel", {
@@ -302,6 +320,7 @@ local function createMainMenu(props)
 
 				[React.Event.MouseButton1Click] = function()
 					props.onShopButtonClick()
+					uiSounds.Click:Play()
 				end,
 			}, {
 				uIStroke2 = e("UIStroke", {
@@ -385,8 +404,10 @@ local function createMainMenu(props)
 						BorderColor3 = Color3.fromRGB(0, 0, 0),
 						BorderSizePixel = 0,
 						Position = UDim2.fromScale(0, 0),
-						Size = UDim2.fromScale(0, 1)
-							:Lerp(UDim2.fromScale(1, 1), props.xp / props.maxXp),
+						Size = UDim2.fromScale(0, 1):Lerp(
+							UDim2.fromScale(1, 1),
+							props.xp and props.xp / props.maxXp or 0.75
+						),
 					}, {
 						uIStroke4 = e("UIStroke", {
 							ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
@@ -853,9 +874,11 @@ local function weaponFrame(props)
 					if not props.owned then
 						zap.buyWeapon.Fire(weaponData)
 						props.updateUi(props.type)
+						uiSounds.Purchase:Play()
 						return
 					end
 
+					uiSounds.Equip:Play()
 					zap.equipWeapon.Fire(props.name)
 					props.updateUi(props.type)
 				end,
@@ -1051,9 +1074,22 @@ end
 
 return function(props)
 	local menuShown, setMenuShown = React.useState(props.menu or "main")
-	local level = React.useState(props.levelData and props.levelData.level)
-	local xp = React.useState(props.levelData and props.levelData.xp)
-	local maxXP = React.useState(props.levelData and props.levelData.xpMax)
+	local level, setLevel = React.useState(props.levelData and props.levelData.level)
+	local xp, setXp = React.useState(props.levelData and props.levelData.xp)
+	local maxXP, setMax = React.useState(props.levelData and props.levelData.xpMax)
+
+	-- local styles, api = ReactSpring.useSpring({
+	-- 	alpha = 0, -- Transparency
+	-- 	position = 0, -- Initial scale
+	-- })
+
+	-- React.useEffect(function()
+	-- 	if menuShown or props.shown then
+	-- 		api.start({ alpha = 1, position = 1 }) -- Animate to fully visible and full size
+	-- 	else
+	-- 		api.start({ alpha = 0, position = 0 }) -- Animate back to hidden state
+	-- 	end
+	-- end, { props.shown, menuShown })
 
 	-- If a menu is opened like the shop that has a back button, we need to know what the last menu was to go back
 	local lastMenu = React.useRef("main")
@@ -1101,11 +1137,12 @@ return function(props)
 	end
 
 	local function handleDeployClick()
-		local menuMusic = Players.LocalPlayer:FindFirstChild("Menu")
+		setMenuShown("none") -- Hide the menu after deploy
+		props.onDeployClicked()
+		local menuMusic = Players.LocalPlayer:WaitForChild("Menu")
 		menuMusic:Stop()
 		menuMusic:Destroy()
-		props.onDeployClicked()
-		setMenuShown("none") -- Hide the menu after deploy
+		uiSounds.Play:Play()
 	end
 
 	-- update lastMenu and menuShown if props.menu changes
@@ -1116,9 +1153,14 @@ return function(props)
 	end, { props.menu })
 
 	React.useEffect(function()
-		local menuMusic = SoundService.Menu
+		local menuMusic = uiSounds.Menu
 		menuMusic.Parent = Players.LocalPlayer
 		menuMusic:Play()
+
+		local levelData = zap.getLevelData.Call()
+		setLevel(levelData.level)
+		setMax(levelData.xpMax)
+		setXp(levelData.xp)
 	end, {})
 
 	playerHUDController.setVisibility(menuShown == "none")
@@ -1139,7 +1181,7 @@ return function(props)
 			BackgroundColor3 = Color3.fromRGB(13, 13, 13),
 			BorderColor3 = Color3.fromRGB(0, 0, 0),
 			BorderSizePixel = 0,
-			Image = "rbxassetid://84682077650492",
+			Image = "rbxassetid://130464041072280",
 			Position = UDim2.fromScale(0.5, 0.5),
 			ScaleType = Enum.ScaleType.Crop,
 			Size = UDim2.fromScale(1, 1),
@@ -1190,7 +1232,7 @@ return function(props)
 			Size = UDim2.fromScale(1, 0.862),
 		}, {
 			-- Main Menu
-			menu = createMainMenu({
+			menu = e(createMainMenu, {
 				shown = menuShown == "main",
 				onDeploy = handleDeployClick,
 				onShopButtonClick = handleShopButtonClick, -- Pass shop click handler

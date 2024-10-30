@@ -9,6 +9,7 @@ local ZOMBIE_TAG = "Zombie"
 local playerDataService = require(ServerStorage.server.services.playerDataService)
 local skillService = require(services.skillService)
 local weaponSettings = require(ReplicatedStorage.shared.configurations.weaponConfig)
+local zap = require(ServerStorage.zap)
 
 -- Global table to track which zombies have already been killed
 local zombieKillTracker = {}
@@ -38,16 +39,22 @@ return function(shooter: Player, ws: weaponSettings.Settings, raycastResult: Ray
 		end
 
 		if not zombieKillTracker[hitZombie][shooter.UserId] then
+			local isCritical = false
+			if raycastResult.Instance.Name == "Head" then
+				ws.damage *= ws.headshotMultiplier
+				isCritical = true
+			end
 			-- Apply skills (player effects, weapon changes, area-based effects, etc.)
 			-- Player hasn't killed this zombie yet, deal damage with modified weapon settings
-			hitHumanoid:TakeDamage(
-				if raycastResult.Instance.Name == "Head"
-					then ws.damage * ws.headshotMultiplier
-					else ws.damage
-			)
+			hitHumanoid:TakeDamage(ws.damage)
 			skillService.trackHitZombie(shooter, hitZombie)
 			skillService.trackHeadshotHit(shooter, hitZombie, raycastResult.Instance)
 			skillService.applySkills(shooter, ws)
+
+			zap.replicateHit.Fire(
+				shooter,
+				{ hitPart = raycastResult.Instance, damage = ws.damage, isCritical = isCritical }
+			)
 
 			if hitHumanoid:GetState() == Enum.HumanoidStateType.Dead or hitHumanoid.Health <= 0 then
 				zombieKillTracker[hitZombie][shooter.UserId] = true

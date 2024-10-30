@@ -31,7 +31,7 @@ function numberUtil.simplifyNumber(n)
 			return string.format("%.2f%s", n / v[1], v[2])
 		end
 	end
-	return string.format("%.2f", n)
+	return math.floor(n)
 end
 
 return numberUtil

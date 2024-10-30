@@ -11,35 +11,15 @@ local gui = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
 gui.ResetOnSpawn = false
 gui.Name = "HUD"
 
-local gui2 = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
-gui2.ResetOnSpawn = false
-gui2.Name = "GamepassHUD"
-local root = ReactRoblox.createRoot(gui2)
-
 local hudUiController = {}
 
 function hudUiController.setVisibility(value)
 	gui.Enabled = value
 end
 
-local function openGamepassShop(val)
-	root:render(gamepassShop({
-		visible = val,
-		onClose = function()
-			openGamepassShop(false)
-		end,
-	}))
-end
-
 function hudUiController.start()
-	task.spawn(function()
-		-- Cache all gamepasses so gamepass ui opens immediately.
-		root:render(gamepassShop({
-			visible = false,
-		}))
-	end)
 	sharedInfo.UISignals.deployed:Once(function()
-		hudUi({ gui = gui, openGamepassShop = openGamepassShop })
+		hudUi({ gui = gui })
 	end)
 end
 

@@ -44,7 +44,6 @@ return function(
 	rayParams.FilterDescendantsInstances = { zombieModels }
 
 	local raysToVisualize = {}
-	local hitsToProcess = {} -- Store all raycast results here
 	local killLocks = {} -- Lock to prevent multiple kill events for the same zombie
 	local headPosition = head.Position
 	local headToTarget = (to - headPosition).Unit
@@ -108,16 +107,13 @@ return function(
 
 						-- Ensure that this zombie can only be killed once
 						if hitHumanoid and not killLocks[hitCharacter] then
-							hits = hits + 1
-							table.insert(hitsToProcess, {
-								raycastResult = ray,
-							})
-
-							bulletHitSignal:Fire(shooter, ws, ray, weaponName)
-							-- Check if the zombie's health reaches zero and mark it as killed
-
-							-- Decrease the damage for subsequent hits (if piercing is allowed)
-							ws.damage = ws.damage * damageDecrementFactor
+							if hitHumanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+								hits += 1
+								-- Check if the zombie's health reaches zero and mark it as killed
+								bulletHitSignal:Fire(shooter, ws, ray, weaponName)
+								-- Decrease the damage for subsequent hits (if piercing is allowed)
+								ws.damage = ws.damage * damageDecrementFactor
+							end
 						end
 					end
 

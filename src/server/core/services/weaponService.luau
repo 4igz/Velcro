@@ -83,20 +83,21 @@ local function fireGun(player: Player, weapon: Tool, to: Vector3, hitPart: Insta
 		local sound = SoundService.Weapons:FindFirstChild(ws.sounds.fire) :: Sound
 
 		if sound then
-			local a = Instance.new("Part")
-			a.Position = firepoint.WorldPosition
-			a.CanCollide = false
-			a.Transparency = 1
-			a.Name = "SoundPart"
-			a.Parent = workspace
+			local soundPart = Instance.new("Part")
+			soundPart.Position = firepoint.WorldPosition
+			soundPart.CanCollide = false
+			soundPart.Transparency = 1
+			soundPart.Name = "SoundPart"
+			soundPart:AddTag("SoundPart")
+			soundPart.Parent = workspace
 
 			local newSound = sound:Clone()
-			newSound.Parent = a
+			newSound.Parent = soundPart
 
-			sound.Ended:Connect(function()
-				a:Destroy()
+			newSound.Ended:Connect(function()
+				soundPart:Destroy()
 			end)
-			sound:Play()
+			newSound:Play()
 		else
 			warn(`Fire sound {soundName} not found in SoundService.`)
 		end
@@ -104,6 +105,8 @@ local function fireGun(player: Player, weapon: Tool, to: Vector3, hitPart: Insta
 
 	-- Modify ws
 	ws = skillService.applySkills(player, ws)
+
+	zap.replicateCast.FireExcept(player, { firepoint = firepoint, hit = to })
 
 	bulletTypes[ws.bulletType](player, ws, firepoint, to, hitPart, weapon.Name)
 end
@@ -194,10 +197,10 @@ local function registerHit(
 
 	-- Replicate bullet hits
 	if raycastResult and raycastResult.Instance then
-		zap.replicateHit.Fire(
-			shooter,
-			{ weaponName = weaponName, hitPart = raycastResult.Instance }
-		)
+		-- zap.replicateHit.Fire(
+		-- 	shooter,
+		-- 	{ weaponName = weaponName, hitPart = raycastResult.Instance, damage = ws.damage }
+		-- )
 	end
 end
 
@@ -301,7 +304,9 @@ function weaponService.start()
 	weaponConfig.signals.kill:Connect(
 		function(shooter: Player, zombie: Model, ws: weaponConfig.Settings)
 			skillService.trackZombieKill(shooter, zombie)
-			skillService.applySkills(shooter, ws)
+			if ws then
+				skillService.applySkills(shooter, ws)
+			end
 
 			-- TODO: Add money and xp to player for killing certain zombies
 			local cfg = zombieStatConfig[zombie.Name]
@@ -322,6 +327,7 @@ function weaponService.start()
 				shooter,
 				{ type = "money", amtGain = moneyDropped, reason = "Killed Zombie" }
 			)
+			zap.replicateKill.Fire(shooter)
 			-- amounts are temporary
 		end
 	)

@@ -374,7 +374,7 @@ return function(props)
 						),
 						Position = UDim2.fromScale(0.85, 0.9),
 						Size = UDim2.fromScale(0.533, 0.524),
-						Text = "T",
+						Text = "F",
 						TextColor3 = Color3.fromRGB(255, 255, 255),
 						TextScaled = true,
 						TextSize = 14,
@@ -394,47 +394,33 @@ return function(props)
 						BackgroundTransparency = 1,
 						BorderColor3 = Color3.fromRGB(0, 0, 0),
 						BorderSizePixel = 0,
-						Image = "rbxassetid://12194143054",
+						Image = "rbxassetid://16042089544",
 						Position = UDim2.fromScale(0.5, 0.5),
 						Size = UDim2.fromScale(1.01, 0.97),
 					}, {
 						uIAspectRatioConstraint3 = e("UIAspectRatioConstraint"),
+					}),
+				}),
 
-						skill = e("TextLabel", {
-							AnchorPoint = Vector2.new(0.5, 0.5),
-							BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-							BackgroundTransparency = 1,
-							BorderColor3 = Color3.fromRGB(0, 0, 0),
-							BorderSizePixel = 0,
-							FontFace = Font.new(
-								"rbxasset://fonts/families/GothamSSm.json",
-								Enum.FontWeight.Bold,
-								Enum.FontStyle.Normal
-							),
-							Position = UDim2.fromScale(0.5, 0.5),
-							Size = UDim2.fromScale(1, 1),
-							Text = "?",
-							TextColor3 = Color3.fromRGB(255, 255, 255),
-							TextScaled = true,
-							TextSize = 14,
-							TextTransparency = 0.6,
-							TextWrapped = true,
-							Visible = false,
-						}),
+				shieldSkill = e("Frame", {
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					BackgroundColor3 = Color3.fromRGB(22, 22, 22),
+					BorderColor3 = Color3.fromRGB(0, 0, 0),
+					BorderSizePixel = 0,
+					LayoutOrder = 3,
+					Position = UDim2.fromScale(0.508, 0.146),
+					Size = UDim2.fromScale(0.679, 0.291),
+				}, {
+					uIAspectRatioConstraint2 = e("UIAspectRatioConstraint"),
+
+					uIStroke5 = e("UIStroke", {
+						ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+						Color = Color3.fromRGB(15, 15, 15),
+						LineJoinMode = Enum.LineJoinMode.Miter,
+						Thickness = 3,
 					}),
 
-					cooldown = e("Frame", {
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-						BackgroundTransparency = 0.3,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						Position = UDim2.fromScale(0.5, 0.5),
-						Size = UDim2.fromScale(1, 1),
-						ZIndex = 2,
-					}),
-
-					timer = e("TextLabel", {
+					key = e("TextLabel", {
 						AnchorPoint = Vector2.new(0.5, 0.5),
 						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 						BackgroundTransparency = 1,
@@ -442,21 +428,36 @@ return function(props)
 						BorderSizePixel = 0,
 						FontFace = Font.new(
 							"rbxasset://fonts/families/GothamSSm.json",
-							Enum.FontWeight.Bold,
+							Enum.FontWeight.Medium,
 							Enum.FontStyle.Normal
 						),
-						Position = UDim2.fromScale(0.5, 0.5),
-						Size = UDim2.fromScale(0.873, 0.74),
-						Text = "1.0s",
+						Position = UDim2.fromScale(0.85, 0.9),
+						Size = UDim2.fromScale(0.533, 0.524),
+						Text = "R",
 						TextColor3 = Color3.fromRGB(255, 255, 255),
 						TextScaled = true,
 						TextSize = 14,
 						TextWrapped = true,
+						TextXAlignment = Enum.TextXAlignment.Right,
 						ZIndex = 3,
 					}, {
-						uIStroke7 = e("UIStroke", {
+						uIStroke6 = e("UIStroke", {
+							Color = Color3.fromRGB(70, 70, 70),
 							Thickness = 2,
 						}),
+					}),
+
+					icon = e("ImageLabel", {
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+						BackgroundTransparency = 1,
+						BorderColor3 = Color3.fromRGB(0, 0, 0),
+						BorderSizePixel = 0,
+						Image = "rbxassetid://5647507800",
+						Position = UDim2.fromScale(0.5, 0.5),
+						Size = UDim2.fromScale(1.01, 0.97),
+					}, {
+						uIAspectRatioConstraint3 = e("UIAspectRatioConstraint"),
 					}),
 				}),
 
@@ -465,242 +466,6 @@ return function(props)
 					Padding = UDim.new(0.075, 0),
 					SortOrder = Enum.SortOrder.LayoutOrder,
 					VerticalAlignment = Enum.VerticalAlignment.Bottom,
-				}),
-
-				skill1 = e("Frame", {
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					BackgroundColor3 = Color3.fromRGB(22, 22, 22),
-					BorderColor3 = Color3.fromRGB(0, 0, 0),
-					BorderSizePixel = 0,
-					LayoutOrder = 1,
-					Position = UDim2.fromScale(0.508, 0.506),
-					Size = UDim2.fromScale(0.651, 0.279),
-				}, {
-					uIAspectRatioConstraint4 = e("UIAspectRatioConstraint"),
-
-					uIStroke8 = e("UIStroke", {
-						ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-						Color = Color3.fromRGB(15, 15, 15),
-						LineJoinMode = Enum.LineJoinMode.Miter,
-						Thickness = 3,
-					}),
-
-					key1 = e("TextLabel", {
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-						BackgroundTransparency = 1,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						FontFace = Font.new(
-							"rbxasset://fonts/families/GothamSSm.json",
-							Enum.FontWeight.Medium,
-							Enum.FontStyle.Normal
-						),
-						Position = UDim2.fromScale(0.85, 0.9),
-						Size = UDim2.fromScale(0.533, 0.524),
-						Text = "Q",
-						TextColor3 = Color3.fromRGB(255, 255, 255),
-						TextScaled = true,
-						TextSize = 14,
-						TextWrapped = true,
-						TextXAlignment = Enum.TextXAlignment.Right,
-						ZIndex = 3,
-					}, {
-						uIStroke9 = e("UIStroke", {
-							Color = Color3.fromRGB(70, 70, 70),
-							Thickness = 2,
-						}),
-					}),
-
-					icon1 = e("ImageLabel", {
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-						BackgroundTransparency = 1,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						Image = "rbxassetid://12194143054",
-						ImageTransparency = 1,
-						Position = UDim2.fromScale(0.5, 0.5),
-						Size = UDim2.fromScale(0.97, 0.97),
-					}, {
-						uIAspectRatioConstraint5 = e("UIAspectRatioConstraint"),
-
-						skill1 = e("TextLabel", {
-							AnchorPoint = Vector2.new(0.5, 0.5),
-							BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-							BackgroundTransparency = 1,
-							BorderColor3 = Color3.fromRGB(0, 0, 0),
-							BorderSizePixel = 0,
-							FontFace = Font.new(
-								"rbxasset://fonts/families/GothamSSm.json",
-								Enum.FontWeight.Bold,
-								Enum.FontStyle.Normal
-							),
-							Position = UDim2.fromScale(0.5, 0.5),
-							Size = UDim2.fromScale(1, 1),
-							Text = "?",
-							TextColor3 = Color3.fromRGB(255, 255, 255),
-							TextScaled = true,
-							TextSize = 14,
-							TextTransparency = 0.6,
-							TextWrapped = true,
-						}),
-					}),
-
-					cooldown1 = e("Frame", {
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-						BackgroundTransparency = 0.3,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						Position = UDim2.fromScale(0.5, 0.643),
-						Size = UDim2.fromScale(1, 0.714),
-						ZIndex = 2,
-					}),
-
-					timer1 = e("TextLabel", {
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-						BackgroundTransparency = 1,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						FontFace = Font.new(
-							"rbxasset://fonts/families/GothamSSm.json",
-							Enum.FontWeight.Bold,
-							Enum.FontStyle.Normal
-						),
-						Position = UDim2.fromScale(0.5, 0.5),
-						Size = UDim2.fromScale(0.873, 0.74),
-						Text = "0.7s",
-						TextColor3 = Color3.fromRGB(255, 255, 255),
-						TextScaled = true,
-						TextSize = 14,
-						TextWrapped = true,
-						ZIndex = 3,
-					}, {
-						uIStroke10 = e("UIStroke", {
-							Thickness = 2,
-						}),
-					}),
-				}),
-
-				skill2 = e("Frame", {
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					BackgroundColor3 = Color3.fromRGB(22, 22, 22),
-					BorderColor3 = Color3.fromRGB(0, 0, 0),
-					BorderSizePixel = 0,
-					LayoutOrder = 2,
-					Position = UDim2.fromScale(0.508, 0.86),
-					Size = UDim2.fromScale(0.651, 0.279),
-				}, {
-					uIAspectRatioConstraint6 = e("UIAspectRatioConstraint"),
-
-					uIStroke11 = e("UIStroke", {
-						ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-						Color = Color3.fromRGB(15, 15, 15),
-						LineJoinMode = Enum.LineJoinMode.Miter,
-						Thickness = 3,
-					}),
-
-					key2 = e("TextLabel", {
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-						BackgroundTransparency = 1,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						FontFace = Font.new(
-							"rbxasset://fonts/families/GothamSSm.json",
-							Enum.FontWeight.Medium,
-							Enum.FontStyle.Normal
-						),
-						Position = UDim2.fromScale(0.85, 0.9),
-						Size = UDim2.fromScale(0.533, 0.524),
-						Text = "E",
-						TextColor3 = Color3.fromRGB(255, 255, 255),
-						TextScaled = true,
-						TextSize = 14,
-						TextWrapped = true,
-						TextXAlignment = Enum.TextXAlignment.Right,
-						ZIndex = 3,
-					}, {
-						uIStroke12 = e("UIStroke", {
-							Color = Color3.fromRGB(70, 70, 70),
-							Thickness = 2,
-						}),
-					}),
-
-					icon2 = e("ImageLabel", {
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-						BackgroundTransparency = 1,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						Image = "rbxassetid://12194143054",
-						ImageTransparency = 1,
-						Position = UDim2.fromScale(0.5, 0.5),
-						Size = UDim2.fromScale(0.97, 0.97),
-					}, {
-						uIAspectRatioConstraint7 = e("UIAspectRatioConstraint"),
-
-						skill2 = e("TextLabel", {
-							AnchorPoint = Vector2.new(0.5, 0.5),
-							BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-							BackgroundTransparency = 1,
-							BorderColor3 = Color3.fromRGB(0, 0, 0),
-							BorderSizePixel = 0,
-							FontFace = Font.new(
-								"rbxasset://fonts/families/GothamSSm.json",
-								Enum.FontWeight.Bold,
-								Enum.FontStyle.Normal
-							),
-							Position = UDim2.fromScale(0.5, 0.5),
-							Size = UDim2.fromScale(1, 1),
-							Text = "?",
-							TextColor3 = Color3.fromRGB(255, 255, 255),
-							TextScaled = true,
-							TextSize = 14,
-							TextTransparency = 0.6,
-							TextWrapped = true,
-						}),
-					}),
-
-					cooldown2 = e("Frame", {
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-						BackgroundTransparency = 0.3,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						Position = UDim2.fromScale(0.5, 0.5),
-						Size = UDim2.fromScale(1, 1),
-						Visible = false,
-						ZIndex = 2,
-					}),
-
-					timer2 = e("TextLabel", {
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-						BackgroundTransparency = 1,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						FontFace = Font.new(
-							"rbxasset://fonts/families/GothamSSm.json",
-							Enum.FontWeight.Bold,
-							Enum.FontStyle.Normal
-						),
-						Position = UDim2.fromScale(0.5, 0.5),
-						Size = UDim2.fromScale(0.873, 0.74),
-						Text = "1.0s",
-						TextColor3 = Color3.fromRGB(255, 255, 255),
-						TextScaled = true,
-						TextSize = 14,
-						TextWrapped = true,
-						Visible = false,
-						ZIndex = 3,
-					}, {
-						uIStroke13 = e("UIStroke", {
-							Thickness = 2,
-						}),
-					}),
 				}),
 			}),
 		}),

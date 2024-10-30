@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Signal = require(ReplicatedStorage.sharedPackages.Signal)
+local playerDataService = require(script.Parent.playerDataService)
 local zap = require(ServerStorage.zap)
 local gameStateService = {}
 
@@ -14,14 +15,14 @@ local MAP_IMAGES = {
 	Harbor = "rbxassetid://134415720948116",
 	Depot = "rbxassetid://72699928748098",
 	Bricktops = "rbxassetid://111608068909443",
-	Pitlord = "rbxassetid://115671548050760",
+	-- Pitlord = "rbxassetid://115671548050760",
 	Streets = "rbxassetid://84765611489539",
 }
 
 local START_ROUND_TIME = 120 -- Total time for each round (e.g., 120 seconds)
 local INTERMISSION_TIME = 15 -- Time for the intermission phase (e.g., 30 seconds)
 
-local currentRound = 0
+local currentRound = ServerStorage:GetAttribute("StartingRound") or 0
 local roundActive = false
 local intermissionActive = true
 local roundTime = 0 -- Time left in the current round
@@ -33,8 +34,6 @@ local workspaceMapContent = workspace.MapContainer.MapContent
 
 local mapVotes = {} -- Table to track map votes
 local playerVotes = {} -- Track which map each player has voted for
-local playersInMap = {}
-local playing = {} -- Players that have deployed and are playing
 
 local availableMaps = mapFolder:GetChildren()
 
@@ -42,6 +41,39 @@ gameStateService.startingRound = Signal.new()
 gameStateService.endingGame = Signal.new()
 gameStateService.startingIntermission = Signal.new()
 gameStateService.endingIntermission = Signal.new()
+
+local playerStates = {}
+
+-- Define player states
+local PLAYER_STATE = {
+	inHud = "inHud", -- Player is in the main menu HUD
+	inLobby = "inLobby", -- Player has deployed but not in the map
+	inMap = "inMap", -- Player is actively in the map
+	dead = "dead", -- Player has died in the round
+}
+
+local playersInMapCount = 0 -- Track the number of players in the 'inMap' state
+local playersInLobbyCount = 0 -- Track the number of players in the 'inLobby' state
+
+local function updatePlayerState(player, newState)
+	local currentState = playerStates[player.UserId]
+
+	-- Handle 'inMap' state count
+	if currentState == PLAYER_STATE.inMap and newState ~= PLAYER_STATE.inMap then
+		playersInMapCount -= 1
+	elseif currentState ~= PLAYER_STATE.inMap and newState == PLAYER_STATE.inMap then
+		playersInMapCount += 1
+	end
+
+	-- Handle 'inLobby' state count
+	if currentState == PLAYER_STATE.inLobby and newState ~= PLAYER_STATE.inLobby then
+		playersInLobbyCount -= 1
+	elseif currentState ~= PLAYER_STATE.inLobby and newState == PLAYER_STATE.inLobby then
+		playersInLobbyCount += 1
+	end
+
+	playerStates[player.UserId] = newState
+end
 
 -- Initialize or reset the round time
 function gameStateService.resetRoundTime()
@@ -70,7 +102,7 @@ end
 -- Reduce the intermission time and check for timeout
 function gameStateService.reduceIntermissionTime(deltaTime)
 	if intermissionActive then
-		if #playing > 0 then
+		if playersInLobbyCount > 0 then
 			intermissionTime -= deltaTime
 		end
 
@@ -151,7 +183,7 @@ function gameStateService.startIntermission()
 		wave = 0,
 		wavesTillBoss = 0,
 		zombies = 0,
-		gameActive = true,
+		gameActive = false,
 	})
 
 	-- Update voting boards
@@ -242,46 +274,48 @@ function gameStateService.endGame()
 		loadedMap.Parent = mapFolder -- Unload the map
 	end
 
-	currentRound = 0
-	loadedMap = nil
-
-	-- Respawn all players
+	-- Respawn all players and set their new records
 	for _, player in Players:GetPlayers() do
+		local profile = playerDataService.getProfile(player)
+		if not profile or not profile.Data then
+			continue
+		end
+
+		if currentRound > profile.Data.HighestRound then
+			profile.Data.HighestRound = currentRound
+		end
+
+		if currentRound > 5 then
+			profile.Data.GamesPlayed += 1
+		end
+
+		playerDataService.setProfile(player, profile)
+
 		player:LoadCharacter() -- Respawn the character
 	end
 
-	table.clear(playersInMap)
-
+	currentRound = 0
+	loadedMap = nil
 	-- Start intermission after the round ends
 	gameStateService.startIntermission() -- Ensure the intermission starts properly
 end
 
 function gameStateService.startNewRound(mapName: string)
-	gameStateService.resetRoundTime()
-	gameStateService.advanceRound()
-	roundActive = true
-
 	if not loadedMap then
 		gameStateService.loadMap(mapName)
 		task.wait(1) -- wait for some time for map to load
 	end
-
 	gameStateService.startingRound:Fire(currentRound)
 
-	-- Define the area around the SpawnLocation where players can randomly spawn
-	local spawnLocation = loadedMap.SpawnLocation
-	for _, player in Players:GetPlayers() do
-		if not table.find(playersInMap, player) and table.find(playing, player) then
-			task.spawn(function()
-				player:RequestStreamAroundAsync(spawnLocation.Position)
-				-- Move the player to the new randomized spawn location
-				-- character:PivotTo(randomSpawnPosition)
-				-- We do this in order to make sure the client knows when to tp because the floor will have been streamed
-				zap.tpToMap.Fire(player, loadedMap.Name)
-				table.insert(playersInMap, player)
-			end)
+	task.defer(function()
+		roundActive = true
+		gameStateService.resetRoundTime()
+		gameStateService.advanceRound()
+		if playersInMapCount == 0 then
+			gameStateService.endGame()
+			return
 		end
-	end
+	end)
 end
 
 function gameStateService.mapLoaded()
@@ -299,60 +333,123 @@ end
 function gameStateService.start()
 	gameStateService.startIntermission()
 
+	zap.joinCurrentRound.SetCallback(function(player)
+		if playerStates[player.UserId] == PLAYER_STATE.inLobby and roundActive then
+			local spawnLocation = loadedMap.SpawnLocation
+			task.spawn(function()
+				player:RequestStreamAroundAsync(spawnLocation.Position)
+				-- We do this in order to make sure the client knows when to tp because the floor will have been streamed
+				zap.tpToMap.Fire(player, loadedMap.Name)
+				updatePlayerState(player, PLAYER_STATE.inMap)
+				zap.updateUI.Fire(player, {
+					playerState = playerStates[player.UserId], -- Send the player's state
+				})
+			end)
+		end
+	end)
+
 	-- When a player joins the game they are shown a main menu and are not technically in the game yet
 	-- until they hit the deploy button. Once they do so they are able to join the game and play.
 	zap.deployed.SetCallback(function(player)
-		if not table.find(playing, player) then
-			table.insert(playing, player)
+		if playerStates[player.UserId] == PLAYER_STATE.inHud then
+			-- Player has clicked the deploy button, moving them to the lobby
+			updatePlayerState(player, PLAYER_STATE.inLobby)
+
+			-- Update their UI or any necessary setup now that they are in the lobby
+			zap.updateUI.Fire(player, {
+				playerState = playerStates[player.UserId], -- Send the player's state
+			})
 		end
-		zap.updateUI.FireAll({
-			timeLeft = gameStateService.isRoundActive() and roundTime or intermissionTime,
-		})
+		if not playerStates[player.UserId] then
+			updatePlayerState(player, PLAYER_STATE.inLobby)
+			zap.updateUI.Fire(player, {
+				playerState = playerStates[player.UserId], -- Send the player's state
+			})
+		end
+	end)
+
+	-- When a round starts, move players from lobby to map
+	gameStateService.startingRound:Connect(function()
+		local spawnLocation = loadedMap.SpawnLocation
+		for _, player in Players:GetPlayers() do
+			if
+				playerStates[player.UserId] == PLAYER_STATE.inLobby
+				or playerStates[player.UserId] == PLAYER_STATE.dead
+			then
+				task.spawn(function()
+					local character = player.Character
+					local humanoid = character and character:FindFirstChild("Humanoid")
+					if not humanoid then
+						return
+					end
+					if humanoid:GetState() == Enum.HumanoidStateType.Dead then
+						return
+					end
+					updatePlayerState(player, PLAYER_STATE.inMap)
+					player:RequestStreamAroundAsync(spawnLocation.Position)
+					-- We do this in order to make sure the client knows when to tp because the floor will have been streamed
+					zap.tpToMap.Fire(player, loadedMap.Name)
+
+					zap.updateUI.Fire(player, {
+						playerState = playerStates[player.UserId], -- Send the player's state
+					})
+				end)
+			end
+		end
+	end)
+
+	gameStateService.endingGame:Connect(function()
+		for _, player in Players:GetPlayers() do
+			if
+				playerStates[player.UserId] == PLAYER_STATE.inMap
+				or playerStates[player.UserId] == PLAYER_STATE.dead
+			then
+				updatePlayerState(player, PLAYER_STATE.inLobby)
+			end
+		end
 	end)
 
 	zap.voteForMap.SetCallback(function(player, mapName)
-		if intermissionActive and table.find(playing, player) then
+		if intermissionActive and playerStates[player.UserId] == PLAYER_STATE.inLobby then
 			gameStateService.voteForMap(player, mapName)
 		end
 	end)
 
 	Players.PlayerAdded:Connect(function(player)
+		updatePlayerState(player, PLAYER_STATE.inHud)
+		zap.updateUI.Fire(player, {
+			playerState = playerStates[player.UserId], -- Send the player's state
+		})
+
 		player.CharacterAdded:Connect(function(character)
 			local humanoid = character:WaitForChild("Humanoid")
 			humanoid.Died:Connect(function()
-				if not roundActive or not table.find(playing, player) then
-					return
-				end
+				if playerStates[player.UserId] == PLAYER_STATE.inMap then
+					updatePlayerState(player, PLAYER_STATE.dead)
 
-				local playerInMap = table.find(playersInMap, player)
+					zap.updateUI.Fire(player, {
+						playerState = playerStates[player.UserId], -- Send the player's state
+					})
 
-				if playerInMap then
-					table.remove(playersInMap, playerInMap)
-				end
-
-				-- Check if any players are still in the map
-				-- If no players are in the map, end the game and start intermission
-				if #playersInMap == 0 then
-					print("All players are dead. Ending game and starting intermission.")
-					gameStateService.endGame()
+					-- If all players in the map are dead, end the game
+					if playersInMapCount == 0 then
+						print("All players are dead. Ending game and starting intermission.")
+						gameStateService.endGame()
+					end
 				end
 			end)
 		end)
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
-		if table.find(playersInMap, player) then
-			table.remove(playersInMap, table.find(playersInMap, player))
+		if playerStates[player.UserId] == PLAYER_STATE.inMap then
+			playersInMapCount -= 1
 		end
+		playerStates[player.UserId] = nil
 
-		if table.find(playing, player) then
-			table.remove(playing, table.find(playing, player))
-		end
-
-		-- Check if any players are still in the map
-		-- If no players are in the map, end the game and start intermission
-		if #playersInMap == 0 then
-			print("All players are dead. Ending game and starting intermission.")
+		-- If all players in the map are dead or have left, end the game
+		if playersInMapCount == 0 then
+			print("All players are dead or have left. Ending game and starting intermission.")
 			gameStateService.endGame()
 		end
 	end)

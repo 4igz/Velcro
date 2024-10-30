@@ -1,7 +1,13 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
-local equipmentFolder = RunService:IsServer() and ServerStorage.Equipment
+local zombieService = RunService:IsServer() and require(ServerStorage.server.services.zombieService)
+local weaponConfig = require(script.Parent.weaponConfig)
+local zombieUtil = require(ReplicatedStorage.shared.utilities.zombieUtil)
+
+local equipmentParts = RunService:IsServer() and ServerStorage.EquipmentParts
 
 local EquipmentConfig = {
 	Grenade = {
@@ -13,25 +19,51 @@ local EquipmentConfig = {
 			end
 
 			-- Create and position the grenade at the player's position
-			local grenadeClone = equipmentFolder.Grenade:Clone()
-			grenadeClone.Position = character.HumanoidRootPart.Position + Vector3.new(0, 5, 0) -- Spawn slightly above the player
-			grenadeClone.Parent = workspace
+			local grenadeClone = equipmentParts.Grenade:Clone() :: BasePart
+			grenadeClone.Position = character.HumanoidRootPart.Position + Vector3.new(1, 3, 2) -- Spawn slightly above the player
+			grenadeClone.Parent = workspace.Weapons
 
 			-- Add velocity to the grenade towards the target position
-			local direction = (targetPosition - grenadeClone.Position).unit
-			local grenadeVelocity = Instance.new("BodyVelocity")
-			grenadeVelocity.Velocity = direction * 50 -- Adjust the force as needed
-			grenadeVelocity.MaxForce = Vector3.new(4000, 4000, 4000) -- Max force in all directions
-			grenadeVelocity.Parent = grenadeClone
+			local direction = (targetPosition - grenadeClone.Position).Unit
+			grenadeClone:ApplyImpulse(direction * 50) -- Adjust impulse as needed
 
+			local BLAST_RADIUS = 15
+			local GRENADE_DAMAGE = 150
 			-- Set a timer for the grenade to explode
-			task.delay(3, function() -- Grenade explodes after 3 seconds
+			task.delay(1, function() -- Grenade explodes
 				-- Explosion logic here
 				local explosion = Instance.new("Explosion")
 				explosion.Position = grenadeClone.Position
-				explosion.BlastRadius = 10 -- Adjust radius as needed
+				explosion.BlastRadius = BLAST_RADIUS -- Adjust radius as needed
 				explosion.BlastPressure = 5000 -- Adjust damage pressure
+				explosion.DestroyJointRadiusPercent = 0
 				explosion.Parent = workspace
+
+				-- Damage nearby zombies
+				local nearbyZombies = zombieUtil.getNearbyZombies(
+					zombieService.getActiveZombies(),
+					grenadeClone.Position,
+					BLAST_RADIUS
+				)
+
+				for _, zombie in nearbyZombies do
+					local humanoid = zombie:FindFirstChild("Humanoid")
+					if humanoid then
+						local con = humanoid.Died:Connect(function()
+							-- Handle zombie death
+							weaponConfig.signals.kill:Fire(player, zombie, nil)
+						end)
+
+						humanoid:TakeDamage(GRENADE_DAMAGE)
+
+						-- Apply damage then give it some time for the event to fire if they die.
+						task.delay(0.1, function()
+							con:Disconnect()
+						end)
+					end
+				end
+
+				-- Damage nearby zombies
 
 				-- Clean up the grenade after the explosion
 				grenadeClone:Destroy()
@@ -52,10 +84,10 @@ local EquipmentConfig = {
 			end
 		end,
 	},
-	BubbleShield = {
+	Shield = {
 		serverAction = function(player)
 			-- Create a bubble shield around the player
-			local DURATION = 4
+			local DURATION = 15
 
 			local char = player.Character
 			if not (char and char.Parent) then

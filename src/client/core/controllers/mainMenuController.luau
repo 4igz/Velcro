@@ -33,22 +33,18 @@ function mainMenuController.changeMenu(menuName, props)
 	end
 end
 
-function mainMenuController.start()
-	-- We want the main menu to be visible first
+local function deploy()
+	-- Remove the main menu, show HUD
+	sharedInfo.UISignals.deployed:Fire()
 
-	local function deploy()
-		-- Remove the main menu, show HUD
-		sharedInfo.UISignals.deployed:Fire()
-		-- Inform the server that the player has deployed
-		if not hasDeployed then
-			hasDeployed = true
-			zap.deployed.Fire()
-		end
+	-- Inform the server that the player has deployed
+	if not hasDeployed then
+		hasDeployed = true
+		zap.deployed.Fire()
 	end
-
-	-- Get xp info from the server
-	local levelData = zap.getLevelData.Call()
-	root:render(app({ onDeployClicked = deploy, levelData = levelData }))
 end
+
+-- Get xp info from the server
+root:render(app({ onDeployClicked = deploy, levelData = {} }))
 
 return mainMenuController
