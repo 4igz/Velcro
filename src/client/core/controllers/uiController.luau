@@ -1,9 +1,10 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local uiController = {}
 
 local gui = Instance.new("ScreenGui")
-gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 gui.ResetOnSpawn = false
 
 function uiController.getUi(name, ignoreInset)

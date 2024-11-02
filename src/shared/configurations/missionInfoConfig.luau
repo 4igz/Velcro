@@ -9,11 +9,11 @@ local types = {
 	zombies = "zombies",
 	elites = "elites",
 	rebirth = "rebirth",
-	coins = "coins",
+	cash = "cash",
 }
 
 local rewards = {
-	coins = "coins",
+	cash = "cash",
 	xp = "xp",
 }
 

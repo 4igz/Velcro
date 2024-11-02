@@ -27,6 +27,7 @@ return {
 	},
 
 	UISignals = {
+		toggleZombieVFX = Signal.new(),
 		deployed = Signal.new(),
 		closedUi = Signal.new(),
 	},

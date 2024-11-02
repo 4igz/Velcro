@@ -6,6 +6,7 @@ local sharedPackages = ReplicatedStorage.sharedPackages
 local Promise = require(sharedPackages.Promise)
 local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local Signal = require(sharedPackages.Signal)
+local numberUtil = require(ReplicatedStorage.shared.utilities.numberUtil)
 local playerDataService = require(script.Parent.playerDataService)
 
 local RETRY_GET_STATE_TIMES = 10
@@ -27,6 +28,7 @@ function playerStateService.start()
 			Leaderboard = {
 				Level = 0,
 				Money = 0,
+				PlayTime = 0,
 			},
 			playing = true,
 			inMap = false,
@@ -85,7 +87,7 @@ function playerStateService.updateLeaderstats(player, profileData)
 	local playerState = playerStateService.getPlayerState(player)
 
 	for fieldName, value in playerState.Leaderboard do
-		leaderboardFields[fieldName] = profileData[fieldName]
+		leaderboardFields[fieldName] = profileData[fieldName] or profileData.lbStats[fieldName]
 	end
 
 	-- Update each stat in the leaderboard data
@@ -93,12 +95,12 @@ function playerStateService.updateLeaderstats(player, profileData)
 		local stat = leaderstats:FindFirstChild(statName)
 		if not stat then
 			-- If the stat doesn't exist, create it
-			stat = Instance.new("IntValue")
+			stat = Instance.new("StringValue")
 			stat.Name = statName
 			stat.Parent = leaderstats
 		end
 		-- Update the value of the stat
-		stat.Value = value
+		stat.Value = numberUtil.simplifyNumber(value)
 	end
 end
 

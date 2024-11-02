@@ -20,13 +20,6 @@ function leaderboardController.setVisibility(value)
 	gui.Enabled = value
 end
 
-function leaderboardController.start()
-	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
-
-	sharedInfo.UISignals.deployed:Once(function()
-		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, true)
-		-- ReactRoblox.createRoot(Instance.new("Folder")):render(ReactRoblox.createPortal(app(), gui))
-	end)
-end
+function leaderboardController.start() end
 
 return leaderboardController

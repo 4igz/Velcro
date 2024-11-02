@@ -14,7 +14,6 @@ end
 local statToLb = {}
 
 local function initializeLeaderboard(leaderboard)
-	print("Got here")
 	-- Create the UI root for the leaderboard
 	local root = ReactRoblox.createRoot(leaderboard)
 	local trackingStat = leaderboard:GetAttribute("TrackingStat")

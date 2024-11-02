@@ -1,9 +1,12 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local React = require(ReplicatedStorage.sharedPackages.React)
-local gamepassShop = require(script.Parent.gamepassShop)
+local equipmentController = require(ReplicatedStorage.client.controllers.equipmentController)
+local gamepassUiController = require(ReplicatedStorage.client.controllers.gamepassUiController)
 local playerUtil = require(ReplicatedStorage.shared.utilities.playerUtil)
+local zap = require(ReplicatedStorage.zap)
 local e = React.createElement
 
 return function(props)
@@ -18,9 +21,21 @@ return function(props)
 	local money: IntValue = leaderstats:WaitForChild("Money")
 	local moneyV, setMoney = React.useState(money.Value)
 
+	local grenades, setGrenades = React.useState(0)
+	local shields, setShields = React.useState(0)
+	local medkits, setMedkits = React.useState(0)
+
 	money.Changed:Connect(function()
 		setMoney(money.Value)
 	end)
+
+	React.useEffect(function()
+		zap.updateEquipments.SetCallback(function(playerEquipments)
+			setGrenades(playerEquipments.Grenade or 0)
+			setShields(playerEquipments.Shield or 0)
+			setMedkits(playerEquipments.Medkit or 0)
+		end)
+	end, {})
 
 	-- Update the state if new props are passed
 	React.useEffect(function()
@@ -313,6 +328,9 @@ return function(props)
 						TextSize = 14,
 						TextWrapped = true,
 						ZIndex = 3,
+						[React.Event.MouseButton1Click] = function()
+							gamepassUiController.setGamepassShopOpen(true)
+						end,
 					}, {
 						uIAspectRatioConstraint1 = React.createElement("UIAspectRatioConstraint"),
 
@@ -334,7 +352,7 @@ return function(props)
 				}),
 			}),
 
-			tab = e("Frame", {
+			tab = e("TextButton", {
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BackgroundTransparency = 1,
@@ -342,6 +360,9 @@ return function(props)
 				BorderSizePixel = 0,
 				Position = UDim2.fromScale(0.971, 0.521),
 				Size = UDim2.fromScale(0.0455, 0.705),
+				[React.Event.Activated] = function()
+					equipmentController.useEquipment("Grenade")
+				end,
 			}, {
 				skill3 = e("Frame", {
 					AnchorPoint = Vector2.new(0.5, 0.5),
@@ -374,7 +395,7 @@ return function(props)
 						),
 						Position = UDim2.fromScale(0.85, 0.9),
 						Size = UDim2.fromScale(0.533, 0.524),
-						Text = "F",
+						Text = UserInputService.TouchEnabled and grenades or `F - {grenades}/5`,
 						TextColor3 = Color3.fromRGB(255, 255, 255),
 						TextScaled = true,
 						TextSize = 14,
@@ -402,7 +423,7 @@ return function(props)
 					}),
 				}),
 
-				shieldSkill = e("Frame", {
+				shieldSkill = e("TextButton", {
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					BackgroundColor3 = Color3.fromRGB(22, 22, 22),
 					BorderColor3 = Color3.fromRGB(0, 0, 0),
@@ -410,6 +431,9 @@ return function(props)
 					LayoutOrder = 3,
 					Position = UDim2.fromScale(0.508, 0.146),
 					Size = UDim2.fromScale(0.679, 0.291),
+					[React.Event.Activated] = function()
+						equipmentController.useEquipment("Grenade")
+					end,
 				}, {
 					uIAspectRatioConstraint2 = e("UIAspectRatioConstraint"),
 
@@ -433,7 +457,7 @@ return function(props)
 						),
 						Position = UDim2.fromScale(0.85, 0.9),
 						Size = UDim2.fromScale(0.533, 0.524),
-						Text = "R",
+						Text = UserInputService.TouchEnabled and shields or `R - {shields}/5`,
 						TextColor3 = Color3.fromRGB(255, 255, 255),
 						TextScaled = true,
 						TextSize = 14,
@@ -454,6 +478,68 @@ return function(props)
 						BorderColor3 = Color3.fromRGB(0, 0, 0),
 						BorderSizePixel = 0,
 						Image = "rbxassetid://5647507800",
+						Position = UDim2.fromScale(0.5, 0.5),
+						Size = UDim2.fromScale(1.01, 0.97),
+					}, {
+						uIAspectRatioConstraint3 = e("UIAspectRatioConstraint"),
+					}),
+				}),
+
+				medkit = e("TextButton", {
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					BackgroundColor3 = Color3.fromRGB(22, 22, 22),
+					BorderColor3 = Color3.fromRGB(0, 0, 0),
+					BorderSizePixel = 0,
+					LayoutOrder = 3,
+					Position = UDim2.fromScale(0.35, 0.146),
+					Size = UDim2.fromScale(0.679, 0.291),
+					[React.Event.Activated] = function()
+						equipmentController.useEquipment("Grenade")
+					end,
+				}, {
+					uIAspectRatioConstraint2 = e("UIAspectRatioConstraint"),
+
+					uIStroke5 = e("UIStroke", {
+						ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+						Color = Color3.fromRGB(15, 15, 15),
+						LineJoinMode = Enum.LineJoinMode.Miter,
+						Thickness = 3,
+					}),
+
+					key = e("TextLabel", {
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+						BackgroundTransparency = 1,
+						BorderColor3 = Color3.fromRGB(0, 0, 0),
+						BorderSizePixel = 0,
+						FontFace = Font.new(
+							"rbxasset://fonts/families/GothamSSm.json",
+							Enum.FontWeight.Medium,
+							Enum.FontStyle.Normal
+						),
+						Position = UDim2.fromScale(0.85, 0.9),
+						Size = UDim2.fromScale(0.533, 0.524),
+						Text = UserInputService.TouchEnabled and medkits or `G - {medkits}/5`,
+						TextColor3 = Color3.fromRGB(255, 255, 255),
+						TextScaled = true,
+						TextSize = 14,
+						TextWrapped = true,
+						TextXAlignment = Enum.TextXAlignment.Right,
+						ZIndex = 3,
+					}, {
+						uIStroke6 = e("UIStroke", {
+							Color = Color3.fromRGB(70, 70, 70),
+							Thickness = 2,
+						}),
+					}),
+
+					icon = e("ImageLabel", {
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+						BackgroundTransparency = 1,
+						BorderColor3 = Color3.fromRGB(0, 0, 0),
+						BorderSizePixel = 0,
+						Image = "rbxassetid://17181103870",
 						Position = UDim2.fromScale(0.5, 0.5),
 						Size = UDim2.fromScale(1.01, 0.97),
 					}, {

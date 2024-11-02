@@ -690,10 +690,12 @@ local function createShopMenu(props)
 		BackgroundTransparency = 1,
 		BorderColor3 = Color3.fromRGB(0, 0, 0),
 		BorderSizePixel = 0,
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromScale(0.513, 0.366),
+		Size = UDim2.fromScale(0.872, 0.828),
 		Visible = props.shown,
 	}, {
+		-- Main Menu
+
 		container1 = e("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			BackgroundColor3 = Color3.fromRGB(0, 0, 0),
@@ -703,6 +705,28 @@ local function createShopMenu(props)
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.fromScale(0.968, 0.927),
 		}, {
+			close = React.createElement("ImageButton", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+				BackgroundTransparency = 0.7,
+				BorderColor3 = Color3.fromRGB(0, 0, 0),
+				BorderSizePixel = 0,
+				Image = "rbxassetid://10747384394",
+				Position = UDim2.fromScale(1.01, -0.0167),
+				Size = UDim2.fromScale(0.0403, 0.0916),
+				[React.Event.Activated] = function()
+					uiSounds.CloseMenu:Play()
+					sharedInfo.UISignals.closedUi:Fire("Shop")
+					props.setMenu("none")
+				end,
+			}, {
+				uIAspectRatioConstraint = React.createElement("UIAspectRatioConstraint"),
+
+				uIStroke = React.createElement("UIStroke", {
+					Thickness = 2,
+					Transparency = 0.5,
+				}),
+			}),
 			topbar1 = e("Frame", {
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				BackgroundColor3 = Color3.fromRGB(0, 0, 0),
@@ -874,7 +898,7 @@ local function weaponFrame(props)
 					if not props.owned then
 						zap.buyWeapon.Fire(weaponData)
 						props.updateUi(props.type)
-						uiSounds.Purchase:Play()
+						-- uiSounds.Purchase:Play()
 						return
 					end
 
@@ -1073,7 +1097,7 @@ local function weaponFrame(props)
 end
 
 return function(props)
-	local menuShown, setMenuShown = React.useState(props.menu or "main")
+	local menuShown, setMenuShown = React.useState(props.menu or "none")
 	local level, setLevel = React.useState(props.levelData and props.levelData.level)
 	local xp, setXp = React.useState(props.levelData and props.levelData.xp)
 	local maxXP, setMax = React.useState(props.levelData and props.levelData.xpMax)
@@ -1092,7 +1116,7 @@ return function(props)
 	-- end, { props.shown, menuShown })
 
 	-- If a menu is opened like the shop that has a back button, we need to know what the last menu was to go back
-	local lastMenu = React.useRef("main")
+	local lastMenu = React.useRef("none")
 
 	local displayedWeapons, setWeapons = React.useState({})
 
@@ -1139,10 +1163,12 @@ return function(props)
 	local function handleDeployClick()
 		setMenuShown("none") -- Hide the menu after deploy
 		props.onDeployClicked()
-		local menuMusic = Players.LocalPlayer:WaitForChild("Menu")
-		menuMusic:Stop()
-		menuMusic:Destroy()
 		uiSounds.Play:Play()
+		task.spawn(function()
+			local menuMusic = Players.LocalPlayer:WaitForChild("Menu")
+			menuMusic:Stop()
+			menuMusic:Destroy()
+		end)
 	end
 
 	-- update lastMenu and menuShown if props.menu changes
@@ -1153,7 +1179,7 @@ return function(props)
 	end, { props.menu })
 
 	React.useEffect(function()
-		local menuMusic = uiSounds.Menu
+		local menuMusic = uiSounds:WaitForChild("Menu")
 		menuMusic.Parent = Players.LocalPlayer
 		menuMusic:Play()
 
@@ -1161,6 +1187,7 @@ return function(props)
 		setLevel(levelData.level)
 		setMax(levelData.xpMax)
 		setXp(levelData.xp)
+		handleDeployClick()
 	end, {})
 
 	playerHUDController.setVisibility(menuShown == "none")
@@ -1213,11 +1240,11 @@ return function(props)
 		}),
 
 		-- Top Bar
-		topbar = createTopBar({
-			shown = menuShown,
-			setMenu = setMenuShown,
-			lastMenu = lastMenu,
-		}),
+		-- topbar = createTopBar({
+		-- 	shown = menuShown,
+		-- 	setMenu = setMenuShown,
+		-- 	lastMenu = lastMenu,
+		-- }),
 
 		moneyUi = moneyUi({ position = UDim2.fromScale(0.3, 0.035) }),
 
@@ -1231,7 +1258,7 @@ return function(props)
 			Position = UDim2.fromScale(0.5, 0.569),
 			Size = UDim2.fromScale(1, 0.862),
 		}, {
-			-- Main Menu
+
 			menu = e(createMainMenu, {
 				shown = menuShown == "main",
 				onDeploy = handleDeployClick,
@@ -1247,6 +1274,7 @@ return function(props)
 				shown = menuShown == "shop",
 				onWeaponClick = updateDisplayedWeapons,
 				weapons = displayedWeapons,
+				setMenu = setMenuShown,
 			}),
 		}),
 	})

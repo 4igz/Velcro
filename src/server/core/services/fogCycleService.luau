@@ -33,10 +33,9 @@ function fogCycle.setFogEnabled(enabled)
 end
 
 function fogCycle.start()
-	print("Started")
 	local con = nil
 	gameStateService.startingRound:Connect(function(roundNum)
-		if roundNum % 6 == 0 then
+		if roundNum > 0 and roundNum % 5 == 0 then
 			-- The Fog is Coming
 			fogCycle.setFogEnabled(true)
 			fogCycle.setFogDensity(0.75)

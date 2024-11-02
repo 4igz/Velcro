@@ -1,16 +1,14 @@
 local CollectionService = game:GetService("CollectionService")
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
-local numberUtil = require(ReplicatedStorage.shared.utilities.numberUtil)
 local playerDataService = require(ServerStorage.server.services.playerDataService)
 -- local playerUtil = require(ReplicatedStorage.shared.utilities.playerUtil)
 local zap = require(ServerStorage.zap)
 local leaderboardService = {}
 
-local LB_DISPLAY_NUM = 100
+local LB_DISPLAY_NUM = 25
 
 local statToList = {}
 
@@ -18,7 +16,8 @@ function leaderboardService.start()
 	for _, leaderboard in CollectionService:GetTagged("Leaderboard") do
 		task.spawn(function()
 			local trackedStat = leaderboard:GetAttribute("TrackingStat")
-			local dataStore = DataStoreService:GetOrderedDataStore(trackedStat)
+			local dataStore =
+				DataStoreService:GetOrderedDataStore(os.date("*t").month .. trackedStat)
 
 			local function updateLeaderboard()
 				for _, player in Players:GetPlayers() do
@@ -34,10 +33,10 @@ function leaderboardService.start()
 
 					local success, error = pcall(function()
 						dataStore:UpdateAsync(player.UserId, function()
-							if not profile.Data[trackedStat] then
+							if not profile.Data.lbStats[trackedStat] then
 								return error(`{trackedStat} does not exist in our profiles!`)
 							end
-							return math.floor(profile.Data[trackedStat])
+							return math.floor(profile.Data.lbStats[trackedStat])
 						end)
 					end)
 
@@ -66,7 +65,7 @@ function leaderboardService.start()
 					-- 	Enum.ThumbnailSize.Size150x150,
 					-- 	Enum.ThumbnailType.HeadShot
 					-- )
-					table.insert(list, { playerName = username, score = stat })
+					table.insert(list, { playerName = username, score = stat, userId = userId })
 				end
 
 				statToList[trackedStat] = list

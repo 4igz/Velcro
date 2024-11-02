@@ -41,7 +41,7 @@ return function(
 
 	-- Create a new raycast params and set it to whitelist only zombie parts
 	local rayParams: RaycastParams = CastParams
-	rayParams.FilterDescendantsInstances = { zombieModels }
+	rayParams.FilterDescendantsInstances = { zombieModels, workspace.MapContainer }
 
 	local raysToVisualize = {}
 	local killLocks = {} -- Lock to prevent multiple kill events for the same zombie
@@ -57,7 +57,11 @@ return function(
 	-- Store frequently used values to avoid recalculating them inside the loop
 	local bulletsToFire = ws.bullets
 	local maxPierce = ws.maxPierce
-	local damageDecrementFactor = 0.85
+	local damageDecrementFactor = ws.pierceDamageDecrementFactor or 0.85
+
+	if hitPart then
+		bulletHitSignal:Fire(shooter, ws, { Instance = hitPart }, weaponName)
+	end
 
 	-- Create a counter to track active coroutines
 	local activeCoroutines = 0
@@ -65,7 +69,7 @@ return function(
 	-- Create a function to process the hit data once all coroutines finish
 	local function processHitData()
 		if ws.bullets > 1 then
-			-- Batch visualizations in one go to reduce latency
+			-- Batch visualizations in one go to mitigate latency
 			for _, rayData in raysToVisualize do
 				zap.replicateCast.Fire(shooter, rayData)
 			end
@@ -96,6 +100,8 @@ return function(
 			local ray
 
 			while iterationLimit > 0 and hits < maxPierce and remainingRange > 0 do
+				rayParams.FilterDescendantsInstances =
+					{ CollectionService:GetTagged("Zombie"), workspace.MapContainer }
 				ray = workspace:Raycast(currentPosition, direction, rayParams)
 
 				if ray then
@@ -110,7 +116,9 @@ return function(
 							if hitHumanoid:GetState() ~= Enum.HumanoidStateType.Dead then
 								hits += 1
 								-- Check if the zombie's health reaches zero and mark it as killed
-								bulletHitSignal:Fire(shooter, ws, ray, weaponName)
+								if ray and ray.Instance ~= hitPart then
+									bulletHitSignal:Fire(shooter, ws, ray, weaponName)
+								end
 								-- Decrease the damage for subsequent hits (if piercing is allowed)
 								ws.damage = ws.damage * damageDecrementFactor
 							end
@@ -120,6 +128,11 @@ return function(
 					-- Update remaining range based on travel distance
 					local travelDistance = (ray.Position - currentPosition).Magnitude
 					remainingRange = remainingRange - travelDistance
+
+					if hitInstance:IsDescendantOf(workspace.MapContainer) then
+						-- Dont pierce through map
+						break
+					end
 
 					-- Exit if no range remains
 					if remainingRange <= 0 then

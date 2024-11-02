@@ -54,7 +54,7 @@ return {
 		["AR57"] = {
 			price = 45000,
 			levelReq = 80,
-			description = "<b>Level: 70</b>\nOk it's go timeS",
+			description = "<b>Level: 80</b>\nOk it's go timeS",
 			order = 14,
 		},
 	},

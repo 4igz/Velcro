@@ -241,8 +241,8 @@ local function gp(props)
 		BackgroundTransparency = 0.8,
 		BorderColor3 = Color3.fromRGB(0, 0, 0),
 		BorderSizePixel = 0,
-		Position = UDim2.fromScale(0.249, 0.834),
-		Size = UDim2.fromScale(0.463, 0.821),
+		Position = UDim2.fromScale(0.292, 0.59),
+		Size = UDim2.fromScale(0.297, 0.821),
 	}, {
 		bottom = React.createElement("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -251,34 +251,34 @@ local function gp(props)
 			BorderColor3 = Color3.fromRGB(0, 0, 0),
 			BorderSizePixel = 0,
 			LayoutOrder = 1,
-			Position = UDim2.fromScale(0.5, 0.68),
-			Size = UDim2.fromScale(0.982, 0.604),
+			Position = UDim2.fromScale(0.5, 0.626),
+			Size = UDim2.fromScale(0.982, 0.712),
 		}, {
-			button3 = React.createElement("TextButton", {
+			button = React.createElement("TextButton", {
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				BackgroundColor3 = Color3.fromRGB(22, 22, 22),
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
 				ClipsDescendants = true,
 				FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
-				Position = UDim2.fromScale(0.711, 0.813),
-				Size = UDim2.fromScale(0.511, 0.225),
+				Position = UDim2.fromScale(0.69, 0.814),
+				Size = UDim2.fromScale(0.511, 0.166),
 				Text = "",
 				TextColor3 = Color3.fromRGB(0, 0, 0),
-				ZIndex = 2,
 				TextSize = 14,
-				[React.Event.MouseButton1Click] = function()
+				ZIndex = 2,
+				[React.Event.Activated] = function()
 					MarketplaceService:PromptGamePassPurchase(Players.LocalPlayer, props.gpId)
 				end,
 			}, {
-				uIStroke8 = React.createElement("UIStroke", {
+				uIStroke = React.createElement("UIStroke", {
 					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 					Color = Color3.fromRGB(15, 15, 15),
 					LineJoinMode = Enum.LineJoinMode.Miter,
 					Thickness = 3,
 				}),
 
-				text4 = React.createElement("TextLabel", {
+				text = React.createElement("TextLabel", {
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 					BackgroundTransparency = 1,
@@ -297,11 +297,11 @@ local function gp(props)
 					TextScaled = true,
 					TextSize = 14,
 					TextTransparency = 0.97,
-					ZIndex = 2,
 					TextWrapped = true,
+					ZIndex = 2,
 				}),
 
-				header3 = React.createElement("TextLabel", {
+				header = React.createElement("TextLabel", {
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 					BackgroundTransparency = 1,
@@ -318,12 +318,12 @@ local function gp(props)
 					TextColor3 = Color3.fromRGB(255, 255, 255),
 					TextScaled = true,
 					TextSize = 14,
-					ZIndex = 2,
 					TextWrapped = true,
+					ZIndex = 3,
 				}),
 			}),
 
-			price1 = React.createElement("TextLabel", {
+			price = React.createElement("TextLabel", {
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BackgroundTransparency = 1,
@@ -334,16 +334,16 @@ local function gp(props)
 					Enum.FontWeight.Bold,
 					Enum.FontStyle.Italic
 				),
-				Position = UDim2.fromScale(0.219, 0.813),
-				Size = UDim2.fromScale(0.374, 0.225),
-				Text = `{props.price} R$`,
+				Position = UDim2.fromScale(0.219, 0.828),
+				Size = UDim2.fromScale(0.374, 0.194),
+				Text = `{props.price}R$`,
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextScaled = true,
 				TextSize = 14,
 				TextWrapped = true,
 				ZIndex = 2,
 			}, {
-				uIGradient3 = React.createElement("UIGradient", {
+				uIGradient = React.createElement("UIGradient", {
 					Color = ColorSequence.new({
 						ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
 						ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 85, 6)),
@@ -351,66 +351,41 @@ local function gp(props)
 					Rotation = 90,
 				}),
 
-				uIStroke9 = React.createElement("UIStroke", {
+				uIStroke1 = React.createElement("UIStroke", {
 					Color = Color3.fromRGB(15, 15, 15),
 					Thickness = 2,
 				}),
 			}),
 
-			bgImage = React.createElement("ImageLabel", {
+			viewportFrame = React.createElement("ViewportFrame", {
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				BackgroundTransparency = 1,
-				Position = UDim2.fromScale(0.5, 0.5),
-				Size = UDim2.fromScale(1, 1),
-				Image = `{props.bgImage}`,
-				ImageColor3 = Color3.fromRGB(255, 255, 255),
-				ScaleType = Enum.ScaleType.Crop,
-				ZIndex = 1,
+				BackgroundColor3 = Color3.fromRGB(22, 22, 22),
+				BorderColor3 = Color3.fromRGB(0, 0, 0),
+				BorderSizePixel = 0,
+				Position = UDim2.fromScale(0.5, 0.483),
+				Size = UDim2.fromScale(0.935, 0.885),
 			}, {
-				uIStroke10 = React.createElement("UIStroke", {
+				uIStroke2 = React.createElement("UIStroke", {
 					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 					Color = Color3.fromRGB(15, 15, 15),
 					LineJoinMode = Enum.LineJoinMode.Miter,
 					Thickness = 3,
 				}),
+
+				imageLabel = React.createElement("ImageLabel", {
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+					BackgroundTransparency = 1,
+					BorderColor3 = Color3.fromRGB(0, 0, 0),
+					BorderSizePixel = 0,
+					Image = props.bgImage,
+					Position = UDim2.fromScale(0.5, 0.5),
+					ScaleType = Enum.ScaleType.Fit,
+					Size = UDim2.fromScale(0.756, 0.915),
+				}, {
+					uIAspectRatioConstraint = React.createElement("UIAspectRatioConstraint"),
+				}),
 			}),
-
-			-- viewportFrame1 = React.createElement("ViewportFrame", {
-			-- 	AnchorPoint = Vector2.new(0.5, 0.5),
-			-- 	BackgroundColor3 = Color3.fromRGB(22, 22, 22),
-			-- 	BorderColor3 = Color3.fromRGB(0, 0, 0),
-			-- 	BorderSizePixel = 0,
-			-- 	Position = UDim2.fromScale(0.5, 0.34),
-			-- 	Size = UDim2.fromScale(0.935, 0.55),
-			-- }, {
-			-- 	uIStroke10 = React.createElement("UIStroke", {
-			-- 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-			-- 		Color = Color3.fromRGB(15, 15, 15),
-			-- 		LineJoinMode = Enum.LineJoinMode.Miter,
-			-- 		Thickness = 3,
-			-- 	}),
-
-			-- 	text5 = React.createElement("TextLabel", {
-			-- 		AnchorPoint = Vector2.new(0.5, 0.5),
-			-- 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-			-- 		BackgroundTransparency = 1,
-			-- 		BorderColor3 = Color3.fromRGB(0, 0, 0),
-			-- 		BorderSizePixel = 0,
-			-- 		FontFace = Font.new(
-			-- 			"rbxasset://fonts/families/GothamSSm.json",
-			-- 			Enum.FontWeight.Medium,
-			-- 			Enum.FontStyle.Italic
-			-- 		),
-			-- 		Position = UDim2.fromScale(0.21, 0.904),
-			-- 		Size = UDim2.fromScale(0.402, 0.175),
-			-- 		Text = "PREVIEW",
-			-- 		TextColor3 = Color3.fromRGB(74, 74, 74),
-			-- 		TextScaled = true,
-			-- 		TextSize = 14,
-			-- 		TextWrapped = true,
-			-- 		TextXAlignment = Enum.TextXAlignment.Left,
-			-- 	}),
-			-- }),
 		}),
 
 		top = React.createElement("Frame", {
@@ -420,10 +395,10 @@ local function gp(props)
 			BorderColor3 = Color3.fromRGB(0, 0, 0),
 			BorderSizePixel = 0,
 			LayoutOrder = 1,
-			Position = UDim2.fromScale(0.5, 0.188),
-			Size = UDim2.fromScale(0.982, 0.345),
+			Position = UDim2.fromScale(0.5, 0.13),
+			Size = UDim2.fromScale(0.982, 0.228),
 		}, {
-			header4 = React.createElement("TextLabel", {
+			header1 = React.createElement("TextLabel", {
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BackgroundTransparency = 1,
@@ -442,7 +417,7 @@ local function gp(props)
 				TextSize = 14,
 				TextWrapped = true,
 			}, {
-				uIStroke11 = React.createElement("UIStroke", {
+				uIStroke3 = React.createElement("UIStroke", {
 					Color = Color3.fromRGB(16, 16, 16),
 					Thickness = 3,
 				}),
@@ -466,7 +441,7 @@ local function gp(props)
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextYAlignment = Enum.TextYAlignment.Top,
 			}, {
-				uIStroke12 = React.createElement("UIStroke", {
+				uIStroke4 = React.createElement("UIStroke", {
 					Color = Color3.fromRGB(16, 16, 16),
 				}),
 
@@ -476,7 +451,7 @@ local function gp(props)
 			}),
 		}),
 
-		uIStroke13 = React.createElement("UIStroke", {
+		uIStroke5 = React.createElement("UIStroke", {
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 			Color = Color3.fromRGB(9, 9, 9),
 			LineJoinMode = Enum.LineJoinMode.Miter,

@@ -8,13 +8,13 @@ local wave = 1
 local zombies = 0
 local waveTillBoss = 10
 local gameActive = false
-local playerState = "inHud"
 
 local e = React.createElement
 
 return function(props)
 	-- Initialize state
-	local timeLeft, setTimeLeft = React.useState(0)
+	local timeLeft, setTimeLeft = React.useState(props.timeLeft or 0)
+	local playerState, setPlayerState = React.useState("inLobby")
 
 	-- Set timeLeft from props after component mounts
 	React.useEffect(function()
@@ -23,12 +23,21 @@ return function(props)
 		end
 	end, { props.timeLeft })
 
+	React.useEffect(function()
+		setPlayerState(zap.getPlayerState.Call())
+	end, { props.playerState })
+
 	-- Update other variables from props
 	wave = props.wave or wave
 	zombies = props.zombies or zombies
 	waveTillBoss = props.waveTillBoss or waveTillBoss
 	gameActive = props.gameActive or gameActive
-	playerState = props.playerState or playerState
+
+	React.useEffect(function()
+		if not props.timeLeft then
+			setTimeLeft(zap.getTimeLeft.Call())
+		end
+	end)
 
 	-- Effect to handle the timer
 	React.useEffect(function()

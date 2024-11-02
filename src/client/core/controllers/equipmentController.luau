@@ -17,9 +17,6 @@ local mouse = localPlayer:GetMouse()
 -- Equipment Controller Module
 local equipmentController = {}
 
--- Table to keep track of tool connections (optional for cleanup)
-local toolConnections = {}
-
 local params = RaycastParams.new()
 params.FilterDescendantsInstances = { workspace.RaycastIgnore }
 params.FilterType = Enum.RaycastFilterType.Exclude
@@ -34,20 +31,6 @@ local function getMobileAdjustedCenterScreenRay()
 
 	-- Return the ray cast from the adjusted position
 	return camera:ScreenPointToRay(screenCenter.X, adjustedY)
-end
-
-function equipmentController.hasEquipment(name)
-	for _, tool in localPlayer.Character:GetChildren() do
-		if equipmentConfig[tool.Name] and tool.Name == name then
-			return tool.Name
-		end
-	end
-	for _, tool in localPlayer.Backpack:GetChildren() do
-		if equipmentConfig[tool.Name] and tool.Name == name then
-			return tool.Name
-		end
-	end
-	return false
 end
 
 -- Function to handle equipment usage
@@ -76,35 +59,18 @@ function equipmentController.useEquipment(name)
 end
 
 -- Function to connect the Activated event for a tool
-local function connectTool(tool)
-	if equipmentConfig[tool.Name] then
-		toolConnections[tool] = tool.Activated:Connect(function()
-			equipmentController.useEquipment(tool.Name)
-		end)
-	end
-end
-
--- Function to disconnect the Activated event for a tool (optional for cleanup)
-local function disconnectTool(tool)
-	if toolConnections[tool] then
-		toolConnections[tool]:Disconnect()
-		toolConnections[tool] = nil
-	end
-end
-
 -- Start function to initialize the controller
 function equipmentController.start()
-	localPlayer.Character.ChildAdded:Connect(connectTool)
-	localPlayer.Character.ChildRemoved:Connect(disconnectTool)
-
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if gameProcessed then
 			return
 		end
-		if input.KeyCode == Enum.KeyCode.R and equipmentController.hasEquipment("Shield") then
+		if input.KeyCode == Enum.KeyCode.R then
 			equipmentController.useEquipment("Shield")
-		elseif input.KeyCode == Enum.KeyCode.F and equipmentController.hasEquipment("Grenade") then
+		elseif input.KeyCode == Enum.KeyCode.F then
 			equipmentController.useEquipment("Grenade")
+		elseif input.KeyCode == Enum.KeyCode.G then
+			equipmentController.useEquipment("Medkit")
 		end
 	end)
 end

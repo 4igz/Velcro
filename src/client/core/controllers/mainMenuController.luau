@@ -45,6 +45,9 @@ local function deploy()
 end
 
 -- Get xp info from the server
-root:render(app({ onDeployClicked = deploy, levelData = {} }))
+root:render(app({ onDeployClicked = deploy, levelData = {}, menu = "none" }))
+task.defer(function()
+	deploy()
+end)
 
 return mainMenuController

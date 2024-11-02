@@ -1,11 +1,13 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 
 local ReactRoblox = require(ReplicatedStorage.sharedPackages.ReactRoblox)
 local gamepassShop = require(ReplicatedStorage.client.reactComponents.gamepassShop)
 local hudUi = require(ReplicatedStorage.client.reactComponents.hudUi)
 local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
+local zap = require(ReplicatedStorage.zap)
 
 local gui = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
 gui.ResetOnSpawn = false
@@ -18,9 +20,11 @@ function hudUiController.setVisibility(value)
 end
 
 function hudUiController.start()
-	sharedInfo.UISignals.deployed:Once(function()
-		hudUi({ gui = gui })
+	zap.playSound.SetCallback(function(name)
+		SoundService.UI[name]:Play()
 	end)
+
+	hudUi({ gui = gui })
 end
 
 return hudUiController

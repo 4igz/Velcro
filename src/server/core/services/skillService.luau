@@ -16,6 +16,7 @@ local ZOMBIE_TRACKING_TIMER = 2
 local skillLookup = {}
 local killTracker = {}
 local hitTracker = {}
+local activeHealthRecovery = {}
 local headshotTracker = {}
 
 local function getHitZombies(shooter)
@@ -232,18 +233,23 @@ local effectHandlers = {
 		elseif condition == "kill" then
 			-- Apply the effect if the player has killed a zombie in the last second
 			if stat == "healthRecovery" then
-				if #getKilledZombies(shooter) >= 1 then
+				if #getKilledZombies(shooter) >= 1 and not activeHealthRecovery[shooter.UserId] then
+					-- Set the flag to prevent multiple concurrent effects
+					activeHealthRecovery[shooter.UserId] = true
 					table.remove(killTracker[shooter.UserId], 1)
+
 					task.spawn(function()
 						-- For 5 seconds, recover 5 health every second
 						for _ = 1, 5 do
 							local char = shooter.Character
 							local hum = char and char:FindFirstChild("Humanoid")
 							if hum and hum.Health < 100 then
-								shooter.Character.Humanoid.Health += 5
+								hum.Health += 5
 							end
 							task.wait(1)
 						end
+						-- Reset the flag after the effect duration
+						activeHealthRecovery[shooter.UserId] = false
 					end)
 				end
 			elseif stat == "damage" then
@@ -537,13 +543,17 @@ function skillService.start()
 
 		if
 			skillData.unlocked
-			and profile.Data.rampageEssence > skillInfo.costs[skillData.level + 1]
+			and profile.Data.rampageEssence >= skillInfo.costs[skillData.level + 1]
 		then
 			profile.Data.rampageEssence -= skillInfo.costs[skillData.level + 1]
 			skillData.level += 1
-		elseif not skillData.unlocked and profile.Data.skillPoints > 0 then
+			zap.playSound.Fire(player, "Upgrade")
+		elseif not skillData.unlocked and profile.Data.skillPoints >= skillInfo.skillPointCost then
 			skillData.unlocked = true
-			profile.Data.skillPoints -= 1
+			profile.Data.skillPoints -= skillInfo.skillPointCost
+			zap.playSound.Fire(player, "Unlock")
+		else
+			zap.playSound.Fire(player, "PurchaseFail")
 		end
 		playerDataService.setProfile(player, profile)
 		zap.updatedSkillUi.Fire(player, {

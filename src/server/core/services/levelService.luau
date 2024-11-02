@@ -63,16 +63,21 @@ end
 function levelService.addExperience(player: Player, amt: number)
 	local playerProfile = playerDataService.getProfile(player)
 
-	local currentLevel = playerProfile.Data.Level
-	local xpForNextLevel = xpForLevel(currentLevel + 1)
 	playerProfile.Data.Experience += amt
 
-	if playerProfile.Data.Experience > xpForNextLevel then
-		playerProfile.Data.Level += 1
-		playerProfile.Data.Experience = 0
+	while true do
+		local currentLevel = playerProfile.Data.Level
+		local xpForNextLevel = xpForLevel(currentLevel + 1)
 
-		if playerProfile.Data.Level % 10 == 0 then
-			playerProfile.Data.skillPoints += 1
+		if playerProfile.Data.Experience >= xpForNextLevel then
+			playerProfile.Data.Experience -= xpForNextLevel
+			playerProfile.Data.Level += 1
+
+			if playerProfile.Data.Level % 10 == 0 then
+				playerProfile.Data.skillPoints += 1
+			end
+		else
+			break
 		end
 	end
 

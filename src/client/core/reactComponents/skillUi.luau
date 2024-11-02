@@ -308,9 +308,9 @@ local function skillInfo(props)
 				zap.upgradeSkill.Fire({ skill = props.id, weapon = selectedSkill })
 
 				if props.data.unlocked then
-					uiSounds.Upgrade:Play()
+					-- uiSounds.Upgrade:Play()
 				else
-					uiSounds.Unlock:Play()
+					-- uiSounds.Unlock:Play()
 				end
 			end,
 		}, {
@@ -357,7 +357,7 @@ local function skillInfo(props)
 					then if not props.info.costs[props.data.level + 1]
 						then "MAX LEVEL"
 						else `-{props and props.info.costs[props.data.level + 1]} ESSENCE`
-					else `-1 Skill Point`,
+					else `-{props.info.skillPointCost or 1} Skill Point`,
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextScaled = true,
 				TextSize = 14,

@@ -83,23 +83,21 @@ function weaponUtil.raycastForBullets(
 	return castResult, totalDistance
 end
 
+local rng = Random.new()
+
 function weaponUtil.getSpreadDirectionFromSettings(
 	rawDirection: Vector3,
-	currentWs: weaponConfig.Settings,
-	randomData: any
+	currentWs: weaponConfig.Settings
 )
-	local randomObject = randomData.object
-	local zrandom = randomObject:NextNumber(0, math.pi * 2)
-	local xrandom = math.rad(
-		randomObject:NextNumber(currentWs.minBulletSpreadAngle, currentWs.maxBulletSpreadAngle)
-	)
+	local zrandom = rng:NextNumber(0, math.pi * 2)
+	local xrandom =
+		math.rad(rng:NextNumber(currentWs.minBulletSpreadAngle, currentWs.maxBulletSpreadAngle))
 	local direction = (CFrame.new(Vector3.new(), rawDirection) * CFrame.fromOrientation(
 		0,
 		0,
 		zrandom
 	) * CFrame.fromOrientation(xrandom, 0, 0)).LookVector
 
-	randomData.randomCalls += 2 -- This has to match the number of times the random object is called per bullet, which is currently 2
 	return direction
 end
 

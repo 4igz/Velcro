@@ -11,6 +11,7 @@ local equipmentParts = RunService:IsServer() and ServerStorage.EquipmentParts
 
 local EquipmentConfig = {
 	Grenade = {
+		dropRate = 0.07,
 		serverAction = function(player, targetPosition)
 			-- Handle server-side action like damage, explosion, etc.
 			local character = player.Character
@@ -70,8 +71,8 @@ local EquipmentConfig = {
 			end)
 		end,
 	},
-
 	Medkit = {
+		dropRate = 0.02,
 		serverAction = function(player: Player)
 			-- Heal the player on the server
 			local character = player.Character
@@ -85,6 +86,7 @@ local EquipmentConfig = {
 		end,
 	},
 	Shield = {
+		dropRate = 0.01,
 		serverAction = function(player)
 			-- Create a bubble shield around the player
 			local DURATION = 15
@@ -100,6 +102,18 @@ local EquipmentConfig = {
 			task.delay(DURATION, function()
 				ff:Destroy()
 			end)
+		end,
+	},
+	HealthDrop = {
+		dropRate = 0.1,
+		immediateAction = function(player)
+			local character = player.Character
+			if character and character.Parent then
+				local humanoid = character:FindFirstChildOfClass("Humanoid")
+				if humanoid then
+					humanoid.Health += 25
+				end
+			end
 		end,
 	},
 }

@@ -12,7 +12,7 @@ return {
 		health = 2000,
 		speed = 10,
 		attackPower = 50,
-		beginSpawningRound = 16,
+		beginSpawningRound = 10,
 		xpDropped = 500,
 		moneyDropped = 500,
 		attackType = "fire",

@@ -7,6 +7,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local ProfileService = require(ServerStorage.serverPackages.ProfileService)
 local Sift = require(ReplicatedStorage.sharedPackages.Sift)
 local Signal = require(ReplicatedStorage.sharedPackages.Signal)
+local settingsConfig = require(ReplicatedStorage.shared.configurations.settingsConfig)
 local skillConfig = require(ReplicatedStorage.shared.configurations.skillConfig)
 local zap = require(ServerStorage.zap)
 
@@ -38,12 +39,24 @@ local function generateSkillTree(skillConfig)
 	return skillTree
 end
 
+local function generateSettings(settingsConfig)
+	local settings = {}
+	for category, settingItems in settingsConfig do
+		settings[category] = {}
+		for settingName, settingData in settingItems do
+			settings[category][settingName] = settingData.default
+		end
+	end
+	return settings
+end
+
 -- ProfileTemplate table is what empty profiles will default to.
 playerDataService.ProfileTemplate = {
 	-- Leaderstats
 	Money = 1000,
 	Experience = 0,
 	Level = 1,
+	-- Should be a string of minutes and hours
 	Rebirth = 0,
 
 	-- State
@@ -57,16 +70,22 @@ playerDataService.ProfileTemplate = {
 		"Starter Pistol",
 	},
 
-	HighestRound = 0,
-	GamesPlayed = 0,
+	lbStats = {
+		HighestRound = 0,
+		GamesPlayed = 0,
+		MoneyGained = 0,
+		PlayTime = 0,
+	},
 
 	rampageEssence = 0,
 	skillPoints = 0,
 
 	skillTree = generateSkillTree(skillConfig),
+
+	Settings = generateSettings(settingsConfig),
 }
 
-local ProfileStore = ProfileService.GetProfileStore("V0.2.0", playerDataService.ProfileTemplate)
+local ProfileStore = ProfileService.GetProfileStore("V1.0.0", playerDataService.ProfileTemplate)
 playerDataService.playerDataLoaded = Signal.new()
 playerDataService.playerDataChanged = Signal.new()
 
@@ -144,6 +163,22 @@ function playerDataService.start()
 		end
 	end)
 
+	zap.updateSettings.SetCallback(function(player, newSetting)
+		local profile = Profiles[player]
+		if profile then
+			profile.Data.Settings[newSetting.category][newSetting.setting] = newSetting.value
+			playerDataService.setProfile(player, profile)
+		end
+	end)
+
+	zap.getSettings.SetCallback(function(player)
+		local profile = Profiles[player]
+		if profile then
+			return profile.Data.Settings
+		end
+		return
+	end)
+
 	zap.getSkillTree.SetCallback(function(player)
 		local profile = Profiles[player]
 		if profile then
@@ -169,6 +204,23 @@ function playerDataService.start()
 		end
 	end)
 
+	playerDataService.playerDataLoaded:Connect(function(player)
+		-- Reset lb stats at the beginning of a new month
+		local profile = Profiles[player]
+		if profile then
+			if profile.Data.lbStats.LastResetMonth ~= os.date("*t").month then
+				profile.Data.lbStats = {
+					HighestRound = 0,
+					GamesPlayed = 0,
+					MoneyGained = 0,
+					Rebirths = 0,
+					LastResetMonth = os.date("*t").month,
+				}
+				playerDataService.setProfile(player, profile)
+			end
+		end
+	end)
+
 	zap.attributeChangedEvent.SetCallback(function(player, data)
 		if RunService:IsStudio() then
 			player:SetAttribute(data.name, data.value.value)
@@ -187,6 +239,22 @@ function playerDataService.waitForProfile(player: Player): { Data: PlayerProfile
 		task.wait(0.1)
 	end
 	return
+end
+
+function playerDataService.incrementLbStat(player, statName, amt)
+	local profile = playerDataService.getProfile(player)
+	if profile then
+		profile.Data.lbStats[statName] += amt
+		playerDataService.setProfile(player, profile)
+	end
+end
+
+function playerDataService.setLbStat(player, statName, newAmt)
+	local profile = playerDataService.getProfile(player)
+	if profile then
+		profile.Data.lbStats[statName] = newAmt
+		playerDataService.setProfile(player, profile)
+	end
 end
 
 function playerDataService.updateProfile(player: Player, newData: { [any]: any })

@@ -10,8 +10,8 @@ local mapController = {}
 local function setupVotingBoards(votingBoards)
 	for _, votingUi in votingBoards do
 		local bg = votingUi:WaitForChild("BG")
-		local vote: TextButton = bg:WaitForChild("Vote")
-		local votingPad: Part = votingUi:WaitForChild("Pad")
+		local vote = bg:WaitForChild("Vote")
+		local votingPad = votingUi:WaitForChild("Pad")
 
 		vote.MouseButton1Click:Connect(function()
 			zap.voteForMap.Fire(votingUi:GetAttribute("map"))
@@ -26,7 +26,7 @@ local function setupVotingBoards(votingBoards)
 end
 
 function mapController.start()
-	----- Teleport to maps:
+	-- Teleport to maps:
 	zap.tpToMap.SetCallback(function(mapName)
 		local map = workspace.MapContainer.MapContent[mapName]
 		map:WaitForChild("Floor")
@@ -44,22 +44,29 @@ function mapController.start()
 		localPlayer.Character:PivotTo(randomSpawnPosition)
 	end)
 
-	----- Setup voting:
+	-- Setup voting:
 	local numVotingBoards = workspace:GetAttribute("NumVotingBoards") or 4
 	local votingBoards = CollectionService:GetTagged("VotingBoard")
 
-	-- Check if the current number of boards matches NumVotingBoards
-	if #votingBoards < numVotingBoards then
-		local addedConnection
-		addedConnection = CollectionService:GetInstanceAddedSignal("VotingBoard")
-			:Connect(function(newInstance)
-				votingBoards = CollectionService:GetTagged("VotingBoard")
-				if #votingBoards == numVotingBoards then
-					addedConnection:Disconnect()
-					setupVotingBoards(votingBoards)
-				end
-			end)
-	else
+	-- Keep track of connections for adding and removing voting boards
+	local function updateVotingBoards()
+		votingBoards = CollectionService:GetTagged("VotingBoard")
+		if #votingBoards >= numVotingBoards then
+			setupVotingBoards(votingBoards)
+		end
+	end
+
+	-- Listen for additions and removals
+	CollectionService:GetInstanceAddedSignal("VotingBoard"):Connect(function(newInstance)
+		updateVotingBoards()
+	end)
+
+	CollectionService:GetInstanceRemovedSignal("VotingBoard"):Connect(function(oldInstance)
+		updateVotingBoards()
+	end)
+
+	-- Initial setup if we already have enough boards
+	if #votingBoards >= numVotingBoards then
 		setupVotingBoards(votingBoards)
 	end
 end

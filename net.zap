@@ -88,10 +88,53 @@ event fireGun = {
     }
 }
 
+event playSound = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+    data: string,
+}
+
+funct getTimeLeft = {
+    call: Async,
+    rets: i32
+}
+
+event updateEquipments = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+    data: unknown
+}
+
+event updateSettings = {
+    from: Client,
+    type: Reliable,
+    call: SingleAsync,
+    data: struct {
+        category: string,
+        setting: string,
+        value: unknown,
+    }
+}
+
+event toggleAFKMode = {
+    from: Client,
+    type: Reliable,
+    call: SingleAsync,
+    data: boolean
+}
+
+
 event melee = {
     from: Client,
     type: Unreliable,
     call: SingleAsync,
+}
+
+funct getSettings = {
+    call: Async,
+    rets: unknown
 }
 
 funct getPlayerMissions = {
@@ -133,6 +176,12 @@ event replicateKill = {
     from: Server,
     type: Reliable,
     call: SingleAsync,
+    data: Instance(Model)?,
+}
+
+funct getPlayerState = {
+    call: Async,
+    rets: string
 }
 
 funct getLbData = {

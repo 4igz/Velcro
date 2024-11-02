@@ -221,7 +221,7 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-local events = table.create(32)
+local events = table.create(39)
 reliable.OnServerEvent:Connect(function(player, buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
@@ -274,28 +274,50 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 			if events[6] then
 				task.spawn(events[6], player, value)
 			end
-		elseif id == 15 then
+		elseif id == 9 then
+			local value
+			value = {}
+			local len = buffer.readu16(incoming_buff, read(2))
+			value.category = buffer.readstring(incoming_buff, read(len), len)
+			local len = buffer.readu16(incoming_buff, read(2))
+			value.setting = buffer.readstring(incoming_buff, read(len), len)
+			if buffer.readu8(incoming_buff, read(1)) == 1 then
+				incoming_ipos = incoming_ipos + 1
+				value.value = incoming_inst[incoming_ipos]
+			else
+				value.value = nil
+			end
+			if events[9] then
+				task.spawn(events[9], player, value)
+			end
+		elseif id == 10 then
+			local value
+			value = buffer.readu8(incoming_buff, read(1)) == 1
+			if events[10] then
+				task.spawn(events[10], player, value)
+			end
+		elseif id == 19 then
 			local value
 			value = {}
 			local len = buffer.readu16(incoming_buff, read(2))
 			value.equipmentName = buffer.readstring(incoming_buff, read(len), len)
 			value.hitPos = Vector3.new(buffer.readf32(incoming_buff, read(4)), buffer.readf32(incoming_buff, read(4)), buffer.readf32(incoming_buff, read(4)))
-			if events[15] then
-				task.spawn(events[15], player, value)
+			if events[19] then
+				task.spawn(events[19], player, value)
 			end
-		elseif id == 20 then
+		elseif id == 24 then
 			local value
 			local len = buffer.readu16(incoming_buff, read(2))
 			value = buffer.readstring(incoming_buff, read(len), len)
-			if events[20] then
-				task.spawn(events[20], player, value)
+			if events[24] then
+				task.spawn(events[24], player, value)
 			end
-		elseif id == 21 then
+		elseif id == 25 then
 			local value
-			if events[21] then
-				task.spawn(events[21], player, value)
+			if events[25] then
+				task.spawn(events[25], player, value)
 			end
-		elseif id == 22 then
+		elseif id == 26 then
 			local value
 			value = {}
 			local len = buffer.readu16(incoming_buff, read(2))
@@ -315,91 +337,12 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 			else
 				error("Invalid variant")
 			end
-			if events[22] then
-				task.spawn(events[22], player, value)
-			end
-		elseif id == 24 then
-			local call_id = buffer.readu8(buff, read(1))
-			local value
-			if events[24] then
-				task.spawn(function(player, call_id, value)
-					local rets = events[24](player, value)
-					load_player(player)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 24)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
-					if rets == nil then
-						alloc(1)
-						buffer.writeu8(outgoing_buff, outgoing_apos, 0)
-					else
-						alloc(1)
-						buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-						table.insert(outgoing_inst, rets)
-					end
-					player_map[player] = save()
-				end, player, call_id, value)
-			end
-		elseif id == 25 then
-			local call_id = buffer.readu8(buff, read(1))
-			local value
-			if events[25] then
-				task.spawn(function(player, call_id, value)
-					local rets = events[25](player, value)
-					load_player(player)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 25)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
-					alloc(8)
-					buffer.writef64(outgoing_buff, outgoing_apos, rets)
-					player_map[player] = save()
-				end, player, call_id, value)
-			end
-		elseif id == 26 then
-			local call_id = buffer.readu8(buff, read(1))
-			local value
 			if events[26] then
-				task.spawn(function(player, call_id, value)
-					local rets = events[26](player, value)
-					load_player(player)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 26)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
-					alloc(4)
-					buffer.writei32(outgoing_buff, outgoing_apos, rets.skillPoints)
-					alloc(4)
-					buffer.writei32(outgoing_buff, outgoing_apos, rets.rampageEssence)
-					player_map[player] = save()
-				end, player, call_id, value)
-			end
-		elseif id == 27 then
-			local call_id = buffer.readu8(buff, read(1))
-			local value
-			if events[27] then
-				task.spawn(function(player, call_id, value)
-					local rets = events[27](player, value)
-					load_player(player)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 27)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
-					if rets == nil then
-						alloc(1)
-						buffer.writeu8(outgoing_buff, outgoing_apos, 0)
-					else
-						alloc(1)
-						buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-						table.insert(outgoing_inst, rets)
-					end
-					player_map[player] = save()
-				end, player, call_id, value)
+				task.spawn(events[26], player, value)
 			end
 		elseif id == 28 then
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			value = buffer.readi32(incoming_buff, read(4))
 			if events[28] then
 				task.spawn(function(player, call_id, value)
 					local rets = events[28](player, value)
@@ -408,24 +351,6 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					buffer.writeu8(outgoing_buff, outgoing_apos, 28)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, rets and 1 or 0)
-					player_map[player] = save()
-				end, player, call_id, value)
-			end
-		elseif id == 29 then
-			local call_id = buffer.readu8(buff, read(1))
-			local value
-			local len = buffer.readu16(incoming_buff, read(2))
-			value = buffer.readstring(incoming_buff, read(len), len)
-			if events[29] then
-				task.spawn(function(player, call_id, value)
-					local rets = events[29](player, value)
-					load_player(player)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 29)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
 					if rets == nil then
 						alloc(1)
 						buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -434,6 +359,22 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 						buffer.writeu8(outgoing_buff, outgoing_apos, 1)
 						table.insert(outgoing_inst, rets)
 					end
+					player_map[player] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 29 then
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if events[29] then
+				task.spawn(function(player, call_id, value)
+					local rets = events[29](player, value)
+					load_player(player)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 29)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
+					alloc(8)
+					buffer.writef64(outgoing_buff, outgoing_apos, rets)
 					player_map[player] = save()
 				end, player, call_id, value)
 			end
@@ -446,6 +387,144 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					load_player(player)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, 30)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
+					alloc(4)
+					buffer.writei32(outgoing_buff, outgoing_apos, rets.skillPoints)
+					alloc(4)
+					buffer.writei32(outgoing_buff, outgoing_apos, rets.rampageEssence)
+					player_map[player] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 31 then
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if events[31] then
+				task.spawn(function(player, call_id, value)
+					local rets = events[31](player, value)
+					load_player(player)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 31)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
+					alloc(4)
+					buffer.writei32(outgoing_buff, outgoing_apos, rets)
+					player_map[player] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 32 then
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if events[32] then
+				task.spawn(function(player, call_id, value)
+					local rets = events[32](player, value)
+					load_player(player)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 32)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
+					if rets == nil then
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+					else
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+						table.insert(outgoing_inst, rets)
+					end
+					player_map[player] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 33 then
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if events[33] then
+				task.spawn(function(player, call_id, value)
+					local rets = events[33](player, value)
+					load_player(player)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 33)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
+					if rets == nil then
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+					else
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+						table.insert(outgoing_inst, rets)
+					end
+					player_map[player] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 34 then
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			value = buffer.readi32(incoming_buff, read(4))
+			if events[34] then
+				task.spawn(function(player, call_id, value)
+					local rets = events[34](player, value)
+					load_player(player)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 34)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, rets and 1 or 0)
+					player_map[player] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 35 then
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if events[35] then
+				task.spawn(function(player, call_id, value)
+					local rets = events[35](player, value)
+					load_player(player)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 35)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
+					local len = #rets
+					alloc(2)
+					buffer.writeu16(outgoing_buff, outgoing_apos, len)
+					alloc(len)
+					buffer.writestring(outgoing_buff, outgoing_apos, rets, len)
+					player_map[player] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 36 then
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			local len = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len), len)
+			if events[36] then
+				task.spawn(function(player, call_id, value)
+					local rets = events[36](player, value)
+					load_player(player)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 36)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
+					if rets == nil then
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+					else
+						alloc(1)
+						buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+						table.insert(outgoing_inst, rets)
+					end
+					player_map[player] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 37 then
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			if events[37] then
+				task.spawn(function(player, call_id, value)
+					local rets = events[37](player, value)
+					load_player(player)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 37)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
 					if rets.zombies == nil then
@@ -496,15 +575,15 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					player_map[player] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 31 then
+		elseif id == 38 then
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			if events[31] then
+			if events[38] then
 				task.spawn(function(player, call_id, value)
-					local rets = events[31](player, value)
+					local rets = events[38](player, value)
 					load_player(player)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 31)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 38)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
 					alloc(4)
@@ -516,15 +595,15 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					player_map[player] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 32 then
+		elseif id == 39 then
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			if events[32] then
+			if events[39] then
 				task.spawn(function(player, call_id, value)
-					local rets = events[32](player, value)
+					local rets = events[39](player, value)
 					load_player(player)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 32)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 39)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id)
 					local len = #rets.equippedWeapons.gun
@@ -567,10 +646,10 @@ unreliable.OnServerEvent:Connect(function(player, buff, inst)
 	incoming_read = 0
 	incoming_ipos = 0
 	local id = buffer.readu8(buff, read(1))
-	if id == 7 then
+	if id == 11 then
 		local value
-		if events[7] then
-			task.spawn(events[7], player, value)
+		if events[11] then
+			task.spawn(events[11], player, value)
 		end
 	else
 		error("Unknown event id")
@@ -658,7 +737,76 @@ return {
 			end
 		end,
 	},
-	missionUpdated = {
+	playSound = {
+		Fire = function(Player: Player, Value: (string))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			local len = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value, len)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: (string))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			local len = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value, len)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: (string))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			local len = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value, len)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { Player }, Value: (string))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			local len = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len)
+			alloc(len)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value, len)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	updateEquipments = {
 		Fire = function(Player: Player, Value: ((unknown)?))
 			load_player(Player)
 			alloc(1)
@@ -721,6 +869,87 @@ return {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 8)
+			if Value == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				table.insert(outgoing_inst, Value)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	missionUpdated = {
+		Fire = function(Player: Player, Value: ((unknown)?))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			if Value == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				table.insert(outgoing_inst, Value)
+			end
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ((unknown)?))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			if Value == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				table.insert(outgoing_inst, Value)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ((unknown)?))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			if Value == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				table.insert(outgoing_inst, Value)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { Player }, Value: ((unknown)?))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
 			if Value == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -746,7 +975,7 @@ return {
 		}))
 			load_player(Player)
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
 			alloc(4)
 			buffer.writei32(outgoing_buff, outgoing_apos, Value.taskId)
 			alloc(4)
@@ -759,7 +988,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
 			alloc(4)
 			buffer.writei32(outgoing_buff, outgoing_apos, Value.taskId)
 			alloc(4)
@@ -779,7 +1008,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
 			alloc(4)
 			buffer.writei32(outgoing_buff, outgoing_apos, Value.taskId)
 			alloc(4)
@@ -801,7 +1030,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
 			alloc(4)
 			buffer.writei32(outgoing_buff, outgoing_apos, Value.taskId)
 			alloc(4)
@@ -820,7 +1049,7 @@ return {
 		Fire = function(Player: Player, Value: ((unknown)?))
 			load_player(Player)
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
 			if Value == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -834,7 +1063,7 @@ return {
 		FireAll = function(Value: ((unknown)?))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
 			if Value == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -855,7 +1084,7 @@ return {
 		FireExcept = function(Except: Player, Value: ((unknown)?))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
 			if Value == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -878,7 +1107,7 @@ return {
 		FireList = function(List: { Player }, Value: ((unknown)?))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
 			if Value == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -898,16 +1127,34 @@ return {
 		end,
 	},
 	replicateKill = {
-		Fire = function(Player: Player)
+		Fire = function(Player: Player, Value: ((Model)?))
 			load_player(Player)
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
+			if Value == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				assert(Value:IsA("Model"))
+				table.insert(outgoing_inst, Value)
+			end
 			player_map[Player] = save()
 		end,
-		FireAll = function()
+		FireAll = function(Value: ((Model)?))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
+			if Value == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				assert(Value:IsA("Model"))
+				table.insert(outgoing_inst, Value)
+			end
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				load_player(player)
@@ -917,10 +1164,19 @@ return {
 				player_map[player] = save()
 			end
 		end,
-		FireExcept = function(Except: Player)
+		FireExcept = function(Except: Player, Value: ((Model)?))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
+			if Value == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				assert(Value:IsA("Model"))
+				table.insert(outgoing_inst, Value)
+			end
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
@@ -932,10 +1188,19 @@ return {
 				end
 			end
 		end,
-		FireList = function(List: { Player })
+		FireList = function(List: { Player }, Value: ((Model)?))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
+			if Value == nil then
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			else
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+				assert(Value:IsA("Model"))
+				table.insert(outgoing_inst, Value)
+			end
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
 				load_player(player)
@@ -953,7 +1218,7 @@ return {
 		}))
 			load_player(Player)
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
 			alloc(4)
 			buffer.writei32(outgoing_buff, outgoing_apos, Value.taskId)
 			if Value.goalId == nil then
@@ -972,7 +1237,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
 			alloc(4)
 			buffer.writei32(outgoing_buff, outgoing_apos, Value.taskId)
 			if Value.goalId == nil then
@@ -998,7 +1263,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
 			alloc(4)
 			buffer.writei32(outgoing_buff, outgoing_apos, Value.taskId)
 			if Value.goalId == nil then
@@ -1026,7 +1291,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
 			alloc(4)
 			buffer.writei32(outgoing_buff, outgoing_apos, Value.taskId)
 			if Value.goalId == nil then
@@ -1055,7 +1320,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
 			if Value.hitPart == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -1080,7 +1345,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
 			if Value.hitPart == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -1105,7 +1370,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
 			if Value.hitPart == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -1134,7 +1399,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
 			if Value.hitPart == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -1163,7 +1428,7 @@ return {
 		}))
 			load_player(Player)
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
 			assert(Value.firepoint:IsA("Attachment"))
 			table.insert(outgoing_inst, Value.firepoint)
 			alloc(4)
@@ -1189,7 +1454,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
 			assert(Value.firepoint:IsA("Attachment"))
 			table.insert(outgoing_inst, Value.firepoint)
 			alloc(4)
@@ -1222,7 +1487,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
 			assert(Value.firepoint:IsA("Attachment"))
 			table.insert(outgoing_inst, Value.firepoint)
 			alloc(4)
@@ -1257,7 +1522,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
 			assert(Value.firepoint:IsA("Attachment"))
 			table.insert(outgoing_inst, Value.firepoint)
 			alloc(4)
@@ -1295,7 +1560,7 @@ return {
 		}))
 			load_player(Player)
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 20)
 			if Value.zombies == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -1365,7 +1630,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 20)
 			if Value.zombies == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -1442,7 +1707,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 20)
 			if Value.zombies == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -1521,7 +1786,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 20)
 			if Value.zombies == nil then
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, 0)
@@ -1597,7 +1862,7 @@ return {
 		}))
 			load_player(Player)
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 21)
 			alloc(4)
 			buffer.writeu32(outgoing_buff, outgoing_apos, Value.level)
 			alloc(4)
@@ -1613,7 +1878,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 21)
 			alloc(4)
 			buffer.writeu32(outgoing_buff, outgoing_apos, Value.level)
 			alloc(4)
@@ -1636,7 +1901,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 21)
 			alloc(4)
 			buffer.writeu32(outgoing_buff, outgoing_apos, Value.level)
 			alloc(4)
@@ -1661,7 +1926,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 21)
 			alloc(4)
 			buffer.writeu32(outgoing_buff, outgoing_apos, Value.level)
 			alloc(4)
@@ -1686,7 +1951,7 @@ return {
 		}))
 			load_player(Player)
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 22)
 			local len = #Value.type
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -1708,7 +1973,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 22)
 			local len = #Value.type
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -1737,7 +2002,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 22)
 			local len = #Value.type
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -1768,7 +2033,7 @@ return {
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 22)
 			local len = #Value.type
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -1795,7 +2060,7 @@ return {
 		Fire = function(Player: Player, Value: ({ (string) }))
 			load_player(Player)
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 19)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 23)
 			local len = #Value
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -1812,7 +2077,7 @@ return {
 		FireAll = function(Value: ({ (string) }))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 19)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 23)
 			local len = #Value
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -1836,7 +2101,7 @@ return {
 		FireExcept = function(Except: Player, Value: ({ (string) }))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 19)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 23)
 			local len = #Value
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -1862,7 +2127,7 @@ return {
 		FireList = function(List: { Player }, Value: ({ (string) }))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 19)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 23)
 			local len = #Value
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -1888,7 +2153,7 @@ return {
 		Fire = function(Player: Player, Value: (string))
 			load_player(Player)
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 23)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 27)
 			local len = #Value
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -1899,7 +2164,7 @@ return {
 		FireAll = function(Value: (string))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 23)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 27)
 			local len = #Value
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -1917,7 +2182,7 @@ return {
 		FireExcept = function(Except: Player, Value: (string))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 23)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 27)
 			local len = #Value
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -1937,7 +2202,7 @@ return {
 		FireList = function(List: { Player }, Value: (string))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 23)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 27)
 			local len = #Value
 			alloc(2)
 			buffer.writeu16(outgoing_buff, outgoing_apos, len)
@@ -2002,11 +2267,31 @@ return {
 			end
 		end,
 	},
+	updateSettings = {
+		SetCallback = function(Callback: (Player, ({
+			category: (string),
+			setting: (string),
+			value: ((unknown)?),
+		})) -> ()): () -> ()
+			events[9] = Callback
+			return function()
+				events[9] = nil
+			end
+		end,
+	},
+	toggleAFKMode = {
+		SetCallback = function(Callback: (Player, (boolean)) -> ()): () -> ()
+			events[10] = Callback
+			return function()
+				events[10] = nil
+			end
+		end,
+	},
 	melee = {
 		SetCallback = function(Callback: (Player) -> ()): () -> ()
-			events[7] = Callback
+			events[11] = Callback
 			return function()
-				events[7] = nil
+				events[11] = nil
 			end
 		end,
 	},
@@ -2015,25 +2300,25 @@ return {
 			equipmentName: (string),
 			hitPos: (Vector3),
 		})) -> ()): () -> ()
-			events[15] = Callback
+			events[19] = Callback
 			return function()
-				events[15] = nil
+				events[19] = nil
 			end
 		end,
 	},
 	voteForMap = {
 		SetCallback = function(Callback: (Player, (string)) -> ()): () -> ()
-			events[20] = Callback
+			events[24] = Callback
 			return function()
-				events[20] = nil
+				events[24] = nil
 			end
 		end,
 	},
 	deployed = {
 		SetCallback = function(Callback: (Player) -> ()): () -> ()
-			events[21] = Callback
+			events[25] = Callback
 			return function()
-				events[21] = nil
+				events[25] = nil
 			end
 		end,
 	},
@@ -2051,25 +2336,25 @@ return {
 				value: (boolean),
 			}),
 		})) -> ()): () -> ()
-			events[22] = Callback
+			events[26] = Callback
 			return function()
-				events[22] = nil
+				events[26] = nil
 			end
 		end,
 	},
 	getSkillTree = {
 		SetCallback = function(Callback: (Player) -> (((unknown)?))): () -> ()
-			events[24] = Callback
+			events[28] = Callback
 			return function()
-				events[24] = nil
+				events[28] = nil
 			end
 		end,
 	},
 	getFirerate = {
 		SetCallback = function(Callback: (Player) -> ((number))): () -> ()
-			events[25] = Callback
+			events[29] = Callback
 			return function()
-				events[25] = nil
+				events[29] = nil
 			end
 		end,
 	},
@@ -2078,33 +2363,57 @@ return {
 			skillPoints: (number),
 			rampageEssence: (number),
 		}))): () -> ()
-			events[26] = Callback
+			events[30] = Callback
 			return function()
-				events[26] = nil
+				events[30] = nil
+			end
+		end,
+	},
+	getTimeLeft = {
+		SetCallback = function(Callback: (Player) -> ((number))): () -> ()
+			events[31] = Callback
+			return function()
+				events[31] = nil
+			end
+		end,
+	},
+	getSettings = {
+		SetCallback = function(Callback: (Player) -> (((unknown)?))): () -> ()
+			events[32] = Callback
+			return function()
+				events[32] = nil
 			end
 		end,
 	},
 	getPlayerMissions = {
 		SetCallback = function(Callback: (Player) -> (((unknown)?))): () -> ()
-			events[27] = Callback
+			events[33] = Callback
 			return function()
-				events[27] = nil
+				events[33] = nil
 			end
 		end,
 	},
 	claimMissionRewards = {
 		SetCallback = function(Callback: (Player, (number)) -> ((boolean))): () -> ()
-			events[28] = Callback
+			events[34] = Callback
 			return function()
-				events[28] = nil
+				events[34] = nil
+			end
+		end,
+	},
+	getPlayerState = {
+		SetCallback = function(Callback: (Player) -> ((string))): () -> ()
+			events[35] = Callback
+			return function()
+				events[35] = nil
 			end
 		end,
 	},
 	getLbData = {
 		SetCallback = function(Callback: (Player, (string)) -> (((unknown)?))): () -> ()
-			events[29] = Callback
+			events[36] = Callback
 			return function()
-				events[29] = nil
+				events[36] = nil
 			end
 		end,
 	},
@@ -2116,9 +2425,9 @@ return {
 			timeLeft: ((number)?),
 			gameActive: ((boolean)?),
 		}))): () -> ()
-			events[30] = Callback
+			events[37] = Callback
 			return function()
-				events[30] = nil
+				events[37] = nil
 			end
 		end,
 	},
@@ -2128,9 +2437,9 @@ return {
 			xp: (number),
 			xpMax: (number),
 		}))): () -> ()
-			events[31] = Callback
+			events[38] = Callback
 			return function()
-				events[31] = nil
+				events[38] = nil
 			end
 		end,
 	},
@@ -2143,9 +2452,9 @@ return {
 			}),
 			ownedWeapons: ({ (string) }),
 		}))): () -> ()
-			events[32] = Callback
+			events[39] = Callback
 			return function()
-				events[32] = nil
+				events[39] = nil
 			end
 		end,
 	},

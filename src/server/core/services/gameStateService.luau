@@ -4,7 +4,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Signal = require(ReplicatedStorage.sharedPackages.Signal)
+local monetizationUtil = require(ReplicatedStorage.shared.utilities.monetizationUtil)
 local playerDataService = require(script.Parent.playerDataService)
+local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
 local zap = require(ServerStorage.zap)
 local gameStateService = {}
 
@@ -20,7 +22,7 @@ local MAP_IMAGES = {
 }
 
 local START_ROUND_TIME = 120 -- Total time for each round (e.g., 120 seconds)
-local INTERMISSION_TIME = 15 -- Time for the intermission phase (e.g., 30 seconds)
+local INTERMISSION_TIME = 60 -- Time for the intermission phase (e.g., 30 seconds)
 
 local currentRound = ServerStorage:GetAttribute("StartingRound") or 0
 local roundActive = false
@@ -28,6 +30,8 @@ local intermissionActive = true
 local roundTime = 0 -- Time left in the current round
 local intermissionTime = 0 -- Time left in the intermission
 local loadedMap = nil
+local isFirstRun = true
+local firstRunIntermissionTimer = 15
 
 local mapFolder = ServerStorage.Maps
 local workspaceMapContent = workspace.MapContainer.MapContent
@@ -83,7 +87,7 @@ end
 
 -- Initialize or reset the intermission time
 function gameStateService.resetIntermissionTime()
-	intermissionTime = INTERMISSION_TIME
+	intermissionTime = isFirstRun and firstRunIntermissionTimer or INTERMISSION_TIME
 end
 function gameStateService.reduceRoundTime(deltaTime)
 	if roundActive then
@@ -169,7 +173,9 @@ end
 
 -- Start the intermission phase
 function gameStateService.startIntermission()
+	local intermissionTime = isFirstRun and firstRunIntermissionTimer or INTERMISSION_TIME
 	gameStateService.resetIntermissionTime()
+	isFirstRun = false
 	intermissionActive = true
 	table.clear(mapVotes) -- Reset map votes
 	gameStateService.startingIntermission:Fire()
@@ -179,7 +185,7 @@ function gameStateService.startIntermission()
 
 	-- Notify all players about the available maps and allow them to vote
 	zap.updateUI.FireAll({
-		timeLeft = INTERMISSION_TIME,
+		timeLeft = intermissionTime,
 		wave = 0,
 		wavesTillBoss = 0,
 		zombies = 0,
@@ -281,16 +287,19 @@ function gameStateService.endGame()
 			continue
 		end
 
-		if currentRound > profile.Data.HighestRound then
-			profile.Data.HighestRound = currentRound
+		if currentRound > profile.Data.lbStats.HighestRound then
+			playerDataService.setLbStat(player, "HighestRound", currentRound)
 		end
 
 		if currentRound > 5 then
-			profile.Data.GamesPlayed += 1
+			playerDataService.incrementLbStat(player, "GamesPlayed", 1)
 		end
 
 		playerDataService.setProfile(player, profile)
 
+		if player:GetAttribute("AFK") then
+			continue
+		end
 		player:LoadCharacter() -- Respawn the character
 	end
 
@@ -343,29 +352,18 @@ function gameStateService.start()
 				updatePlayerState(player, PLAYER_STATE.inMap)
 				zap.updateUI.Fire(player, {
 					playerState = playerStates[player.UserId], -- Send the player's state
+					gameActive = roundActive,
 				})
 			end)
 		end
 	end)
 
-	-- When a player joins the game they are shown a main menu and are not technically in the game yet
-	-- until they hit the deploy button. Once they do so they are able to join the game and play.
-	zap.deployed.SetCallback(function(player)
-		if playerStates[player.UserId] == PLAYER_STATE.inHud then
-			-- Player has clicked the deploy button, moving them to the lobby
-			updatePlayerState(player, PLAYER_STATE.inLobby)
+	zap.toggleAFKMode.SetCallback(function(player, value)
+		player:SetAttribute("AFK", value)
+	end)
 
-			-- Update their UI or any necessary setup now that they are in the lobby
-			zap.updateUI.Fire(player, {
-				playerState = playerStates[player.UserId], -- Send the player's state
-			})
-		end
-		if not playerStates[player.UserId] then
-			updatePlayerState(player, PLAYER_STATE.inLobby)
-			zap.updateUI.Fire(player, {
-				playerState = playerStates[player.UserId], -- Send the player's state
-			})
-		end
+	zap.getTimeLeft.SetCallback(function()
+		return roundActive and roundTime or intermissionTime
 	end)
 
 	-- When a round starts, move players from lobby to map
@@ -385,6 +383,9 @@ function gameStateService.start()
 					if humanoid:GetState() == Enum.HumanoidStateType.Dead then
 						return
 					end
+					if player:GetAttribute("AFK") then
+						return
+					end
 					updatePlayerState(player, PLAYER_STATE.inMap)
 					player:RequestStreamAroundAsync(spawnLocation.Position)
 					-- We do this in order to make sure the client knows when to tp because the floor will have been streamed
@@ -395,6 +396,22 @@ function gameStateService.start()
 					})
 				end)
 			end
+
+			-- Heal every wave gamepass
+			task.spawn(function()
+				if
+					monetizationUtil.userOwnsGamepass(
+						player.UserId,
+						sharedInfo.Gamepasses["Heal every wave"]
+					)
+				then
+					local character = player.Character
+					local humanoid = character and character:FindFirstChild("Humanoid")
+					if humanoid then
+						humanoid.Health = humanoid.MaxHealth
+					end
+				end
+			end)
 		end
 	end)
 
@@ -415,14 +432,37 @@ function gameStateService.start()
 		end
 	end)
 
+	zap.getPlayerState.SetCallback(function(player)
+		return playerStates[player.UserId]
+	end)
+
 	Players.PlayerAdded:Connect(function(player)
-		updatePlayerState(player, PLAYER_STATE.inHud)
+		updatePlayerState(player, PLAYER_STATE.inLobby)
 		zap.updateUI.Fire(player, {
 			playerState = playerStates[player.UserId], -- Send the player's state
+			gameActive = roundActive,
 		})
 
 		player.CharacterAdded:Connect(function(character)
 			local humanoid = character:WaitForChild("Humanoid")
+
+			zap.updateUI.Fire(player, {
+				playerState = playerStates[player.UserId],
+				gameActive = roundActive,
+			})
+
+			if
+				monetizationUtil.userOwnsGamepass(
+					player.UserId,
+					sharedInfo.Gamepasses["+50 Health"]
+				)
+			then
+				if humanoid then
+					humanoid.MaxHealth += 50
+					humanoid.Health = humanoid.MaxHealth
+				end
+			end
+
 			humanoid.Died:Connect(function()
 				if playerStates[player.UserId] == PLAYER_STATE.inMap then
 					updatePlayerState(player, PLAYER_STATE.dead)

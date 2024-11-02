@@ -50,33 +50,6 @@ local function clearAllHighlights()
 	end
 end
 
-local function createRagdoll(zombie)
-	for _, joint in pairs(zombie:GetDescendants()) do
-		if joint:IsA("Motor6D") then
-			local part0, part1 = joint.Part0, joint.Part1
-			local attachment0 = Instance.new("Attachment", part0)
-			local attachment1 = Instance.new("Attachment", part1)
-			attachment0.CFrame = joint.C0
-			attachment1.CFrame = joint.C1
-
-			local constraint
-			-- Add different constraint types based on the body part
-			if part0.Name == "Torso" or part1.Name == "Torso" then
-				-- Use a HingeConstraint for the torso
-				constraint = Instance.new("HingeConstraint")
-			else
-				-- Use BallSocketConstraints for limbs
-				constraint = Instance.new("BallSocketConstraint")
-			end
-
-			constraint.Attachment0 = attachment0
-			constraint.Attachment1 = attachment1
-			constraint.Parent = part0
-			joint:Destroy()
-		end
-	end
-end
-
 --[[
 	- @param type: String identifier for the type of zombie to create
 	- @param CFrame: CFrame position to spawn the zombie at
@@ -133,10 +106,9 @@ function zombieService.newZombie(type, cframe)
 		zombie.aiRunning = true
 	end
 
-	-- Handle zombie death
-	-- Handle zombie death
 	humanoid.Died:Connect(function()
-		createRagdoll(zombieModel)
+		zombieUtil.createRagdoll(zombieModel)
+		-- Create an impulse that pushes the zombie backwards
 		local index = table.find(zombieComponents, zombie)
 		if index then
 			table.remove(zombieComponents, index)
@@ -195,7 +167,6 @@ local spawnedElites = {} -- Track spawned elite zombies per round
 --]]
 function zombieService.spawnZombies(roundNum)
 	local numPlayers = #Players:GetPlayers()
-	-- Calculate the number of zombies to spawn for this round
 	local numZombiesToSpawn = (5 + 6 * (roundNum - 1)) * (1 + math.log(numPlayers))
 	local possibleTypes = {}
 	local eliteTypes = {}
@@ -213,7 +184,6 @@ function zombieService.spawnZombies(roundNum)
 					cumulativeWeight = wt,
 				})
 			else
-				-- Normal zombies
 				table.insert(possibleTypes, {
 					type = zombieType,
 					cumulativeWeight = wt,
@@ -223,13 +193,13 @@ function zombieService.spawnZombies(roundNum)
 		end
 	end
 
-	-- Ensure there's always at least the default "Zombie" type
+	-- Ensure there's at least the default "Zombie" type
 	if #possibleTypes == 0 then
 		possibleTypes = { { type = "Zombie", cumulativeWeight = 1 } }
 		totalWeight = 1
 	end
 
-	-- Find all spawn points from the "ZombieSpawns" collection
+	-- Find all spawn points from "ZombieSpawns"
 	local spawnPoints = CollectionService:GetTagged("ZombieSpawns")
 	spawnPoints = Sift.Array.filter(spawnPoints, function(v)
 		return v:IsDescendantOf(workspace)
@@ -239,12 +209,12 @@ function zombieService.spawnZombies(roundNum)
 		return
 	end
 
-	-- Spawn the calculated number of zombies based on the weighted zombie types
+	-- Add all zombies to the queue
 	for _ = 1, numZombiesToSpawn do
 		local randomWeight = math.random() * totalWeight
 		local zombieType = "Zombie" -- Default if no other found
 
-		-- Determine which zombie type to spawn based on the randomWeight
+		-- Determine zombie type based on random weight
 		for _, pt in possibleTypes do
 			if randomWeight <= pt.cumulativeWeight then
 				zombieType = pt.type
@@ -252,59 +222,43 @@ function zombieService.spawnZombies(roundNum)
 			end
 		end
 
-		-- Check for elite zombies: spawn each elite zombie only once per round
+		-- Check for elite zombies
 		for _, eliteType in eliteTypes do
 			if
 				not spawnedElites[eliteType.type]
 				and roundNum >= zombieConfig[eliteType.type].beginSpawningRound
 			then
 				zombieType = eliteType.type
-				spawnedElites[eliteType.type] = true -- Mark this elite as spawned
+				spawnedElites[eliteType.type] = true -- Mark as spawned
 				break
 			end
 		end
 
-		-- Choose a random spawn point
+		-- Select a random spawn point and add to queue
 		local spawnPoint = spawnPoints[math.random(1, #spawnPoints)].CFrame
-
-		if zombieService.getNumZombies() >= MAX_ZOMBIES_SPAWNED_AT_ONCE then
-			-- Add zombies to queue if max limit is reached
-			table.insert(queuedZombies, { type = zombieType, spawnPoint = spawnPoint })
-		else
-			zombieService.newZombie(zombieType, spawnPoint)
-			task.wait(0.25)
-		end
+		table.insert(queuedZombies, { type = zombieType, spawnPoint = spawnPoint })
 	end
 
-	zap.updateUI.FireAll({
-		timeLeft = gameStateService.getTimeLeft(),
-		wave = gameStateService.getCurrentRound(),
-		wavesTillBoss = gameStateService.getCurrentRound() % 10,
-		zombies = #zombieComponents + #queuedZombies,
-		gameActive = true,
-	})
+	-- Spawn zombies from queue
+	task.spawn(function()
+		while #queuedZombies > 0 and gameStateService.isRoundActive() do
+			if zombieService.getNumZombies() < MAX_ZOMBIES_SPAWNED_AT_ONCE then
+				local nextZombie = table.remove(queuedZombies, 1)
+				zombieService.newZombie(nextZombie.type, nextZombie.spawnPoint)
 
-	-- Handle queued zombies if the limit was reached during spawning
-	if #queuedZombies > 0 then
-		task.spawn(function()
-			while #queuedZombies > 0 and gameStateService.isRoundActive() do
-				if zombieService.getNumZombies() < MAX_ZOMBIES_SPAWNED_AT_ONCE then
-					local nextZombie = table.remove(queuedZombies, 1)
-					zombieService.newZombie(nextZombie.type, nextZombie.spawnPoint)
-
-					zap.updateUI.FireAll({
-						timeLeft = gameStateService.getTimeLeft(),
-						wave = gameStateService.getCurrentRound(),
-						wavesTillBoss = gameStateService.getCurrentRound() % 10,
-						zombies = #zombieComponents + #queuedZombies,
-						gameActive = true,
-					})
-					task.wait(0.25)
-				end
+				zap.updateUI.FireAll({
+					timeLeft = gameStateService.getTimeLeft(),
+					wave = gameStateService.getCurrentRound(),
+					wavesTillBoss = gameStateService.getCurrentRound() % 10,
+					zombies = #zombieComponents + #queuedZombies,
+					gameActive = true,
+				})
+				task.wait(0.25)
+			else
 				task.wait()
 			end
-		end)
-	end
+		end
+	end)
 end
 
 function zombieService.despawnAll()
@@ -322,7 +276,6 @@ end
 
 function zombieService.start()
 	zombieUtil.createShockwave:Connect(function(hitZombies, radius, shockwaveDamage)
-		print("Creating shockwave with radius", radius, "and damage", shockwaveDamage)
 		-- Trigger shockwave, damaging nearby zombies
 		for _, hitZombie in hitZombies do
 			local nearbyZombies = zombieUtil.getNearbyZombies(
@@ -392,6 +345,7 @@ function zombieService.start()
 	end)
 
 	Players.PlayerAdded:Connect(function(player)
+		player.CharacterAdded:Wait()
 		zap.updateUI.Fire(player, {
 			timeLeft = if gameStateService.isRoundActive()
 				then gameStateService.getTimeLeft()

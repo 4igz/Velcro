@@ -11,6 +11,8 @@ local UserInputService = game:GetService("UserInputService")
 local shared = ReplicatedStorage.shared
 local packages = ReplicatedStorage.sharedPackages
 
+local localPlayer = Players.LocalPlayer
+
 local CameraShaker = require(ReplicatedStorage.CameraShaker) :: ModuleScript
 local Input = require(packages.Input)
 local OTS = require(ReplicatedStorage.OTS) :: ModuleScript
@@ -22,6 +24,7 @@ local damageNumberContainer =
 local uiController = require(script.Parent.uiController)
 local weaponConfig = require(shared.configurations.weaponConfig)
 local weaponSettings = require(shared.configurations.weaponConfig)
+local weaponUtil = require(ReplicatedStorage.shared.utilities.weaponUtil)
 local zap = require(ReplicatedStorage.zap)
 
 local RAYCAST_BEAM_DURATION = 0.05
@@ -34,10 +37,12 @@ local CONTROLS = {
 	activation = { Enum.UserInputType.MouseButton1, Enum.KeyCode.ButtonR2 }, -- Aka attack, shoot, swing, throw, etc
 }
 
-local otsEnabled = false
+local otsEnabled = true
+local cameraShakeEnabled = true
+local damageNumbersEnabled = true
+local othersRayEnabled = true
 
 local camera = workspace.CurrentCamera
-local localPlayer = Players.LocalPlayer
 local mouse = localPlayer:GetMouse()
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 local mouseInput = Input.Mouse.new()
@@ -316,19 +321,21 @@ end
 function weaponController.replicateBulletHit(data)
 	-- local hitPart = data.hitPart
 
-	local viewportSize = camera.ViewportSize
+	if damageNumbersEnabled then
+		local viewportSize = camera.ViewportSize
 
-	local mp = if UserInputService.TouchEnabled
-		then Vector2.new(viewportSize.X / 2, viewportSize.Y / 2 - 87)
-		else UserInputService:GetMouseLocation() - GuiService:GetGuiInset()
+		local mp = if UserInputService.TouchEnabled
+			then Vector2.new(viewportSize.X / 2, viewportSize.Y / 2 - 87)
+			else UserInputService:GetMouseLocation() - GuiService:GetGuiInset()
 
-	damageNumberRoot:render(React.createElement(damageNumberContainer, {
-		damage = math.floor(data.damage),
-		critical = data.isCritical,
-		-- Get mouse position on screen
-		position = mp,
-		timestamp = tick(),
-	}))
+		damageNumberRoot:render(React.createElement(damageNumberContainer, {
+			damage = math.floor(data.damage),
+			critical = data.isCritical,
+			-- Get mouse position on screen
+			position = mp,
+			timestamp = tick(),
+		}))
+	end
 
 	hitmarkerSound:Play()
 	hitmarkerRoot:render(hitmarker())
@@ -337,13 +344,34 @@ function weaponController.replicateBulletHit(data)
 	end)
 end
 
-function weaponController.visualizeKill(data)
-	killSound:Play()
+function weaponController.visualizeKill(zombie)
+	if not zombie then
+		killSound:Play()
 
-	local c = CameraShaker.CameraShakeInstance.new(1, 4, 0, 0.3)
-	c.PositionInfluence = Vector3.new(0.5, 0.5, 0.5)
-	c.RotationInfluence = Vector3.new(0, 0, 0)
-	cameraShaker:Shake(c)
+		if cameraShakeEnabled then
+			local c = CameraShaker.CameraShakeInstance.new(1, 4, 0, 0.3)
+			c.PositionInfluence = Vector3.new(0.5, 0.5, 0.5)
+			c.RotationInfluence = Vector3.new(0, 0, 0)
+			cameraShaker:Shake(c)
+		end
+		return
+	end
+
+	local character = localPlayer.Character
+	if not character or not character.PrimaryPart then
+		return
+	end
+	local shooterPos = character.PrimaryPart.Position
+	if not zombie or not zombie.PrimaryPart then
+		return
+	end
+	local zombiePos = zombie.PrimaryPart.Position
+
+	-- Calculate the direction and magnitude of the impulse
+	local impulseDirection = (zombiePos - shooterPos).Unit
+	local impulseMagnitude = 500 -- Adjust this value for more or less force
+	local impulseForce = impulseDirection * impulseMagnitude
+	zombie.PrimaryPart:ApplyImpulse(impulseForce)
 end
 
 function weaponController.start()
@@ -358,6 +386,19 @@ function weaponController.start()
 			end
 		end
 	end
+
+	-- Setup settings listeners
+	weaponConfig.signals.toggleCameraShake:Connect(function(value)
+		cameraShakeEnabled = value
+	end)
+
+	weaponConfig.signals.toggleDamageNumbers:Connect(function(value)
+		damageNumbersEnabled = value
+	end)
+
+	weaponConfig.signals.toggleOthersRays:Connect(function(value)
+		othersRayEnabled = value
+	end)
 
 	if UserInputService.TouchEnabled then
 		local mobileUi = localPlayer.PlayerGui:WaitForChild("MobileUi")
@@ -377,8 +418,11 @@ function weaponController.start()
 		end)
 	end
 
-	UserInputService.InputBegan:Connect(function(input)
-		if input.KeyCode == Enum.KeyCode.LeftShift then
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.ButtonL3 then
 			if expectingInput then
 				if otsEnabled then
 					OTS.Disable()
@@ -428,7 +472,10 @@ function weaponController.start()
 					return instance.Transparency < 1 and instance.CanCollide -- Adjust as needed
 				end
 
-				local function performRaycast(origin, direction, range, params)
+				-- TODO: Calculate spread on client
+				local function performRaycast(origin, rawDirection, range, params)
+					local direction =
+						weaponUtil.getSpreadDirectionFromSettings(rawDirection, currentWs)
 					local rayOrigin = origin
 					local hitPosition, hitInstance
 					local maxIterations = 10 -- Limit the number of attempts to avoid infinite loop
@@ -503,7 +550,12 @@ function weaponController.start()
 
 	zap.replicateKill.SetCallback(weaponController.visualizeKill)
 	zap.replicateHit.SetCallback(weaponController.replicateBulletHit)
-	zap.replicateCast.SetCallback(weaponController.visualizeCast)
+	zap.replicateCast.SetCallback(function(data)
+		if not othersRayEnabled then
+			return
+		end
+		weaponController.visualizeCast(data)
+	end)
 	localPlayer.CharacterAdded:Connect(setupCharacter)
 end
 

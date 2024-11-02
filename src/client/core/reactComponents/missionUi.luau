@@ -1,3 +1,5 @@
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.sharedPackages.React)
@@ -43,6 +45,9 @@ local function missionTemplate(props)
 			Text = "",
 			TextColor3 = Color3.fromRGB(0, 0, 0),
 			TextSize = 14,
+			[React.Event.Activated] = function()
+				-- MarketplaceService:PromptProductPurchase(Players.LocalPlayer, props.devProduct)
+			end,
 		}, {
 			uIStroke4 = e("UIStroke", {
 				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
@@ -233,6 +238,7 @@ return function(props)
 					rewardAmount = cfg.rewards[mission.currentGoalIndex],
 					rewardType = cfg.reward,
 					type = cfg.type,
+					devProduct = cfg.devProduct,
 				})
 			)
 		end

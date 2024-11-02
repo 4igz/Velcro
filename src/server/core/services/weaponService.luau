@@ -215,6 +215,9 @@ function weaponService.buyWeapon(player: Player, data: { weaponName: string, wea
 		profile.Data.Money -= cfg.price
 		table.insert(profile.Data.ownedWeapons, data.weaponName)
 		playerDataService.setProfile(player, profile)
+		zap.playSound.Fire(player, "Purchase")
+	else
+		zap.playSound.Fire(player, "PurchaseFail")
 	end
 end
 
@@ -308,6 +311,13 @@ function weaponService.start()
 				skillService.applySkills(shooter, ws)
 			end
 
+			local primaryPart = zombie.PrimaryPart :: BasePart
+			if primaryPart then
+				primaryPart:SetNetworkOwner(shooter)
+				zap.replicateKill.Fire(shooter, zombie)
+			end
+			-- Apply an impulse to the zombie to make it fly back
+
 			-- TODO: Add money and xp to player for killing certain zombies
 			local cfg = zombieStatConfig[zombie.Name]
 
@@ -317,11 +327,55 @@ function weaponService.start()
 				playerDataService.setProfile(shooter, profile)
 			end
 
+			local xpMult = 1
+			local moneyMult = 1
+			local ownsSuperstarVip = monetizationUtil.userOwnsGamepass(
+				shooter.UserId,
+				sharedInfo.Gamepasses["Ultra VIP"]
+			)
+
+			if shooter.MembershipType == Enum.MembershipType.Premium then
+				xpMult *= 1.1
+				moneyMult *= 1.1
+			end
+
+			-- 2x XP gamepass
+			if
+				monetizationUtil
+					.userOwnsGamepass(shooter.UserId, sharedInfo.Gamepasses["2x XP"])
+					:expect()
+			then
+				xpMult *= 2
+			end
+
+			-- VIP gamepass
+			if
+				monetizationUtil.userOwnsGamepass(shooter.UserId, sharedInfo.Gamepasses.VIP)
+				or ownsSuperstarVip
+			then
+				xpMult *= 1.2
+				moneyMult *= 1.2
+			end
+
+			-- Superstar VIP gamepass
+			if ownsSuperstarVip then
+				xpMult *= 1.5
+			end
+
+			-- 2x Cash gamepass
+			if
+				monetizationUtil
+					.userOwnsGamepass(shooter.UserId, sharedInfo.Gamepasses["2x Cash"])
+					:expect()
+			then
+				moneyMult *= 2
+			end
+
 			--TODO:  This will later change based on rebirth status and gamepasses and such
-			levelService.addExperience(shooter, cfg.xpDropped or 1)
-			local moneyDropped = cfg.moneyDropped
-					* (1 + (0.10 * gameStateService.getCurrentRound()))
-				or 10
+			levelService.addExperience(shooter, (cfg.xpDropped or 1) * xpMult)
+			local moneyDropped = (
+				cfg.moneyDropped * (1 + (0.10 * gameStateService.getCurrentRound())) or 10
+			) * moneyMult
 			moneyService.addMoney(shooter, moneyDropped)
 			zap.updateFeeds.Fire(
 				shooter,

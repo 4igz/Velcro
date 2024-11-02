@@ -1,3 +1,4 @@
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -98,6 +99,10 @@ function missionService.updateMissionProgress(player, requirement, progressType,
 				missionData.progress = 0
 			end
 
+			local profile = playerDataService.getProfile(player)
+			profile.Data.missions = playerMissions[player.UserId]
+			playerDataService.setProfile(player, profile)
+
 			-- Notify the client about the mission update
 			zap.missionUpdated.Fire(player)
 		end
@@ -117,7 +122,7 @@ function missionService.grantRewards(player, missionId, goalIndex)
 	local rewardAmount = missionInfo.rewards[goalIndex]
 
 	if rewardType and rewardAmount then
-		if rewardType == "coins" then
+		if rewardType == "cash" then
 			moneyService.addMoney(player, rewardAmount)
 		elseif rewardType == "xp" then
 			levelService.addExperience(player, rewardAmount)
@@ -128,7 +133,7 @@ function missionService.grantRewards(player, missionId, goalIndex)
 end
 
 -- Claim reward for a specific mission goal
-function missionService.claimMissionReward(player, missionId, goalIndex)
+function missionService.claimMissionReward(player, missionId, goalIndex, skipped)
 	local userId = player.UserId
 	local missions = playerMissions[userId]
 	if not missions then
@@ -144,6 +149,11 @@ function missionService.claimMissionReward(player, missionId, goalIndex)
 		missionData.claimedRewards[goalIndex] = true
 		missionService.grantRewards(player, missionId, goalIndex)
 		zap.missionRewardClaimed.Fire(player, { taskId = missionId, goalId = goalIndex })
+		if skipped then
+			missionData.completedGoals[missionData.currentGoalIndex] = true
+			missionData.currentGoalIndex += 1
+			missionData.progress = 0
+		end
 		return true
 	end
 
@@ -152,6 +162,41 @@ end
 
 -- Start the MissionService
 function missionService.start()
+	-- Handle skipping missions
+	MarketplaceService.ProcessReceipt = function(receiptInfo)
+		local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
+		if not player then
+			return Enum.ProductPurchaseDecision.NotProcessedYet
+		end
+
+		for missionId, missionConfig in missionConfig do
+			local userId = player.UserId
+			local missions = playerMissions[userId]
+			if not missions then
+				return Enum.ProductPurchaseDecision.NotProcessedYet
+			end
+
+			local missionData = missions[missionId]
+			if not missionData then
+				continue
+			end
+
+			if missionConfig.devProduct == receiptInfo.ProductId then
+				missionService.claimMissionReward(
+					player,
+					missionId,
+					missionData.currentGoalIndex,
+					true
+				)
+				zap.missionUpdated.Fire(player)
+
+				break
+			end
+		end
+
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	end
+
 	-- RemoteFunction handlers
 	zap.getPlayerMissions.SetCallback(function(player)
 		local userId = player.UserId
@@ -183,13 +228,7 @@ function missionService.start()
 
 	-- Handling collect money missions here
 	moneyService.addedMoney:Connect(function(player, amt)
-		missionService.updateMissionProgress(player, "collect", "coins", amt)
-	end)
-
-	Players.PlayerRemoving:Connect(function(player)
-		local profile = playerDataService.getProfile(player)
-		profile.Data.missions = playerMissions[player.UserId]
-		playerDataService.setProfile(player, profile)
+		missionService.updateMissionProgress(player, "collect", "cash", amt)
 	end)
 end
 

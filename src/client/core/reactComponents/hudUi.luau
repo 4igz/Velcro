@@ -40,7 +40,7 @@ local function app(props)
 			close = missionsController.close,
 			open = missionsController.open,
 			image = "rbxassetid://136327664483697",
-			showNotification = true,
+			showNotification = false,
 		}),
 
 		settings = sidebarButton({
@@ -56,6 +56,11 @@ local function app(props)
 		skillUi = sidebarButton({
 			text = "Skills",
 			image = "rbxassetid://104185914549448",
+		}),
+		
+		spectate = sidebarButton({
+			text = "Spectate",
+			image = "rbxassetid://95050813349943",
 		}),
 	})
 end

@@ -7,6 +7,7 @@ local ReactSpring = require(ReplicatedStorage.sharedPackages.ReactSpring)
 local gamepassUiController = require(ReplicatedStorage.client.controllers.gamepassUiController)
 local mainMenuController = require(ReplicatedStorage.client.controllers.mainMenuController)
 local missionsController = require(ReplicatedStorage.client.controllers.missionsController)
+local settingsController = require(ReplicatedStorage.client.controllers.settingsController)
 local sharedInfo = require(ReplicatedStorage.shared.sharedInfo)
 local skillUiController = require(ReplicatedStorage.client.controllers.skillUiController)
 local e = React.createElement
@@ -33,6 +34,10 @@ local function SidebarButton(props)
 		local connection
 		connection = closedUi:Connect(function(closedMenuName)
 			openMenu = nil
+
+			if closedMenuName == "Shop" then
+				mainMenuController.changeMenu("none", { fromSidebar = true })
+			end
 		end)
 
 		-- Cleanup the connection when the component unmounts
@@ -57,6 +62,8 @@ local function SidebarButton(props)
 				skillUiController.toggleUi(false)
 			elseif openMenu == "Missions" then
 				missionsController.close()
+			elseif openMenu == "Settings" then
+				settingsController.close()
 			end
 		end
 
@@ -90,6 +97,8 @@ local function SidebarButton(props)
 			)
 		elseif buttonName == "Missions" then
 			handleMenuToggle("Missions", missionsController.open, missionsController.close)
+		elseif buttonName == "Settings" then
+			handleMenuToggle("Settings", settingsController.open, settingsController.close)
 		end
 	end
 

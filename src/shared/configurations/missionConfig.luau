@@ -15,8 +15,9 @@ return {
 		type = goal.zombies,
 
 		-- Reward Info
-		reward = rewards.coins,
+		reward = rewards.cash,
 		rewards = { 100, 1_000, 10_000, 1_000_000 },
+		devProduct = 2627438486,
 	},
 
 	{
@@ -28,21 +29,23 @@ return {
 		type = goal.elites,
 
 		-- Reward Info
-		reward = rewards.coins,
+		reward = rewards.cash,
 		rewards = { 10_000, 100_000, 1_000_000 },
+		devProduct = 2627455007,
 	},
 
 	{
-		name = "Get Coins",
+		name = "Get Cash",
 
 		-- Mission Info
 		goals = { 1_000, 10_000, 100_000, 1_000_000 },
 		requirement = requirements.collect,
-		type = goal.coins,
+		type = goal.cash,
 
 		-- Reward Info
 		reward = rewards.xp,
 		rewards = { 100, 1000, 10_000, 100_000 },
+		devProduct = 2572377464,
 	},
 
 	{
@@ -54,7 +57,8 @@ return {
 		type = goal.rebirth,
 
 		-- Reward Info
-		reward = rewards.coins,
+		reward = rewards.cash,
 		rewards = { 25_000 },
+		devProduct = 2627488007,
 	},
 }

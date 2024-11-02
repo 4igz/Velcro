@@ -14,15 +14,15 @@ local suffixes = {
 	{ 10 ^ 36, "ud" }, -- Undecillion
 	{ 10 ^ 33, "dc" }, -- Decillion
 	{ 10 ^ 30, "no" }, -- Nonillion
-	{ 10 ^ 27, "oc" }, -- Octillion
-	{ 10 ^ 24, "sp" }, -- Septillion
-	{ 10 ^ 21, "sx" }, -- Sextillion
-	{ 10 ^ 18, "qn" }, -- Quintillion
-	{ 10 ^ 15, "qd" }, -- Quadrillion
-	{ 10 ^ 12, "t" }, -- Trillion
-	{ 10 ^ 9, "b" }, -- Billion
-	{ 10 ^ 6, "m" }, -- Million
-	{ 10 ^ 3, "k" }, -- Thousand
+	{ 10 ^ 27, "Oc" }, -- Octillion
+	{ 10 ^ 24, "Sp" }, -- Septillion
+	{ 10 ^ 21, "Sx" }, -- Sextillion
+	{ 10 ^ 18, "Qn" }, -- Quintillion
+	{ 10 ^ 15, "Qd" }, -- Quadrillion
+	{ 10 ^ 12, "T" }, -- Trillion
+	{ 10 ^ 9, "B" }, -- Billion
+	{ 10 ^ 6, "M" }, -- Million
+	{ 10 ^ 3, "K" }, -- Thousand
 }
 
 function numberUtil.simplifyNumber(n)

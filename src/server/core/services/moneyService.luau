@@ -12,6 +12,7 @@ function moneyService.addMoney(player: Player, amt: number)
 
 	profile.Data.Money += amt
 	moneyService.addedMoney:Fire(player, amt)
+	playerDataService.incrementLbStat(player, "MoneyGained", amt)
 
 	playerDataService.setProfile(player, profile)
 end

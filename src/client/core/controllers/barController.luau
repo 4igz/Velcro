@@ -25,22 +25,33 @@ function barController.start()
 	end
 	local root = ReactRoblox.createRoot(gui)
 
-	sharedInfo.UISignals.deployed:Once(function()
-		localPlayer.CharacterAdded:Connect(function(character)
-			local humanoid = character:WaitForChild("Humanoid", 5)
-			if not humanoid then
-				return
-			end
-			root:render(app({ health = humanoid.Health, maxHealth = humanoid.MaxHealth }))
+	localPlayer.CharacterAdded:Connect(function(character)
+		local humanoid = character:WaitForChild("Humanoid", 5)
+		if not humanoid then
+			return
+		end
+		root:render(app({ health = humanoid.Health, maxHealth = humanoid.MaxHealth }))
 
-			humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-				root:render(app({ health = humanoid.Health, maxHealth = humanoid.MaxHealth }))
-			end)
+		humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+			root:render(app({ health = humanoid.Health, maxHealth = humanoid.MaxHealth }))
 		end)
+	end)
+	local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+	local humanoid = character:WaitForChild("Humanoid", 5)
+
+	local levelData = zap.getLevelData.Call()
+
+	root:render(app({
+		health = humanoid.Health,
+		maxHealth = humanoid.MaxHealth,
+		level = levelData.level,
+		xp = levelData.xp,
+		xpMax = levelData.xpMax,
+	}))
+
+	zap.updateLevelUi.SetCallback(function(levelData)
 		local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
 		local humanoid = character:WaitForChild("Humanoid", 5)
-
-		local levelData = zap.getLevelData.Call()
 
 		root:render(app({
 			health = humanoid.Health,
@@ -49,19 +60,6 @@ function barController.start()
 			xp = levelData.xp,
 			xpMax = levelData.xpMax,
 		}))
-
-		zap.updateLevelUi.SetCallback(function(levelData)
-			local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-			local humanoid = character:WaitForChild("Humanoid", 5)
-
-			root:render(app({
-				health = humanoid.Health,
-				maxHealth = humanoid.MaxHealth,
-				level = levelData.level,
-				xp = levelData.xp,
-				xpMax = levelData.xpMax,
-			}))
-		end)
 	end)
 end
 

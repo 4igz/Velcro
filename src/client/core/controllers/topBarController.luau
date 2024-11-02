@@ -17,15 +17,11 @@ local function app(props)
 	return React.createElement(topBar, props)
 end
 
-function topBarController.start()
-	local root = ReactRoblox.createRoot(Instance.new("Folder"))
+local root = ReactRoblox.createRoot(Instance.new("Folder"))
 
-	sharedInfo.UISignals.deployed:Once(function()
-		root:render(ReactRoblox.createPortal(app(), gui))
-		zap.updateUI.SetCallback(function(props)
-			root:render(ReactRoblox.createPortal(app(props), gui))
-		end)
-	end)
-end
+root:render(ReactRoblox.createPortal(app(), gui))
+zap.updateUI.SetCallback(function(props)
+	root:render(ReactRoblox.createPortal(app(props), gui))
+end)
 
 return topBarController
