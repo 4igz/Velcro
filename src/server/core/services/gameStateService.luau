@@ -165,7 +165,7 @@ local function getRandomMaps(mapList, numberOfMaps): { string }
 	-- Only return the first `numberOfMaps` elements
 	local selectedMaps = {}
 	for i = 1, math.min(numberOfMaps, #maps) do
-		table.insert(selectedMaps, maps[i].Name) -- Access the Instance's Name field
+		table.insert(selectedMaps, maps[i].Name)
 	end
 
 	return selectedMaps

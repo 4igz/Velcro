@@ -28,7 +28,7 @@ local EquipmentConfig = {
 			local direction = (targetPosition - grenadeClone.Position).Unit
 			grenadeClone:ApplyImpulse(direction * 50) -- Adjust impulse as needed
 
-			local BLAST_RADIUS = 15
+			local BLAST_RADIUS = 30
 			local GRENADE_DAMAGE = 150
 			-- Set a timer for the grenade to explode
 			task.delay(1, function() -- Grenade explodes

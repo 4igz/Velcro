@@ -360,8 +360,7 @@ local function pathfindChase(zombieData, id)
 	local lastPathCalculation = 0
 	local lastLineOfSightCheck = 0
 	local lineOfSightCheckInterval = 0.25
-	local PREDICTION_TIME_FACTOR = zombieData.prediction and 1
-		or if fogCycle.fogEnabled then 1 else 0
+	local PREDICTION_TIME_FACTOR = zombieData.prediction and 1 or 0
 	local ATTACK_RANGE = 3.5
 
 	local function hasLineOfSight(target, targetPosition)

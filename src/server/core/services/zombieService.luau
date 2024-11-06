@@ -97,7 +97,7 @@ function zombieService.newZombie(type, cframe)
 		math.min(1000, cfg.health * (1 + (0.03 * gameStateService.getCurrentRound())))
 	humanoid.Health = humanoid.MaxHealth
 
-	humanoid.WalkSpeed = if fogCycle.fogEnabled then cfg.speed * 1.5 else cfg.speed
+	humanoid.WalkSpeed = cfg.speed
 	local ai = zombieAi[cfg.aiType or "basic"]
 	if ai and ai.chase then
 		task.spawn(function()
